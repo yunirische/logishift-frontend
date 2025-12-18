@@ -5,7 +5,7 @@ export const Button = ({ className, children, isLoading, ...props }: any) => (
     className={`px-4 py-2 rounded-lg font-medium transition-colors ${className} ${props.disabled || isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
     {...props}
   >
-    {isLoading ? 'Загрузка...' : children}
+    {isLoading ? 'Р—Р°РіСЂСѓР·РєР°...' : children}
   </button>
 );
 
