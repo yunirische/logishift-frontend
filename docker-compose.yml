@@ -6,6 +6,4 @@ services:
     container_name: logishift_frontend
     restart: always
     ports:
-      - "8080:80" 
-      # Сайт будет доступен на порту 8080. 
-      # Внутри контейнера Nginx слушает 80, мы пробрасываем его наружу.
+      - "8080:80"
