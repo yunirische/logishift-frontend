@@ -5,9 +5,9 @@ export const DriverView = () => {
   const { logout } = useAuth();
   return (
     <div className="p-6 text-center">
-      <h1 className="text-xl font-bold mb-4">Кабинет водителя</h1>
-      <p className="mb-4 text-slate-500">Мобильный интерфейс в разработке</p>
-      <button onClick={logout} className="text-red-500">Выйти</button>
+      <h1 className="text-xl font-bold mb-4">РљР°Р±РёРЅРµС‚ РІРѕРґРёС‚РµР»СЏ</h1>
+      <p className="mb-4 text-slate-500">РњРѕР±РёР»СЊРЅС‹Р№ РёРЅС‚РµСЂС„РµР№СЃ РІ СЂР°Р·СЂР°Р±РѕС‚РєРµ</p>
+      <button onClick={logout} className="text-red-500">Р’С‹Р№С‚Рё</button>
     </div>
   );
 };
