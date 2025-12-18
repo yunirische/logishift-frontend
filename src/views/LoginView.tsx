@@ -19,7 +19,7 @@ export const LoginView = () => {
       const res = await api.post('/auth/login', form);
       login(res.data.token, res.data.user);
     } catch (err) {
-      setError('Íåâåðíûå ó÷åòíûå äàííûå');
+      setError('Неверные учетные данные');
     } finally {
       setLoading(false);
     }
@@ -28,10 +28,10 @@ export const LoginView = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8">
-        <h1 className="text-2xl font-bold text-center mb-6">Âõîä LogiShift</h1>
+        <h1 className="text-2xl font-bold text-center mb-6">Вход LogiShift</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Ëîãèí</label>
+            <label className="block text-sm font-medium mb-1">Логин</label>
             <Input 
               icon={User} 
               value={form.login}
@@ -39,7 +39,7 @@ export const LoginView = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Ïàðîëü</label>
+            <label className="block text-sm font-medium mb-1">Пароль</label>
             <Input 
               type="password"
               icon={Lock}
@@ -56,11 +56,10 @@ export const LoginView = () => {
             className="w-full bg-blue-600 text-white hover:bg-blue-700"
             isLoading={loading}
           >
-            Âîéòè
+            Войти
           </Button>
         </form>
       </Card>
     </div>
   );
-
 };
