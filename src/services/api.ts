@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// URL берется из переменной окружения или фолбек на твой IP
-const API_URL = import.meta.env.VITE_API_URL || 'http://185.70.105.174:3000/api';
+// Р•СЃР»Рё РїРµСЂРµРјРµРЅРЅРѕР№ РЅРµС‚, РёСЃРїРѕР»СЊР·СѓРµРј РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅС‹Р№ РїСѓС‚СЊ /api
+// Р‘СЂР°СѓР·РµСЂ СЃР°Рј РїРѕРґСЃС‚Р°РІРёС‚ С‚РµРєСѓС‰РёР№ РґРѕРјРµРЅ (https://pwa.kontrolsmen.ru/api)
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -26,5 +27,6 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 
 export default api;
