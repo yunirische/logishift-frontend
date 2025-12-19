@@ -7,3 +7,10 @@ services:
     restart: always
     ports:
       - "8080:80"
+    networks:
+      - main_net
+
+networks:
+  main_net:
+    external: true
+    name: smenabot-net
