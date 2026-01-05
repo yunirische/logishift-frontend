@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Если переменной нет, используем относительный путь /api
 // Браузер сам подставит текущий домен (https://pwa.kontrolsmen.ru/api)
-const API_URL = import.meta.env.VITE_API_URL || "/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api/v1";
 
 const api = axios.create({
   baseURL: API_URL,
