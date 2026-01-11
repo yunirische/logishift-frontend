@@ -37,7 +37,7 @@ export const DriverView = () => {
         // Если смена есть в базе — сохраняем её
         setActiveShift(currentRes.data);
       } else {
-        // Если смены нет — обнуляем стейт и грузим списки выбора
+        // Если смены нет — обнуляем стейт и грузим списки выборасч
         setActiveShift(null);
         const [trucksRes, sitesRes] = await Promise.all([
           api.get("/trucks"),
