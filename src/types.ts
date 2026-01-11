@@ -10,6 +10,13 @@ export enum UserRole {
   ADMIN = "admin",
 }
 
+export interface User {
+  id: string;
+  login: string;
+  full_name: string;
+  role: UserRole;
+}
+
 export interface Shift {
   id: string;
   driver_name: string;
@@ -45,11 +52,6 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-/**
- * Глобальное расширение типов для доступа к переменным окружения через process.env.
- * Исправлено: используем расширение пространства имен NodeJS для корректной типизации process.
- * Это предотвращает ошибку "Subsequent variable declarations must have the same type".
- */
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
@@ -61,11 +63,7 @@ declare global {
       env: ProcessEnv;
     }
   }
-
-  // Объявляем глобальную переменную process, используя интерфейс из NodeJS.
-  // Это гарантирует, что тип совпадает с типом 'Process', ожидаемым компилятором.
   var process: NodeJS.Process;
 }
 
-// Это нужно, чтобы файл считался модулем
 export {};

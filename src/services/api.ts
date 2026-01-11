@@ -1,20 +1,35 @@
 import { API_ENDPOINTS } from "../constants";
+import { User } from "../types";
 
 export const TOKEN_KEY = "logishift_auth_token";
+export const USER_KEY = "logishift_user_info";
 
 export const getAuthToken = () => localStorage.getItem(TOKEN_KEY);
 export const setAuthToken = (token: string) =>
   localStorage.setItem(TOKEN_KEY, token);
-export const clearAuthToken = () => localStorage.removeItem(TOKEN_KEY);
+
+export const getUserInfo = (): User | null => {
+  const data = localStorage.getItem(USER_KEY);
+  return data ? JSON.parse(data) : null;
+};
+
+export const setUserInfo = (user: User) =>
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+
+export const clearAuth = () => {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+};
 
 /**
  * Функция для входа в систему (Login/Password)
- * Использует стандартный формат x-www-form-urlencoded, характерный для OAuth2 в FastAPI.
+ * Использует 'login' вместо 'username' как того требует бэкенд.
  */
-export const loginUser = async (username: string, password: string) => {
-  // Используем URLSearchParams для формирования application/x-www-form-urlencoded
+export const loginUser = async (login: string, password: string) => {
   const params = new URLSearchParams();
-  params.append("login", username.trim());
+  // Используем 'login' как основной идентификатор
+  params.append("login", login.trim());
+  params.append("username", login.trim()); // Для совместимости с OAuth2 scopes если нужно
   params.append("password", password);
 
   const response = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
@@ -34,15 +49,27 @@ export const loginUser = async (username: string, password: string) => {
   }
 
   const data = await response.json();
-  // Бэкенд на FastAPI обычно возвращает access_token
-  if (data.access_token) {
-    setAuthToken(data.access_token);
-    return data;
-  }
 
-  // Если бэкенд возвращает другой формат (например, просто объект пользователя с токеном)
-  if (data.token) {
-    setAuthToken(data.token);
+  if (data.access_token || data.token) {
+    const token = data.access_token || data.token;
+    setAuthToken(token);
+
+    // Сохраняем информацию о пользователе из ответа (или декодируем если бэкенд не прислал объект)
+    // В старой логике обычно объект user приходил вместе с токеном
+    if (data.user) {
+      setUserInfo(data.user);
+    } else {
+      // Заглушка если бэкенд не вернул user, но мы знаем роль по логике (например админ если login 'admin')
+      const fallbackUser: User = {
+        id: "1",
+        login: login,
+        full_name: data.full_name || login,
+        role: login.toLowerCase().includes("admin")
+          ? "admin"
+          : ("driver" as any),
+      };
+      setUserInfo(fallbackUser);
+    }
     return data;
   }
 
@@ -53,21 +80,16 @@ interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
 }
 
-/**
- * Универсальный метод для запросов к API с автоматической подстановкой Bearer токена
- */
 export const apiRequest = async (
   endpoint: string,
   options: FetchOptions = {}
 ) => {
   const token = getAuthToken();
-
   const headers = new Headers(options.headers || {});
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  // Для обычных запросов оставляем JSON
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
@@ -84,7 +106,7 @@ export const apiRequest = async (
   });
 
   if (response.status === 401) {
-    clearAuthToken();
+    clearAuth();
     window.location.reload();
     throw new Error("Unauthorized");
   }

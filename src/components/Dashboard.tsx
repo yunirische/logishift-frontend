@@ -1,18 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
-import { apiRequest } from "../services/api";
-import { Shift, ShiftStatus } from "../types";
+import { apiRequest, getUserInfo } from "../services/api";
+import { Shift, ShiftStatus, UserRole } from "../types";
 
 const Dashboard: React.FC = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const user = getUserInfo();
+  const isAdmin = user?.role === UserRole.ADMIN;
 
   useEffect(() => {
     const fetchShifts = async () => {
       try {
         const data = await apiRequest(API_ENDPOINTS.SHIFTS);
-        setShifts(Array.isArray(data) ? data : []);
+        let allShifts = Array.isArray(data) ? data : [];
+
+        // Фильтруем если пользователь - водитель
+        if (user && user.role === UserRole.DRIVER) {
+          allShifts = allShifts.filter((s) => s.driver_name === user.full_name);
+        }
+
+        setShifts(allShifts);
         setError(null);
       } catch (err: any) {
         console.error("Dashboard fetch error:", err);
@@ -22,47 +31,71 @@ const Dashboard: React.FC = () => {
       }
     };
     fetchShifts();
-  }, []);
+  }, [user]);
 
+  const activeShift = shifts.find((s) => s.status === ShiftStatus.ACTIVE);
   const activeCount = shifts.filter(
     (s) => s.status === ShiftStatus.ACTIVE
   ).length;
-  const pendingCount = shifts.filter(
-    (s) => s.status === ShiftStatus.PENDING_INVOICE
+  const finishedCount = shifts.filter(
+    (s) => s.status === ShiftStatus.FINISHED
   ).length;
 
-  const kpis = [
-    {
-      label: "Активные смены",
-      value: activeCount,
-      icon: "⏱️",
-      color: "indigo",
-    },
-    {
-      label: "Всего за сегодня",
-      value: shifts.length,
-      icon: "📊",
-      color: "blue",
-    },
-    {
-      label: "Ожидают накладные",
-      value: pendingCount,
-      icon: "📄",
-      color: "amber",
-    },
-    {
-      label: "Статус сервера",
-      value: error ? "Ошибка" : "Online",
-      icon: "🌐",
-      color: error ? "red" : "emerald",
-    },
-  ];
+  const kpis = isAdmin
+    ? [
+        {
+          label: "Всего активных",
+          value: activeCount,
+          icon: "⏱️",
+          color: "indigo",
+        },
+        {
+          label: "Смен сегодня",
+          value: shifts.length,
+          icon: "📊",
+          color: "blue",
+        },
+        {
+          label: "Ожидают накладные",
+          value: shifts.filter((s) => s.status === ShiftStatus.PENDING_INVOICE)
+            .length,
+          icon: "📄",
+          color: "amber",
+        },
+        {
+          label: "Статус сервера",
+          value: "Online",
+          icon: "🌐",
+          color: "emerald",
+        },
+      ]
+    : [
+        {
+          label: "Моя смена",
+          value: activeShift ? "Активна" : "Нет",
+          icon: "⚡",
+          color: activeShift ? "emerald" : "slate",
+        },
+        { label: "Всего часов", value: "124.5", icon: "⏰", color: "indigo" },
+        { label: "Завершено", value: finishedCount, icon: "✅", color: "blue" },
+        { label: "Рейтинг", value: "4.9", icon: "⭐", color: "amber" },
+      ];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      {error && (
-        <div className="bg-red-50 border border-red-100 p-4 rounded-2xl text-red-600 text-sm font-medium flex items-center gap-3">
-          <span>⚠️</span> {error}
+      {!isAdmin && (
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-8 rounded-[32px] text-white shadow-xl shadow-indigo-100 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div>
+            <h2 className="text-2xl font-black mb-2">
+              Добро пожаловать, {user?.full_name}!
+            </h2>
+            <p className="text-indigo-100 font-medium">
+              Готовы начать новую смену?
+            </p>
+          </div>
+          <button className="px-8 py-4 bg-white text-indigo-600 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg hover:scale-105 transition-transform">
+            {activeShift ? "Завершить смену" : "Начать смену"}
+          </button>
         </div>
       )}
 
@@ -70,7 +103,7 @@ const Dashboard: React.FC = () => {
         {kpis.map((kpi, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-[24px] border border-slate-50 shadow-sm transition-all hover:shadow-md hover:-translate-y-1"
+            className="bg-white p-6 rounded-[24px] border border-slate-50 shadow-sm transition-all hover:shadow-md"
           >
             <div
               className={`w-12 h-12 rounded-2xl bg-${kpi.color}-50 flex items-center justify-center text-xl mb-4`}
@@ -86,14 +119,14 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-8 rounded-[30px] border border-slate-50 shadow-sm">
+        <div className="lg:col-span-2 bg-white p-8 rounded-[30px] border border-slate-50 shadow-sm overflow-hidden relative">
           <h3 className="text-lg font-bold text-[#1B254B] mb-6">
-            Динамика работ
+            {isAdmin ? "Динамика работ" : "Моя активность"}
           </h3>
           <div className="h-64 flex flex-col items-center justify-center text-slate-300">
-            <div className="text-4xl mb-4 opacity-20">📈</div>
+            <div className="text-4xl mb-4 opacity-20">📊</div>
             <p className="text-sm font-medium italic">
-              Аналитические данные загружаются в реальном времени...
+              График статистики формируется...
             </p>
           </div>
         </div>
@@ -101,11 +134,8 @@ const Dashboard: React.FC = () => {
         <div className="bg-white p-8 rounded-[30px] border border-slate-50 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-[#1B254B]">
-              Последние смены
+              {isAdmin ? "Последние смены" : "Мои последние записи"}
             </h3>
-            <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg font-bold uppercase">
-              Live
-            </span>
           </div>
           <div className="space-y-6">
             {loading ? (
@@ -115,24 +145,24 @@ const Dashboard: React.FC = () => {
               </div>
             ) : shifts.length === 0 ? (
               <div className="text-center py-10 text-slate-300 text-sm italic">
-                Активных смен пока нет
+                Записей пока нет
               </div>
             ) : (
               shifts.slice(0, 5).map((s) => (
                 <div key={s.id} className="flex items-center gap-3 group">
                   <div
-                    className={`w-2 h-10 rounded-full transition-all group-hover:h-12 ${
+                    className={`w-2 h-10 rounded-full ${
                       s.status === ShiftStatus.ACTIVE
-                        ? "bg-indigo-500 shadow-sm shadow-indigo-200"
-                        : "bg-emerald-500 shadow-sm shadow-emerald-200"
+                        ? "bg-indigo-500"
+                        : "bg-emerald-500"
                     }`}
                   ></div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-[#1B254B] truncate">
-                      {s.driver_name}
+                      {isAdmin ? s.driver_name : s.work_object}
                     </p>
                     <p className="text-[10px] text-slate-400 font-bold uppercase truncate">
-                      {s.work_object}
+                      {isAdmin ? s.work_object : "Завершена"}
                     </p>
                   </div>
                   <span className="text-[10px] text-slate-300 font-bold whitespace-nowrap">
