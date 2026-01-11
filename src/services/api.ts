@@ -1,31 +1,82 @@
-import axios from "axios";
+import { API_ENDPOINTS } from "../constants";
 
-// Если переменной нет, используем относительный путь /api
-// Браузер сам подставит текущий домен (https://pwa.kontrolsmen.ru/api)
-const API_URL = import.meta.env.VITE_API_URL || "/api/v1";
+export const TOKEN_KEY = "logishift_auth_token";
 
-const api = axios.create({
-  baseURL: API_URL,
-});
+export const getAuthToken = () => localStorage.getItem(TOKEN_KEY);
+export const setAuthToken = (token: string) =>
+  localStorage.setItem(TOKEN_KEY, token);
+export const clearAuthToken = () => localStorage.removeItem(TOKEN_KEY);
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+/**
+ * Функция для входа в систему (Login/Password)
+ * Использует оригинальную логику бэкенда: отправляет username и password, получает access_token.
+ */
+export const loginUser = async (username: string, password: string) => {
+  const response = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail || errorData.message || "Ошибка авторизации"
+    );
+  }
+
+  const data = await response.json();
+  if (data.access_token) {
+    setAuthToken(data.access_token);
+    return data;
+  }
+  throw new Error("Токен не получен");
+};
+
+interface FetchOptions extends RequestInit {
+  params?: Record<string, string>;
+}
+
+/**
+ * Универсальный метод для запросов к API с автоматической подстановкой Bearer токена
+ */
+export const apiRequest = async (
+  endpoint: string,
+  options: FetchOptions = {}
+) => {
+  const token = getAuthToken();
+
+  const headers = new Headers(options.headers || {});
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    headers.set("Authorization", `Bearer ${token}`);
   }
-  return config;
-});
+  headers.set("Content-Type", "application/json");
 
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/";
-    }
-    return Promise.reject(error);
+  let url = endpoint;
+  if (options.params) {
+    const searchParams = new URLSearchParams(options.params);
+    url += `?${searchParams.toString()}`;
   }
-);
 
-export default api;
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 401) {
+    clearAuthToken();
+    window.location.reload();
+    throw new Error("Unauthorized");
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail ||
+        errorData.message ||
+        `HTTP error! status: ${response.status}`
+    );
+  }
+
+  return response.json();
+};
