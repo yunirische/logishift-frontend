@@ -14,7 +14,7 @@ export const clearAuthToken = () => localStorage.removeItem(TOKEN_KEY);
 export const loginUser = async (username: string, password: string) => {
   // Используем URLSearchParams для формирования application/x-www-form-urlencoded
   const params = new URLSearchParams();
-  params.append("username", username.trim());
+  params.append("login", username.trim());
   params.append("password", password);
 
   const response = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
