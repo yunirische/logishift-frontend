@@ -1,9 +1,12 @@
 import {
+  AlertCircle,
   Camera,
   CheckCircle2,
   Clock,
   LogOut,
   MapPin,
+  Play,
+  Square,
   Truck,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
@@ -13,21 +16,29 @@ import api from "../services/api";
 
 export const DriverView = () => {
   const { user, logout } = useAuth();
+
   const [loading, setLoading] = useState(true);
   const [activeShift, setActiveShift] = useState<any>(null);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
+
   const [selectedTruck, setSelectedTruck] = useState<string>("");
   const [selectedSite, setSelectedSite] = useState<string>("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const initData = async () => {
     setLoading(true);
     try {
+      // 1. Запрашиваем текущую смену
       const currentRes = await api.get("/shifts/current");
+
       if (currentRes.data) {
+        // Если смена есть в базе — сохраняем её
         setActiveShift(currentRes.data);
       } else {
+        // Если смены нет — обнуляем стейт и грузим списки выборасч
+        setActiveShift(null);
         const [trucksRes, sitesRes] = await Promise.all([
           api.get("/trucks"),
           api.get("/sites"),
@@ -36,7 +47,7 @@ export const DriverView = () => {
         setSites(sitesRes.data);
       }
     } catch (e) {
-      console.error(e);
+      console.error("Ошибка загрузки данных:", e);
     } finally {
       setLoading(false);
     }
@@ -83,16 +94,18 @@ export const DriverView = () => {
       await api.post("/shifts/photo", formData);
       window.location.reload();
     } catch (err: any) {
-      alert(
-        err.response?.data?.error ||
-          "Ошибка при загрузке фото. Проверьте логи сервера."
-      );
+      alert(err.response?.data?.error || "Ошибка загрузки фото");
       setLoading(false);
     }
   };
 
-  if (loading && !activeShift)
-    return <div className="p-10 text-center">Загрузка...</div>;
+  if (loading && !activeShift && !trucks.length) {
+    return (
+      <div className="p-10 text-center animate-pulse text-slate-400">
+        Синхронизация...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 pb-10">
@@ -108,115 +121,151 @@ export const DriverView = () => {
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-xl font-bold">Привет, {user?.full_name}</h1>
+          <h1 className="text-xl font-bold text-slate-800">
+            Привет, {user?.full_name}
+          </h1>
           <span
-            className={`text-xs px-2 py-1 rounded-full ${
-              user?.current_state === "idle"
-                ? "bg-slate-200"
+            className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+              !activeShift || user?.current_state === "idle"
+                ? "bg-slate-200 text-slate-500"
                 : "bg-blue-100 text-blue-700"
             }`}
           >
-            {user?.current_state === "idle" ? "Вне смены" : "В процессе"}
+            {!activeShift || user?.current_state === "idle"
+              ? "Вне смены"
+              : "В процессе"}
           </span>
         </div>
-        <button onClick={logout} className="p-2 text-slate-400">
+        <button
+          onClick={logout}
+          className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+        >
           <LogOut size={20} />
         </button>
       </div>
 
-      {user?.current_state === "idle" ? (
-        // --- ВЫБОР ---
+      {/* ГЛАВНАЯ ЛОГИКА ЭКРАНОВ */}
+      {!activeShift || user?.current_state === "idle" ? (
+        // --- ЭКРАН 1: ВЫБОР (Если смены нет в БД или статус idle) ---
         <div className="space-y-4">
-          <Card className="p-4">
-            <h3 className="text-xs font-bold text-slate-400 mb-3 uppercase">
-              Транспорт
+          <Card className="p-4 border-none shadow-sm">
+            <h3 className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest">
+              Выберите транспорт
             </h3>
             <div className="grid grid-cols-2 gap-2">
               {trucks.map((t) => (
                 <div
                   key={t.id}
                   onClick={() => setSelectedTruck(t.id)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-3 rounded-xl border-2 transition-all ${
                     selectedTruck === t.id
                       ? "border-blue-500 bg-blue-50"
                       : "border-slate-100"
                   }`}
                 >
-                  <Truck size={16} className="mb-1 text-slate-400" />
-                  <div className="font-bold text-sm">{t.name}</div>
+                  <Truck
+                    size={18}
+                    className={`mb-1 ${
+                      selectedTruck === t.id
+                        ? "text-blue-600"
+                        : "text-slate-400"
+                    }`}
+                  />
+                  <div className="font-bold text-sm text-slate-700">
+                    {t.name}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    {t.plate || "Без номера"}
+                  </div>
                 </div>
               ))}
             </div>
           </Card>
-          <Card className="p-4">
-            <h3 className="text-xs font-bold text-slate-400 mb-3 uppercase">
-              Объект
+
+          <Card className="p-4 border-none shadow-sm">
+            <h3 className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest">
+              Выберите объект
             </h3>
             <div className="space-y-2">
               {sites.map((s) => (
                 <div
                   key={s.id}
                   onClick={() => setSelectedSite(s.id)}
-                  className={`p-3 rounded-lg border flex items-center gap-3 ${
+                  className={`p-4 rounded-xl border flex items-center gap-3 transition-all ${
                     selectedSite === s.id
                       ? "border-blue-500 bg-blue-50"
                       : "border-slate-100"
                   }`}
                 >
-                  <MapPin size={16} className="text-slate-400" />
-                  <span className="text-sm">{s.name}</span>
+                  <MapPin
+                    size={18}
+                    className={
+                      selectedSite === s.id ? "text-blue-600" : "text-slate-400"
+                    }
+                  />
+                  <span className="text-sm font-bold text-slate-700">
+                    {s.name}
+                  </span>
                 </div>
               ))}
             </div>
           </Card>
+
           <Button
             onClick={handleStart}
             disabled={!selectedTruck || !selectedSite}
-            className="w-full py-4 bg-blue-600 text-white font-bold"
+            className="w-full py-4 bg-blue-600 text-white font-black text-lg shadow-xl shadow-blue-100 disabled:opacity-30"
+            isLoading={loading}
           >
-            НАЧАТЬ СМЕНУ
+            <Play size={20} fill="currentColor" className="mr-2" />
+            ОТКРЫТЬ СМЕНУ
           </Button>
         </div>
       ) : (
-        // --- АКТИВНАЯ СМЕНА ИЛИ ОЖИДАНИЕ ФОТО ---
+        // --- ЭКРАН 2: СМЕНА ОТКРЫТА (Работа или Фото) ---
         <div className="space-y-4">
-          <Card className="p-5 border-none shadow-sm">
+          <Card className="p-5 border-none shadow-sm bg-white">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-blue-600">
                 <Clock size={18} />
-                <span className="font-bold">Смена #{activeShift?.id}</span>
+                <span className="font-black text-sm uppercase">
+                  Смена #{activeShift.id}
+                </span>
               </div>
-              <div className="text-xs text-slate-400">
-                {activeShift?.start_time
-                  ? new Date(activeShift.start_time).toLocaleTimeString()
-                  : "Оформление"}
+              <div className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                {activeShift.start_time
+                  ? new Date(activeShift.start_time).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "ОФОРМЛЕНИЕ"}
               </div>
             </div>
 
-            <div className="space-y-3 border-t pt-4">
+            <div className="space-y-3 border-t border-slate-50 pt-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center text-slate-500">
-                  <Truck size={16} />
+                <div className="w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
+                  <Truck size={20} />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase text-slate-400 font-bold">
+                  <div className="text-[9px] uppercase text-slate-400 font-black tracking-tighter">
                     Машина
                   </div>
-                  <div className="text-sm font-bold">
-                    {activeShift?.truck?.name || "---"}
+                  <div className="text-sm font-bold text-slate-700">
+                    {activeShift.truck?.name || "---"}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center text-slate-500">
-                  <MapPin size={16} />
+                <div className="w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
+                  <MapPin size={20} />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase text-slate-400 font-bold">
+                  <div className="text-[9px] uppercase text-slate-400 font-black tracking-tighter">
                     Объект
                   </div>
-                  <div className="text-sm font-bold">
-                    {activeShift?.site?.name || "---"}
+                  <div className="text-sm font-bold text-slate-700">
+                    {activeShift.site?.name || "---"}
                   </div>
                 </div>
               </div>
@@ -224,52 +273,57 @@ export const DriverView = () => {
           </Card>
 
           {user?.current_state === "active" ? (
+            // ПОД-ЭКРАН: ПРОСТО РАБОТА
             <div className="space-y-4">
-              <div className="p-4 bg-green-50 border border-green-100 rounded-xl flex items-center gap-3 text-green-700">
-                <CheckCircle2 size={20} />
-                <span className="text-sm font-medium">
-                  Работа в процессе...
-                </span>
+              <div className="p-4 bg-green-50 border border-green-100 rounded-2xl flex items-center gap-3 text-green-700">
+                <CheckCircle2 size={24} />
+                <div>
+                  <div className="font-bold text-sm">Смена активна</div>
+                  <div className="text-[11px] opacity-80">
+                    Вы можете завершить её в любой момент
+                  </div>
+                </div>
               </div>
               <Button
                 onClick={handleEnd}
-                className="w-full py-4 bg-red-500 text-white font-bold"
+                className="w-full py-5 bg-red-500 text-white font-black text-lg shadow-xl shadow-red-100"
                 isLoading={loading}
               >
-                ЗАВЕРШИТЬ СМЕНУ
+                <Square size={18} fill="currentColor" className="mr-2" />
+                ЗАВЕРШИТЬ РАБОТУ
               </Button>
             </div>
           ) : (
+            // ПОД-ЭКРАН: ТРЕБУЕТСЯ ФОТО
             <div className="space-y-4">
-              <div className="p-6 bg-orange-50 border border-orange-100 rounded-xl text-center">
-                <Camera size={32} className="mx-auto mb-2 text-orange-500" />
-                <h3 className="font-bold text-orange-800">Нужна фотография</h3>
-                <p className="text-xs text-orange-600 mt-1">
+              <div className="p-6 bg-orange-50 border border-orange-100 rounded-2xl text-center">
+                <Camera size={40} className="mx-auto mb-3 text-orange-500" />
+                <h3 className="font-black text-orange-800 uppercase tracking-tight">
+                  Нужна фотография
+                </h3>
+                <p className="text-xs text-orange-600 mt-1 font-bold">
                   {user?.current_state === "awaiting_odo_start" &&
                     "Сфотографируйте одометр ПЕРЕД началом"}
                   {user?.current_state === "awaiting_odo_end" &&
                     "Сфотографируйте одометр ПОСЛЕ работы"}
                   {user?.current_state === "awaiting_invoice" &&
-                    "Сфотографируйте накладную"}
+                    "Сфотографируйте накладную (ТТН)"}
                 </p>
               </div>
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-6 bg-orange-500 text-white text-xl font-black animate-pulse"
+                className="w-full py-8 bg-orange-500 text-white text-2xl font-black animate-pulse shadow-2xl shadow-orange-200 flex flex-col items-center gap-1"
                 isLoading={loading}
               >
-                СДЕЛАТЬ ФОТО
+                <Camera size={32} />
+                ОТКРЫТЬ КАМЕРУ
               </Button>
-            </div>
-          )}
-
-          {activeShift?.comment && (
-            <Card className="p-3 bg-blue-50 border-none">
-              <div className="text-[10px] uppercase text-blue-400 font-bold mb-1">
-                Ваш комментарий
+              <div className="flex items-start gap-2 p-4 text-slate-400 text-[10px] bg-white rounded-xl shadow-sm italic">
+                <AlertCircle size={14} className="shrink-0 text-orange-400" />
+                Убедитесь, что все данные на фото видны четко. Плохое качество
+                фото может стать причиной отклонения смены.
               </div>
-              <p className="text-sm italic">"{activeShift.comment}"</p>
-            </Card>
+            </div>
           )}
         </div>
       )}
