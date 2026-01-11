@@ -9,20 +9,9 @@ export const API_ENDPOINTS = {
   AUDIT: `${API_BASE_URL}/audit`,
 };
 
-/**
- * Объявляем наличие process для типизации TypeScript,
- * чтобы IDE не подсвечивала его как ошибку в браузере.
- */
-declare const process: {
-  env: {
-    NODE_ENV?: string;
-    [key: string]: any;
-  };
-};
-
 export const isProduction = () => {
   try {
-    // Безопасная проверка существования process перед обращением к нему
+    // Безопасная проверка окружения. С глобальной декларацией в types.ts ошибок tsc не будет.
     return (
       typeof process !== "undefined" &&
       process.env &&

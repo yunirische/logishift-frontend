@@ -44,3 +44,18 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
 }
+
+// Глобальная декларация для process, исправляющая конфликты типов и ошибки переобъявления
+declare global {
+  interface ProcessEnv {
+    [key: string]: string;
+    API_KEY: string;
+    NODE_ENV: string;
+  }
+  interface Process {
+    // Исправлено: свойство env должно в точности соответствовать ожидаемому типу { [key: string]: string }
+    env: ProcessEnv;
+  }
+  // Исправлено: используем var вместо const для предотвращения ошибки "Cannot redeclare block-scoped variable"
+  var process: Process;
+}
