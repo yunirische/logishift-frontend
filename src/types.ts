@@ -45,17 +45,27 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-// Глобальная декларация для process, исправляющая конфликты типов и ошибки переобъявления
+/**
+ * Глобальное расширение типов для доступа к переменным окружения через process.env.
+ * Исправлено: используем расширение пространства имен NodeJS для корректной типизации process.
+ * Это предотвращает ошибку "Subsequent variable declarations must have the same type".
+ */
 declare global {
-  interface ProcessEnv {
-    [key: string]: string;
-    API_KEY: string;
-    NODE_ENV: string;
+  namespace NodeJS {
+    interface ProcessEnv {
+      API_KEY: string;
+      NODE_ENV: string;
+      [key: string]: string | undefined;
+    }
+    interface Process {
+      env: ProcessEnv;
+    }
   }
-  interface Process {
-    // Исправлено: свойство env должно в точности соответствовать ожидаемому типу { [key: string]: string }
-    env: ProcessEnv;
-  }
-  // Исправлено: используем var вместо const для предотвращения ошибки "Cannot redeclare block-scoped variable"
-  var process: Process;
+
+  // Объявляем глобальную переменную process, используя интерфейс из NodeJS.
+  // Это гарантирует, что тип совпадает с типом 'Process', ожидаемым компилятором.
+  var process: NodeJS.Process;
 }
+
+// Это нужно, чтобы файл считался модулем
+export {};
