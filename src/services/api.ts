@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from "../constants";
-import { User } from "../types";
+import { User, UserRole } from "../types";
 
 export const TOKEN_KEY = "logishift_auth_token";
 export const USER_KEY = "logishift_user_info";
@@ -10,7 +10,13 @@ export const setAuthToken = (token: string) =>
 
 export const getUserInfo = (): User | null => {
   const data = localStorage.getItem(USER_KEY);
-  return data ? JSON.parse(data) : null;
+  if (!data) return null;
+  try {
+    const user = JSON.parse(data);
+    return user;
+  } catch {
+    return null;
+  }
 };
 
 export const setUserInfo = (user: User) =>
@@ -21,15 +27,9 @@ export const clearAuth = () => {
   localStorage.removeItem(USER_KEY);
 };
 
-/**
- * Функция для входа в систему (Login/Password)
- * Использует 'login' вместо 'username' как того требует бэкенд.
- */
 export const loginUser = async (login: string, password: string) => {
   const params = new URLSearchParams();
-  // Используем 'login' как основной идентификатор
   params.append("login", login.trim());
-  params.append("username", login.trim()); // Для совместимости с OAuth2 scopes если нужно
   params.append("password", password);
 
   const response = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
@@ -49,76 +49,91 @@ export const loginUser = async (login: string, password: string) => {
   }
 
   const data = await response.json();
+  const token = data.access_token || data.token;
 
-  if (data.access_token || data.token) {
-    const token = data.access_token || data.token;
+  if (token) {
     setAuthToken(token);
 
-    // Сохраняем информацию о пользователе из ответа (или декодируем если бэкенд не прислал объект)
-    // В старой логике обычно объект user приходил вместе с токеном
-    if (data.user) {
-      setUserInfo(data.user);
-    } else {
-      // Заглушка если бэкенд не вернул user, но мы знаем роль по логике (например админ если login 'admin')
-      const fallbackUser: User = {
-        id: "1",
-        login: login,
-        full_name: data.full_name || login,
-        role: login.toLowerCase().includes("admin")
-          ? "admin"
-          : ("driver" as any),
-      };
-      setUserInfo(fallbackUser);
+    // Определение роли: admin, foreman или driver
+    let userRole: UserRole = UserRole.DRIVER;
+    const rawRole = (data.user?.role || "").toLowerCase();
+    const lowerLogin = login.toLowerCase();
+
+    if (rawRole === "admin" || lowerLogin === "admin") {
+      userRole = UserRole.ADMIN;
+    } else if (
+      rawRole === "foreman" ||
+      lowerLogin.includes("foreman") ||
+      lowerLogin.includes("master")
+    ) {
+      userRole = UserRole.FOREMAN;
     }
+
+    const userData: User = {
+      id: data.user?.id || String(Date.now()),
+      login: login,
+      full_name: data.user?.full_name || data.full_name || login,
+      role: userRole,
+    };
+
+    setUserInfo(userData);
     return data;
   }
 
   throw new Error("Токен не получен");
 };
 
-interface FetchOptions extends RequestInit {
-  params?: Record<string, string>;
-}
-
-export const apiRequest = async (
-  endpoint: string,
-  options: FetchOptions = {}
-) => {
+export const apiRequest = async (endpoint: string, options: any = {}) => {
   const token = getAuthToken();
   const headers = new Headers(options.headers || {});
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  if (!headers.has("Content-Type")) {
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (!headers.has("Content-Type"))
     headers.set("Content-Type", "application/json");
-  }
 
-  let url = endpoint;
-  if (options.params) {
-    const searchParams = new URLSearchParams(options.params);
-    url += `?${searchParams.toString()}`;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  const response = await fetch(endpoint, { ...options, headers });
 
   if (response.status === 401) {
     clearAuth();
     window.location.reload();
-    throw new Error("Unauthorized");
   }
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.detail ||
-        errorData.message ||
-        `HTTP error! status: ${response.status}`
-    );
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || `Error ${response.status}`);
   }
 
   return response.json();
 };
+
+// Хелперы для часто используемых методов
+export const get = (url: string, params?: Record<string, string>) => {
+  let endpoint = url;
+  if (params) {
+    const search = new URLSearchParams(params).toString();
+    endpoint += `?${search}`;
+  }
+  return apiRequest(endpoint, { method: "GET" });
+};
+
+export const post = (url: string, body: any) => {
+  return apiRequest(url, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+};
+
+const api = {
+  loginUser,
+  apiRequest,
+  get,
+  post,
+  getUserInfo,
+  setUserInfo,
+  getAuthToken,
+  setAuthToken,
+  clearAuth,
+  TOKEN_KEY,
+  USER_KEY,
+};
+
+export default api;

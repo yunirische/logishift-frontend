@@ -14,12 +14,14 @@ const Layout: React.FC<LayoutProps> = ({
   setActiveTab,
 }) => {
   const user = getUserInfo();
-  const isAdmin = user?.role === UserRole.ADMIN;
+  // Важно: Прораб (Foreman) тоже видит админский интерфейс, а не водительский
+  const isAdmin =
+    user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
 
   const mainItems = [
     {
       id: "dashboard",
-      label: "Dashboard",
+      label: "Главная",
       icon: "🏠",
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
     },
@@ -31,11 +33,11 @@ const Layout: React.FC<LayoutProps> = ({
     },
     {
       id: "drivers",
-      label: "Водители",
-      icon: "👤",
+      label: "Персонал",
+      icon: "👥",
       roles: [UserRole.ADMIN, UserRole.FOREMAN],
     },
-    { id: "fleet", label: "Автопарк", icon: "🚛", roles: [UserRole.ADMIN] },
+    { id: "fleet", label: "Техника", icon: "🚛", roles: [UserRole.ADMIN] },
     {
       id: "objects",
       label: "Объекты",
@@ -45,9 +47,13 @@ const Layout: React.FC<LayoutProps> = ({
   ];
 
   const adminItems = [
-    { id: "audit", label: "Аудит", icon: "📜", roles: [UserRole.ADMIN] },
-    { id: "users", label: "Пользователи", icon: "👥", roles: [UserRole.ADMIN] },
-    { id: "settings", label: "Настройки", icon: "⚙️", roles: [UserRole.ADMIN] },
+    {
+      id: "audit",
+      label: "Журнал событий",
+      icon: "📜",
+      roles: [UserRole.ADMIN],
+    },
+    { id: "settings", label: "Система", icon: "⚙️", roles: [UserRole.ADMIN] },
   ];
 
   const handleLogout = () => {
@@ -71,96 +77,93 @@ const Layout: React.FC<LayoutProps> = ({
         onClick={() => setActiveTab(item.id)}
         className={`w-full flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 group ${
           activeTab === item.id
-            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100 font-bold"
+            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 font-bold"
             : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50"
         }`}
       >
         <span
-          className={`text-xl transition-transform group-hover:scale-110 ${
+          className={`text-xl transition-transform group-hover:rotate-12 ${
             activeTab === item.id ? "scale-110" : ""
           }`}
         >
           {item.icon}
         </span>
-        <span className="text-sm">{item.label}</span>
+        <span className="text-sm font-semibold">{item.label}</span>
       </button>
     );
   };
 
   return (
     <div className="flex min-h-screen bg-[#F4F7FE]">
-      <aside className="w-72 bg-white border-r border-slate-100 hidden lg:flex flex-col sticky top-0 h-screen shadow-sm z-20">
+      {/* Sidebar */}
+      <aside className="w-72 bg-white border-r border-slate-100 hidden lg:flex flex-col sticky top-0 h-screen z-20">
         <div className="p-8">
-          <h1 className="text-2xl font-black text-[#1B254B] flex items-center gap-2">
+          <h1 className="text-2xl font-black text-[#1B254B]">
             <span className="text-indigo-600">LOGI</span>SHIFT
           </h1>
-          <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-[0.2em] font-bold">
-            KONTROLSMEN v2.0
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse"></div>
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+              Cloud System v2.1
+            </p>
+          </div>
         </div>
 
-        <nav className="flex-1 px-6 space-y-8 overflow-y-auto pb-6">
+        <nav className="flex-1 px-6 space-y-8 overflow-y-auto">
           <div>
-            <p className="px-5 mb-3 text-[10px] font-black text-slate-300 uppercase tracking-widest">
-              {isAdmin ? "Операции" : "Личный кабинет"}
+            <p className="px-5 mb-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+              {isAdmin ? "Управление" : "Меню водителя"}
             </p>
             <div className="space-y-1">{mainItems.map(renderButton)}</div>
           </div>
 
-          {isAdmin && (
+          {isAdmin && user?.role === UserRole.ADMIN && (
             <div>
-              <p className="px-5 mb-3 text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                Система
+              <p className="px-5 mb-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                Контроль
               </p>
               <div className="space-y-1">{adminItems.map(renderButton)}</div>
             </div>
           )}
         </nav>
 
-        <div className="p-6 border-t border-slate-50">
-          <div className="mb-4 px-4">
-            <p className="text-[10px] font-bold text-slate-400 uppercase">
-              Пользователь
+        <div className="p-6 border-t border-slate-50 mt-auto">
+          <div className="bg-slate-50 rounded-2xl p-4 mb-4">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+              Аккаунт
             </p>
-            <p className="text-xs font-black text-[#1B254B] truncate">
+            <p className="text-xs font-black text-[#1B254B] truncate mt-0.5">
               {user?.full_name}
+            </p>
+            <p className="text-[9px] font-bold text-indigo-500 uppercase mt-1">
+              {user?.role}
             </p>
           </div>
           <button
             onClick={handleLogout}
             className="w-full py-3 px-4 rounded-xl text-[11px] font-bold text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center gap-2"
           >
-            <span>🚪</span> Выйти
+            🚪 Выход
           </button>
         </div>
       </aside>
 
+      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 bg-white/70 backdrop-blur-md border-b border-slate-50 flex items-center justify-between px-10 sticky top-0 z-10">
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-50 flex items-center justify-between px-10 sticky top-0 z-30">
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              LogiShift Intelligence
-            </p>
             <h2 className="text-xl font-black text-[#1B254B] capitalize">
               {activeTab}
             </h2>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-[#1B254B] leading-none">
-                {user?.full_name}
-              </p>
-              <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-tighter mt-1">
-                {user?.role}
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-xs">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-xs border border-indigo-100/50">
               {user?.full_name?.charAt(0) || "U"}
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-10">{children}</div>
+        <div className="flex-1 p-6 lg:p-10 overflow-x-hidden">{children}</div>
       </main>
     </div>
   );
