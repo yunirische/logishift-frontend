@@ -28,19 +28,19 @@ export const clearAuth = () => {
 };
 
 export const loginUser = async (login: string, password: string) => {
-  // Бэкенд на Express ждет обычный JSON, а не FormParams
   const response = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ login: login.trim(), password }),
+    body: JSON.stringify({ login, password }),
   });
 
   if (!response.ok) throw new Error("Ошибка авторизации");
 
   const data = await response.json();
   if (data.token) {
-    setAuthToken(data.token);
-    setUserInfo(data.user); // В бэкенде объект user лежит внутри ответа
+    localStorage.setItem(TOKEN_KEY, data.token);
+    // В твоем бэкенде данные юзера лежат в data.user
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     return data;
   }
 };

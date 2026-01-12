@@ -4,6 +4,7 @@ import api from "../services/api";
 import { DriverState, Shift, User, UserRole } from "../types";
 
 const Dashboard: React.FC = () => {
+  // ВСЕ useState должны быть в самом начале, до любых условных return
   const [currentUser, setCurrentUser] = useState<User | null>(
     api.getUserInfo()
   );
@@ -13,64 +14,53 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
+  const [selectedTruck, setSelectedTruck] = useState<number | null>(null);
+  const [selectedSite, setSelectedSite] = useState<number | null>(null);
 
   const isAdminView =
     currentUser?.role === UserRole.ADMIN ||
     currentUser?.role === UserRole.FOREMAN;
 
+  // Функция обновления состояния (БЕЗ запроса к /auth/me)
   const refreshStatus = useCallback(async () => {
     try {
-      // 1. Получаем актуальный профиль пользователя (со стейтом) из /auth/me
-      const userRes = await api.get(API_ENDPOINTS.AUTH_ME);
-      setCurrentUser(userRes);
-      api.setUserInfo(userRes);
+      // 1. Берем пользователя из локального хранилища
+      const localUser = api.getUserInfo();
+      if (localUser) setCurrentUser(localUser);
 
-      // 2. Если пользователь не в простое, пытаемся найти активную смену
-      if (userRes.current_state !== DriverState.IDLE) {
-        try {
-          const shiftRes = await api.get(`${API_ENDPOINTS.SHIFTS}/active`);
-          setActiveShift(shiftRes);
-        } catch (e: any) {
-          // Если 404 на /active — значит смены нет, это нормально для некоторых стейтов
-          setActiveShift(null);
-          if (userRes.current_state === DriverState.ACTIVE) {
-            // Если стейт говорит "активен", а смены нет — сбрасываем в idle
-            await refreshStatus();
-          }
-        }
-      } else {
+      // 2. Получаем активную смену
+      try {
+        const shiftRes = await api.get(`${API_ENDPOINTS.SHIFTS}/active`);
+        setActiveShift(shiftRes);
+      } catch (e: any) {
+        // Если нет активной смены — это нормально
         setActiveShift(null);
       }
 
-      // 3. Подгружаем списки для выбора
-      if (userRes.current_state === DriverState.PENDING_TRUCK) {
-        const fleet = await api.get(API_ENDPOINTS.FLEET);
-        setTrucks(Array.isArray(fleet) ? fleet.filter((v) => !v.is_busy) : []);
-      }
-      if (userRes.current_state === DriverState.PENDING_SITE) {
-        const objects = await api.get(API_ENDPOINTS.OBJECTS);
-        setSites(
-          Array.isArray(objects) ? objects.filter((o) => o.is_active) : []
-        );
-      }
+      // 3. Загружаем списки техники и объектов (всегда)
+      const fleet = await api.get(API_ENDPOINTS.FLEET);
+      setTrucks(Array.isArray(fleet) ? fleet.filter((v) => !v.is_busy) : []);
+
+      const objects = await api.get(API_ENDPOINTS.OBJECTS);
+      setSites(
+        Array.isArray(objects) ? objects.filter((o) => o.is_active) : []
+      );
     } catch (err: any) {
       console.error("Refresh status error:", err);
-      // Если 404 на /me или другие критические ошибки сессии
-      if (err.message.includes("404") || err.message.includes("401")) {
-        // Оставляем как есть или можно разлогинить, если токен протух
-      }
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // ВСЕ useEffect должны быть здесь, после useState и useCallback
   useEffect(() => {
     refreshStatus();
-    const interval = setInterval(refreshStatus, 30000);
+    const interval = setInterval(refreshStatus, 15000);
     return () => clearInterval(interval);
   }, [refreshStatus]);
 
   useEffect(() => {
+    // Таймер для отображения времени работы
     if (
       currentUser?.current_state === DriverState.ACTIVE &&
       activeShift?.started_at
@@ -94,6 +84,7 @@ const Dashboard: React.FC = () => {
     }
   }, [currentUser?.current_state, activeShift?.started_at]);
 
+  // Функция для выполнения действий с обновлением состояния
   const performAction = async (action: () => Promise<any>) => {
     setIsActionLoading(true);
     try {
@@ -106,7 +97,36 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  if (loading)
+  // Обработчик загрузки фото
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsActionLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("photo", file);
+
+      const response = await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${api.getAuthToken()}`,
+        },
+        body: fd,
+      });
+
+      if (!response.ok) throw new Error("Ошибка загрузки фото");
+
+      await refreshStatus();
+    } catch (err) {
+      alert("Сеть нестабильна. Попробуйте еще раз.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  // ТОЛЬКО ТЕПЕРЬ можно делать условный return
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -115,6 +135,7 @@ const Dashboard: React.FC = () => {
         </p>
       </div>
     );
+  }
 
   if (isAdminView) {
     return (
@@ -140,49 +161,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsActionLoading(true);
-    try {
-      const fd = new FormData();
-      fd.append("photo", file); // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: поле 'photo'
-
-      const response = await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${api.getAuthToken()}`,
-          // Content-Type НЕ ставим, браузер сам поставит boundary
-        },
-        body: fd,
-      });
-
-      if (!response.ok) throw new Error("Ошибка загрузки фото");
-
-      await refreshStatus(); // Обновляем состояние после загрузки
-    } catch (err) {
-      alert("Сеть нестабильна. Попробуйте еще раз.");
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  const [selectedTruck, setSelectedTruck] = useState<number | null>(null);
-  const [selectedSite, setSelectedSite] = useState<number | null>(null);
-
-  // И функцию старта:
-  const startShiftFull = async () => {
-    if (!selectedTruck || !selectedSite) return;
-
-    await performAction(() =>
-      api.post(API_ENDPOINTS.START_SHIFT, {
-        truck_id: selectedTruck,
-        site_id: selectedSite,
-      })
-    );
-  };
-
+  // Рендер UI для водителя
   const renderDriverUI = () => {
     const state = currentUser?.current_state || DriverState.IDLE;
 
