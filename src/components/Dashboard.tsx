@@ -16,6 +16,9 @@ const Dashboard: React.FC = () => {
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [selectedTruck, setSelectedTruck] = useState<number | null>(null);
   const [selectedSite, setSelectedSite] = useState<number | null>(null);
+  const [step, setStep] = useState<
+    "idle" | "selecting_truck" | "selecting_site"
+  >("idle");
   const [stats, setStats] = useState({ activeShifts: 0, activeDrivers: 0 });
 
   const isAdminView =
@@ -23,31 +26,61 @@ const Dashboard: React.FC = () => {
     currentUser?.role === UserRole.FOREMAN;
 
   // Функция обновления состояния (БЕЗ запроса к /auth/me)
+
+  //api.get(API_ENDPOINTS.TRUCKS),
+  //api.get(API_ENDPOINTS.SITES),
+
   const refreshStatus = useCallback(async () => {
     try {
-      // 1. Пытаемся получить текущую смену (правильный путь)
+      // 1. Запрашиваем текущую смену из бэкенда
+      // Этот эндпоинт — главный источник правды
       const shiftRes = await api.get(API_ENDPOINTS.CURRENT_SHIFT);
       setActiveShift(shiftRes);
 
-      // 2. Если смены нет (null), только тогда грузим машины и объекты
-      if (!shiftRes) {
-        const [trucksRes, sitesRes] = await Promise.all([
+      // 2. СИНХРОНИЗАЦИЯ СОСТОЯНИЯ (Для связки с ТГ-ботом)
+      if (currentUser) {
+        let realStateInDb = currentUser.current_state;
+
+        if (shiftRes) {
+          // Если в базе есть смена, её статус (active, awaiting_...)
+          // является реальным состоянием водителя
+          realStateInDb = shiftRes.status as DriverState;
+        } else {
+          // Если смены в базе нет, но в PWA мы не заняты локальным выбором (step === 'idle')
+          // значит водитель точно отдыхает (IDLE)
+          if (step === "idle") {
+            realStateInDb = DriverState.IDLE;
+          }
+        }
+
+        // Если состояние в браузере отличается от того, что пришло с сервера — исправляем
+        if (currentUser.current_state !== realStateInDb) {
+          const updatedUser = { ...currentUser, current_state: realStateInDb };
+          setCurrentUser(updatedUser);
+          api.setUserInfo(updatedUser); // Обновляем localStorage
+        }
+      }
+
+      // 3. ЗАГРУЗКА СПИСКОВ (Машины и Объекты)
+      // Грузим их только если водитель не в активной смене и списки еще пустые
+      if (!shiftRes && trucks.length === 0) {
+        const [trucksData, sitesData] = await Promise.all([
           api.get(API_ENDPOINTS.TRUCKS),
           api.get(API_ENDPOINTS.SITES),
         ]);
-        setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
-        setSites(Array.isArray(sitesRes) ? sitesRes : []);
+
+        setTrucks(Array.isArray(trucksData) ? trucksData : []);
+        setSites(Array.isArray(sitesData) ? sitesData : []);
       }
-    } catch (err: any) {
-      console.error("Refresh status error:", err);
-      // Если 403 или 401 — скорее всего протух токен, нужно разлогинить
-      if (err.message.includes("403") || err.message.includes("401")) {
-        // api.clearAuth(); // Можно включить, если хочешь автовыход
-      }
+    } catch (e: any) {
+      console.error("Ошибка синхронизации стейта:", e);
+      // Если сервер ответил 401 (токен протух), apiRequest сам сделает релоад
     } finally {
+      // Убираем скелетон-загрузку только после первого успешного (или неуспешного) запроса
       setLoading(false);
     }
-  }, []);
+  }, [currentUser, trucks.length, step]);
+  // В зависимости добавили step, чтобы функция знала, когда мы в процессе выбора
 
   // ВСЕ useEffect должны быть здесь, после useState и useCallback
   useEffect(() => {
@@ -63,7 +96,9 @@ const Dashboard: React.FC = () => {
       activeShift?.started_at
     ) {
       const timer = setInterval(() => {
-        const start = new Date(activeShift.started_at).getTime();
+        const start = new Date(
+          activeShift.start_time || activeShift.started_at || Date.now()
+        ).getTime();
         const now = new Date().getTime();
         const diff = Math.max(0, now - start);
 
@@ -186,8 +221,10 @@ const Dashboard: React.FC = () => {
   const renderDriverUI = () => {
     const state = currentUser?.current_state || DriverState.IDLE;
 
-    switch (state) {
-      case DriverState.IDLE:
+    // --- ЛОГИКА СТАРТА (Если водитель еще не в смене по базе данных) ---
+    if (state === DriverState.IDLE) {
+      // Шаг 1: Кнопка "Начать"
+      if (step === "idle") {
         return (
           <div className="text-center py-10 animate-in zoom-in-95">
             <div className="w-32 h-32 bg-slate-100 rounded-[40px] flex items-center justify-center text-5xl mx-auto mb-8 shadow-inner text-slate-300">
@@ -197,85 +234,97 @@ const Dashboard: React.FC = () => {
               Вы отдыхаете
             </h2>
             <p className="text-slate-400 mb-10 max-w-xs mx-auto font-medium">
-              Готовы начать новый рабочий день? Нажмите кнопку ниже.
+              Готовы начать новый рабочий день? Выберите машину и объект.
             </p>
             <button
-              onClick={() =>
-                performAction(() => api.post(API_ENDPOINTS.SHIFTS, {}))
-              }
-              disabled={isActionLoading}
+              onClick={() => setStep("selecting_truck")}
               className="w-full max-w-sm py-8 bg-indigo-600 text-white rounded-[32px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-100 hover:scale-[1.02] active:scale-95 transition-all"
             >
               🚀 Начать смену
             </button>
           </div>
         );
+      }
 
-      case DriverState.PENDING_TRUCK:
+      // Шаг 2: Выбор машины (локальный)
+      if (step === "selecting_truck") {
         return (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
-            <h2 className="text-2xl font-black text-[#1B254B] px-4">
-              🚜 Выберите машину
-            </h2>
-            <div className="grid grid-cols-1 gap-4">
-              {trucks.map((truck) => (
-                <button
-                  key={truck.id}
-                  onClick={() =>
-                    performAction(() =>
-                      api.post(`${API_ENDPOINTS.SHIFTS}/select_truck`, {
-                        truck_id: truck.id,
-                      })
-                    )
-                  }
-                  disabled={isActionLoading}
-                  className="bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm hover:border-indigo-600 text-left flex items-center justify-between group transition-all"
-                >
-                  <div>
-                    <p className="text-lg font-black text-[#1B254B]">
-                      {truck.plate || truck.name}
-                    </p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                      Доступна для работы
-                    </p>
-                  </div>
-                  <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                    ➔
-                  </span>
-                </button>
-              ))}
+            <div className="flex items-center justify-between px-4">
+              <h2 className="text-2xl font-black text-[#1B254B]">
+                🚜 Выберите машину
+              </h2>
+              <button
+                onClick={() => setStep("idle")}
+                className="text-slate-400 text-sm font-bold"
+              >
+                Отмена
+              </button>
             </div>
-            <button
-              onClick={() =>
-                performAction(() =>
-                  api.post(`${API_ENDPOINTS.SHIFTS}/cancel`, {})
-                )
-              }
-              className="w-full py-4 text-slate-400 font-bold text-xs uppercase tracking-widest"
-            >
-              Отменить
-            </button>
+            <div className="grid grid-cols-1 gap-4">
+              {trucks.length > 0 ? (
+                trucks.map((truck) => (
+                  <button
+                    key={truck.id}
+                    onClick={() => {
+                      setSelectedTruck(truck.id);
+                      setStep("selecting_site");
+                    }}
+                    className="bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm hover:border-indigo-600 text-left flex items-center justify-between group transition-all"
+                  >
+                    <div>
+                      <p className="text-lg font-black text-[#1B254B]">
+                        {truck.plate || truck.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                        Доступна для работы
+                      </p>
+                    </div>
+                    <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      ➔
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="p-10 text-center text-slate-400 italic">
+                  Нет свободных машин
+                </div>
+              )}
+            </div>
           </div>
         );
+      }
 
-      case DriverState.PENDING_SITE:
+      // Шаг 3: Выбор объекта и Финальный старт
+      if (step === "selecting_site") {
         return (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
-            <h2 className="text-2xl font-black text-[#1B254B] px-4">
-              🏗️ Выберите объект
-            </h2>
+            <div className="flex items-center justify-between px-4">
+              <h2 className="text-2xl font-black text-[#1B254B]">
+                🏗️ Выберите объект
+              </h2>
+              <button
+                onClick={() => setStep("selecting_truck")}
+                className="text-slate-400 text-sm font-bold"
+              >
+                Назад
+              </button>
+            </div>
             <div className="grid grid-cols-1 gap-4">
               {sites.map((site) => (
                 <button
                   key={site.id}
-                  onClick={() =>
-                    performAction(() =>
-                      api.post(`${API_ENDPOINTS.SHIFTS}/select_site`, {
-                        site_id: site.id,
-                      })
-                    )
-                  }
                   disabled={isActionLoading}
+                  onClick={() =>
+                    performAction(async () => {
+                      await api.post(API_ENDPOINTS.START_SHIFT, {
+                        truck_id: selectedTruck,
+                        site_id: site.id,
+                      });
+                      setStep("idle");
+                      // refreshStatus вызовется автоматически внутри performAction
+                    })
+                  }
                   className="bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm hover:border-indigo-600 text-left flex items-center justify-between group transition-all"
                 >
                   <div>
@@ -283,7 +332,7 @@ const Dashboard: React.FC = () => {
                       {site.name}
                     </p>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                      {site.location || "Активный объект"}
+                      Активный объект
                     </p>
                   </div>
                   <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
@@ -294,155 +343,145 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         );
-
-      case DriverState.AWAITING_ODO_START:
-      case DriverState.AWAITING_ODO_END:
-      case DriverState.AWAITING_INVOICE:
-        const isStart = state === DriverState.AWAITING_ODO_START;
-        const isEnd = state === DriverState.AWAITING_ODO_END;
-        const title = isStart
-          ? "📸 Фото одометра (СТАРТ)"
-          : isEnd
-          ? "📸 Фото одометра (ФИНИШ)"
-          : "📸 Фото накладной";
-        const endpoint = isStart
-          ? "photo/start"
-          : isEnd
-          ? "photo/end"
-          : "photo/invoice";
-
-        return (
-          <div className="text-center py-8 animate-in zoom-in-95">
-            <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-slate-100">
-              <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
-                📷
-              </div>
-              <h3 className="text-xl font-black text-[#1B254B] mb-2">
-                {title}
-              </h3>
-              <p className="text-slate-400 text-sm mb-8">
-                Для перехода к следующему шагу необходимо прислать фотографию.
-              </p>
-
-              <label className="block">
-                <div className="w-full py-6 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-widest cursor-pointer hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100">
-                  {isActionLoading ? "Загрузка..." : "Сделать фото / Выбрать"}
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const fd = new FormData();
-                      fd.append("file", file);
-                      performAction(() =>
-                        fetch(`${API_ENDPOINTS.SHIFTS}/${endpoint}`, {
-                          method: "POST",
-                          headers: {
-                            Authorization: `Bearer ${api.getAuthToken()}`,
-                          },
-                          body: fd,
-                        })
-                      );
-                    }
-                  }}
-                />
-              </label>
-            </div>
-            <div className="mt-8 bg-slate-50 p-4 rounded-2xl text-left border border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase mb-2">
-                Контекст
-              </p>
-              <p className="text-xs font-bold text-[#1B254B]">
-                🚛 Машина: {activeShift?.vehicle_plate || "—"}
-              </p>
-              <p className="text-xs font-bold text-[#1B254B]">
-                🏗️ Объект: {activeShift?.work_object || "—"}
-              </p>
-            </div>
-          </div>
-        );
-
-      case DriverState.ACTIVE:
-        return (
-          <div className="space-y-6 animate-in fade-in">
-            <div className="bg-[#1B254B] p-10 rounded-[40px] text-center text-white shadow-2xl shadow-indigo-200">
-              <p className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-4">
-                Время в работе
-              </p>
-              <h2 className="text-6xl font-black tracking-tighter mb-8 font-mono">
-                {elapsedTime}
-              </h2>
-
-              <div className="flex justify-center gap-2 mb-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <p className="text-[10px] font-bold uppercase text-emerald-400">
-                  Смена активна
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
-              <h4 className="text-sm font-black text-[#1B254B] mb-6 uppercase tracking-widest">
-                Проверка отчета
-              </h4>
-              <ul className="space-y-4">
-                <li className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                  <span className="text-xs font-bold text-slate-500 uppercase">
-                    Одометр (Старт)
-                  </span>
-                  <span className="text-emerald-500 font-bold">✅</span>
-                </li>
-                {activeShift?.site?.odometer_required && (
-                  <li className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl opacity-50">
-                    <span className="text-xs font-bold text-slate-500 uppercase">
-                      Одометр (Финиш)
-                    </span>
-                    <span className="text-slate-300 font-bold">❌</span>
-                  </li>
-                )}
-                {(activeShift?.site?.invoice_required ||
-                  activeShift?.tenant?.invoice_required) && (
-                  <li className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                    <span className="text-xs font-bold text-slate-500 uppercase">
-                      Накладная
-                    </span>
-                    <span
-                      className={
-                        activeShift?.invoice_url
-                          ? "text-emerald-500 font-bold"
-                          : "text-slate-300 font-bold"
-                      }
-                    >
-                      {activeShift?.invoice_url ? "✅" : "❌"}
-                    </span>
-                  </li>
-                )}
-              </ul>
-            </div>
-
-            <button
-              onClick={() => {
-                if (confirm("Завершить текущую смену?")) {
-                  performAction(() =>
-                    api.post(`${API_ENDPOINTS.SHIFTS}/finish_request`, {})
-                  );
-                }
-              }}
-              disabled={isActionLoading}
-              className="w-full py-8 bg-red-500 text-white rounded-[32px] font-black uppercase tracking-widest shadow-xl shadow-red-100 active:scale-95 transition-all"
-            >
-              🏁 Завершить смену
-            </button>
-          </div>
-        );
-
-      default:
-        return <div>Неизвестное состояние</div>;
+      }
     }
+
+    // --- ЛОГИКА ФОТО (Если сервер перевел юзера в ожидание фото) ---
+    if (
+      [
+        DriverState.AWAITING_ODO_START,
+        DriverState.AWAITING_ODO_END,
+        DriverState.AWAITING_INVOICE,
+      ].includes(state)
+    ) {
+      const isStart = state === DriverState.AWAITING_ODO_START;
+      const isEnd = state === DriverState.AWAITING_ODO_END;
+      const title = isStart
+        ? "📸 Фото одометра (СТАРТ)"
+        : isEnd
+        ? "📸 Фото одометра (ФИНИШ)"
+        : "📸 Фото накладной";
+
+      return (
+        <div className="text-center py-8 animate-in zoom-in-95">
+          <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-slate-100">
+            <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">
+              📷
+            </div>
+            <h3 className="text-xl font-black text-[#1B254B] mb-2">{title}</h3>
+            <p className="text-slate-400 text-sm mb-8">
+              Сфотографируйте документ или панель приборов для продолжения.
+            </p>
+
+            <label className="block">
+              <div className="w-full py-6 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-widest cursor-pointer hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100">
+                {isActionLoading ? "Загрузка..." : "Открыть камеру"}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                disabled={isActionLoading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const fd = new FormData();
+                    fd.append("photo", file); // Поле 'photo' как ждет бэкенд
+                    performAction(async () => {
+                      await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
+                        method: "POST",
+                        headers: {
+                          Authorization: `Bearer ${api.getAuthToken()}`,
+                        },
+                        body: fd,
+                      });
+                    });
+                  }
+                }}
+              />
+            </label>
+          </div>
+          {/* Кнопка отмены для черновика (только на старте) */}
+          {isStart && (
+            <button
+              onClick={() =>
+                performAction(() =>
+                  api.post(`${API_ENDPOINTS.SHIFTS}/cancel`, {})
+                )
+              }
+              className="mt-6 text-slate-300 font-bold text-[10px] uppercase tracking-widest"
+            >
+              Отменить смену
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // --- ЛОГИКА АКТИВНОЙ СМЕНЫ (В работе) ---
+    if (state === DriverState.ACTIVE) {
+      return (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="bg-[#1B254B] p-10 rounded-[40px] text-center text-white shadow-2xl shadow-indigo-200">
+            <p className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-4">
+              Время в работе
+            </p>
+            <h2 className="text-6xl font-black tracking-tighter mb-8 font-mono">
+              {elapsedTime}
+            </h2>
+            <div className="flex justify-center gap-2 mb-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <p className="text-[10px] font-bold uppercase text-emerald-400">
+                Смена активна
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-xs font-bold text-slate-400 uppercase">
+                🚛 Машина
+              </span>
+              <span className="text-sm font-black text-[#1B254B]">
+                {activeShift?.truck?.name || activeShift?.vehicle_plate || "—"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-400 uppercase">
+                🏗️ Объект
+              </span>
+              <span className="text-sm font-black text-[#1B254B]">
+                {activeShift?.site?.name || activeShift?.work_object || "—"}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              if (confirm("Завершить смену?"))
+                performAction(() => api.post(API_ENDPOINTS.END_SHIFT, {}));
+            }}
+            disabled={isActionLoading}
+            className="w-full py-8 bg-red-500 text-white rounded-[32px] font-black uppercase tracking-widest shadow-xl shadow-red-100 active:scale-95 transition-all"
+          >
+            🏁 Завершить смену
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-20 text-center text-slate-300">
+        <p>Неизвестное состояние системы</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 text-indigo-600 font-bold"
+        >
+          Обновить
+        </button>
+      </div>
+    );
   };
 
   return (
