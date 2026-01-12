@@ -1,5 +1,5 @@
 import React from "react";
-import { clearAuth, getUserInfo } from "../services/api";
+import api from "../services/api";
 import { UserRole } from "../types";
 
 interface LayoutProps {
@@ -13,8 +13,7 @@ const Layout: React.FC<LayoutProps> = ({
   activeTab,
   setActiveTab,
 }) => {
-  const user = getUserInfo();
-  // Важно: Прораб (Foreman) тоже видит админский интерфейс, а не водительский
+  const user = api.getUserInfo();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
 
@@ -57,9 +56,14 @@ const Layout: React.FC<LayoutProps> = ({
   ];
 
   const handleLogout = () => {
-    if (confirm("Вы уверены, что хотите выйти?")) {
-      clearAuth();
-      window.location.reload();
+    if (confirm("Завершить сессию и выйти из системы?")) {
+      // 1. Очищаем токен через API сервис
+      api.clearAuth();
+      // 2. Полная зачистка хранилищ браузера
+      localStorage.clear();
+      sessionStorage.clear();
+      // 3. Жесткая перезагрузка страницы для сброса всех состояний React
+      window.location.replace("/");
     }
   };
 
@@ -104,7 +108,7 @@ const Layout: React.FC<LayoutProps> = ({
           <div className="flex items-center gap-2 mt-1">
             <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse"></div>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-              Cloud System v2.1
+              KONTROLSMEN v2.4
             </p>
           </div>
         </div>
@@ -141,9 +145,9 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
           <button
             onClick={handleLogout}
-            className="w-full py-3 px-4 rounded-xl text-[11px] font-bold text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center gap-2"
+            className="w-full py-4 px-4 rounded-xl text-[11px] font-bold text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center gap-2 border border-slate-100"
           >
-            🚪 Выход
+            🚪 Выход из системы
           </button>
         </div>
       </aside>
@@ -152,7 +156,7 @@ const Layout: React.FC<LayoutProps> = ({
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-50 flex items-center justify-between px-10 sticky top-0 z-30">
           <div>
-            <h2 className="text-xl font-black text-[#1B254B] capitalize">
+            <h2 className="text-xl font-black text-[#1B254B] capitalize tracking-tight">
               {activeTab}
             </h2>
           </div>

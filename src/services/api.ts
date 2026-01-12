@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from "../constants";
-import { User, UserRole } from "../types";
+import { User } from "../types";
 
 export const TOKEN_KEY = "logishift_auth_token";
 export const USER_KEY = "logishift_user_info";
@@ -28,59 +28,21 @@ export const clearAuth = () => {
 };
 
 export const loginUser = async (login: string, password: string) => {
-  const params = new URLSearchParams();
-  params.append("login", login.trim());
-  params.append("password", password);
-
+  // Бэкенд на Express ждет обычный JSON, а не FormParams
   const response = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "application/json",
-    },
-    body: params.toString(),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ login: login.trim(), password }),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.detail || errorData.message || "Ошибка авторизации"
-    );
-  }
+  if (!response.ok) throw new Error("Ошибка авторизации");
 
   const data = await response.json();
-  const token = data.access_token || data.token;
-
-  if (token) {
-    setAuthToken(token);
-
-    // Определение роли: admin, foreman или driver
-    let userRole: UserRole = UserRole.DRIVER;
-    const rawRole = (data.user?.role || "").toLowerCase();
-    const lowerLogin = login.toLowerCase();
-
-    if (rawRole === "admin" || lowerLogin === "admin") {
-      userRole = UserRole.ADMIN;
-    } else if (
-      rawRole === "foreman" ||
-      lowerLogin.includes("foreman") ||
-      lowerLogin.includes("master")
-    ) {
-      userRole = UserRole.FOREMAN;
-    }
-
-    const userData: User = {
-      id: data.user?.id || String(Date.now()),
-      login: login,
-      full_name: data.user?.full_name || data.full_name || login,
-      role: userRole,
-    };
-
-    setUserInfo(userData);
+  if (data.token) {
+    setAuthToken(data.token);
+    setUserInfo(data.user); // В бэкенде объект user лежит внутри ответа
     return data;
   }
-
-  throw new Error("Токен не получен");
 };
 
 export const apiRequest = async (endpoint: string, options: any = {}) => {

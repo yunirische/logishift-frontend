@@ -11,7 +11,7 @@ export const getLogisticsInsights = async (
 ): Promise<string> => {
   try {
     // Согласно руководству, создаем экземпляр прямо перед вызовом и используем process.env.API_KEY
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: "" });
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",

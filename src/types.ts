@@ -1,7 +1,7 @@
 export enum ShiftStatus {
-  ACTIVE = "Active",
-  PENDING_INVOICE = "Pending Invoice",
-  FINISHED = "Finished",
+  ACTIVE = "active",
+  PENDING_INVOICE = "pending_invoice",
+  FINISHED = "finished",
 }
 
 export enum UserRole {
@@ -10,23 +10,51 @@ export enum UserRole {
   ADMIN = "admin",
 }
 
+export enum DriverState {
+  IDLE = "idle",
+  PENDING_TRUCK = "pending_truck",
+  PENDING_SITE = "pending_site",
+  AWAITING_ODO_START = "awaiting_odo_start",
+  ACTIVE = "active",
+  AWAITING_ODO_END = "awaiting_odo_end",
+  AWAITING_INVOICE = "awaiting_invoice",
+}
+
 export interface User {
-  id: string;
-  login: string;
+  id: number;
   full_name: string;
   role: UserRole;
+  current_state: DriverState;
+  tenant_id: number;
 }
 
 export interface Shift {
-  id: string;
-  driver_name: string;
-  vehicle_plate: string;
-  work_object: string;
-  started_at: string;
-  finished_at?: string;
-  status: ShiftStatus;
-  comment?: string;
+  id: number;
+  start_time: string;
+  end_time?: string;
+  started_at?: string; // Для совместимости с UI билдера
+  status: string | ShiftStatus;
+
+  // Поля для реестра (Admin View)
+  driver_name?: string;
+  vehicle_plate?: string;
+  work_object?: string;
+
+  // Вложенные объекты (из Prisma include)
+  truck?: { name: string; plate: string };
+  site?: {
+    name: string;
+    odometer_required: boolean;
+    invoice_required: boolean;
+  };
+  tenant?: { invoice_required: boolean };
+
+  // Данные одометра и фото
+  odometer_start?: number;
+  odometer_finish?: number;
   invoice_url?: string;
+  photo_start_url?: string;
+  photo_end_url?: string;
 }
 
 export interface Driver {
@@ -51,19 +79,3 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
 }
-
-declare global {
-  namespace NodeJS {
-    interface ProcessEnv {
-      API_KEY: string;
-      NODE_ENV: string;
-      [key: string]: string | undefined;
-    }
-    interface Process {
-      env: ProcessEnv;
-    }
-  }
-  var process: NodeJS.Process;
-}
-
-export {};

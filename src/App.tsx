@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import AIAssistant from "./components/AIAssistant";
 import AuditLogs from "./components/AuditLogs";
 import Dashboard from "./components/Dashboard";
 import Drivers from "./components/Drivers";
@@ -61,7 +60,7 @@ const App: React.FC = () => {
       <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
         {renderContent()}
       </Layout>
-      <AIAssistant />
+      {/* <AIAssistant /> */}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
-import { Shift, ShiftStatus, UserRole } from "../types";
+import { Shift, UserRole } from "../types";
 
 const Shifts: React.FC = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -28,13 +28,18 @@ const Shifts: React.FC = () => {
     ? shifts
     : shifts.filter((s) => s.driver_name === user?.full_name);
 
-  const getStatusStyle = (status: ShiftStatus) => {
-    switch (status) {
-      case ShiftStatus.ACTIVE:
+  // Изменили тип на any и добавили .toLowerCase() для надежности
+  const getStatusStyle = (status: any) => {
+    const s = (status || "").toLowerCase();
+
+    switch (s) {
+      case "active":
         return "bg-indigo-50 text-indigo-600 border-indigo-100";
-      case ShiftStatus.PENDING_INVOICE:
+      case "pending_invoice":
+      case "awaiting_invoice": // Добавили вариант из стейт-машины
         return "bg-amber-50 text-amber-600 border-amber-100";
-      case ShiftStatus.FINISHED:
+      case "finished":
+      case "completed":
         return "bg-emerald-50 text-emerald-600 border-emerald-100";
       default:
         return "bg-slate-50 text-slate-600 border-slate-100";
@@ -98,8 +103,12 @@ const Shifts: React.FC = () => {
                     {s.work_object}
                   </td>
                   <td className="px-8 py-5 text-[12px] font-mono text-slate-500">
-                    {new Date(s.started_at).toLocaleDateString()}{" "}
-                    {new Date(s.started_at).toLocaleTimeString([], {
+                    {new Date(
+                      s.start_time || s.started_at || Date.now()
+                    ).toLocaleDateString()}{" "}
+                    {new Date(
+                      s.start_time || s.started_at || Date.now()
+                    ).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
