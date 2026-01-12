@@ -24,29 +24,25 @@ const Dashboard: React.FC = () => {
   // Функция обновления состояния (БЕЗ запроса к /auth/me)
   const refreshStatus = useCallback(async () => {
     try {
-      // 1. Берем пользователя из локального хранилища
-      const localUser = api.getUserInfo();
-      if (localUser) setCurrentUser(localUser);
+      // 1. Пытаемся получить текущую смену (правильный путь)
+      const shiftRes = await api.get(API_ENDPOINTS.CURRENT_SHIFT);
+      setActiveShift(shiftRes);
 
-      // 2. Получаем активную смену
-      try {
-        const shiftRes = await api.get(`${API_ENDPOINTS.SHIFTS}/active`);
-        setActiveShift(shiftRes);
-      } catch (e: any) {
-        // Если нет активной смены — это нормально
-        setActiveShift(null);
+      // 2. Если смены нет (null), только тогда грузим машины и объекты
+      if (!shiftRes) {
+        const [trucksRes, sitesRes] = await Promise.all([
+          api.get(API_ENDPOINTS.TRUCKS),
+          api.get(API_ENDPOINTS.SITES),
+        ]);
+        setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
+        setSites(Array.isArray(sitesRes) ? sitesRes : []);
       }
-
-      // 3. Загружаем списки техники и объектов (всегда)
-      const fleet = await api.get(API_ENDPOINTS.FLEET);
-      setTrucks(Array.isArray(fleet) ? fleet.filter((v) => !v.is_busy) : []);
-
-      const objects = await api.get(API_ENDPOINTS.OBJECTS);
-      setSites(
-        Array.isArray(objects) ? objects.filter((o) => o.is_active) : []
-      );
     } catch (err: any) {
       console.error("Refresh status error:", err);
+      // Если 403 или 401 — скорее всего протух токен, нужно разлогинить
+      if (err.message.includes("403") || err.message.includes("401")) {
+        // api.clearAuth(); // Можно включить, если хочешь автовыход
+      }
     } finally {
       setLoading(false);
     }
