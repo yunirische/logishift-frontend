@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [selectedTruck, setSelectedTruck] = useState<number | null>(null);
   const [selectedSite, setSelectedSite] = useState<number | null>(null);
+  const [stats, setStats] = useState({ activeShifts: 0, activeDrivers: 0 });
 
   const isAdminView =
     currentUser?.role === UserRole.ADMIN ||
@@ -80,6 +81,17 @@ const Dashboard: React.FC = () => {
     }
   }, [currentUser?.current_state, activeShift?.started_at]);
 
+  useEffect(() => {
+    if (isAdminView) {
+      api
+        .get(API_ENDPOINTS.DASHBOARD_STATS)
+        .then((res) => {
+          setStats(res);
+        })
+        .catch(console.error);
+    }
+  }, [isAdminView]);
+
   // Функция для выполнения действий с обновлением состояния
   const performAction = async (action: () => Promise<any>) => {
     setIsActionLoading(true);
@@ -132,19 +144,6 @@ const Dashboard: React.FC = () => {
       </div>
     );
   }
-
-  const [stats, setStats] = useState({ activeShifts: 0, activeDrivers: 0 });
-
-  useEffect(() => {
-    if (isAdminView) {
-      api
-        .get(API_ENDPOINTS.DASHBOARD_STATS)
-        .then((res) => {
-          setStats(res);
-        })
-        .catch(console.error);
-    }
-  }, [isAdminView]);
 
   if (isAdminView) {
     return (
