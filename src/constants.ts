@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   UPLOAD_PHOTO: `${API_BASE_URL}/shifts/photo`,
   // Для совместимости с другими компонентами (админка)
   SHIFTS: `${API_BASE_URL}/shifts`,
-  DRIVERS: `${API_BASE_URL}/drivers`,
+  DRIVERS: `${API_BASE_URL}/users`, // Изменили с /drivers на /users
   AUDIT: `${API_BASE_URL}/audit`,
+  DASHBOARD_STATS: `${API_BASE_URL}/dashboard/stats`,
 };

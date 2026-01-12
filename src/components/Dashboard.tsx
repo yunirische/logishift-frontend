@@ -133,17 +133,43 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  const [stats, setStats] = useState({ activeShifts: 0, activeDrivers: 0 });
+
+  useEffect(() => {
+    if (isAdminView) {
+      api
+        .get(API_ENDPOINTS.DASHBOARD_STATS)
+        .then((res) => {
+          setStats(res);
+        })
+        .catch(console.error);
+    }
+  }, [isAdminView]);
+
   if (isAdminView) {
     return (
       <div className="space-y-8 animate-in fade-in">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl mb-4">
+              ⏱️
+            </div>
+            <p className="text-3xl font-black text-[#1B254B]">
+              {stats.activeShifts}
+            </p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+              Активные смены
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl mb-4">
               🚛
             </div>
-            <p className="text-3xl font-black text-[#1B254B]">?</p>
+            <p className="text-3xl font-black text-[#1B254B]">
+              {stats.activeDrivers}
+            </p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-              В рейсе
+              Водителей в рейсе
             </p>
           </div>
         </div>
