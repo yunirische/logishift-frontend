@@ -55,6 +55,7 @@ export interface Shift {
   invoice_url?: string;
   photo_start_url?: string;
   photo_end_url?: string;
+  photo_invoice_url?: string;
 }
 
 export interface Driver {
