@@ -8,13 +8,31 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/pwa\.kontrolsmen\.ru\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 0
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      },
       manifest: {
         name: 'LogiShift Driver',
         short_name: 'LogiShift',
         description: 'Приложение для водителей LogiShift',
         theme_color: '#ffffff',
         background_color: '#ffffff',
-        display: 'standalone', // Это убирает адресную строку браузера
+        display: 'standalone',
         orientation: 'portrait',
         icons: [
           {
