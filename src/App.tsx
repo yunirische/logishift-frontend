@@ -6,6 +6,8 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Shifts from "./components/Shifts";
+import Fleet from "./components/Fleet";
+import Objects from "./components/Objects";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 const AppContent: React.FC = () => {
@@ -57,9 +59,9 @@ const AppContent: React.FC = () => {
       case "audit":
         return <AuditLogs />;
       case "fleet":
-        return renderPlaceholder("Управление Автопарком", "🚛");
+        return <Fleet />;
       case "objects":
-        return renderPlaceholder("Объекты Работ", "🏗️");
+        return <Objects />;
       case "users":
         return renderPlaceholder("Контроль Доступа", "👥");
       case "settings":

@@ -119,12 +119,14 @@ const Shifts: React.FC = () => {
                   </td>
                   <td className="px-8 py-5 text-right">
                     {s.photo_invoice_url ? (
-                      <button
-                        onClick={() => window.open(`https://pwa.kontrolsmen.ru/uploads/${s.photo_invoice_url}`, '_blank')}
-                        className="w-8 h-8 text-slate-300 hover:text-indigo-600"
+                      <a
+                        href={`https://pwa.kontrolsmen.ru/uploads/${s.photo_invoice_url.replace(/\\/g, '/')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-8 h-8 text-slate-300 hover:text-indigo-600 inline-flex items-center justify-center"
                       >
                         🔍
-                      </button>
+                      </a>
                     ) : (
                       <span className="w-8 h-8 text-slate-300">🔍</span>
                     )}
