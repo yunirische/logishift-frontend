@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { Button, Input, Card } from '../components/ui';
 import { User, Lock, AlertCircle } from 'lucide-react';
+import { API_ENDPOINTS } from '../constants';
 
 export const LoginView = () => {
   const { login } = useAuth();
@@ -16,8 +17,14 @@ export const LoginView = () => {
     setError('');
     
     try {
-      const res = await api.post('/auth/login', form);
-      login(res.data.token, res.data.user);
+      const res = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Ошибка авторизации');
+      login(data.token, data.user);
     } catch (err) {
       setError('Неверные учетные данные');
     } finally {

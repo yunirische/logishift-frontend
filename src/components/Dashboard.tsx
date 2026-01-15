@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import { DriverState, Shift, User, UserRole } from "../types";
 
 const Dashboard: React.FC = () => {
-  // ВСЕ useState должны быть в самом начале, до любых условных return
-  const [currentUser, setCurrentUser] = useState<User | null>(
-    api.getUserInfo()
-  );
+  const { user } = useAuth();
+  const [currentUser, setCurrentUser] = useState<User | null>(user);
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
@@ -25,10 +24,11 @@ const Dashboard: React.FC = () => {
     currentUser?.role === UserRole.ADMIN ||
     currentUser?.role === UserRole.FOREMAN;
 
-  // Функция обновления состояния (БЕЗ запроса к /auth/me)
-
-  //api.get(API_ENDPOINTS.TRUCKS),
-  //api.get(API_ENDPOINTS.SITES),
+  useEffect(() => {
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, [user]);
 
   const refreshStatus = useCallback(async () => {
     try {

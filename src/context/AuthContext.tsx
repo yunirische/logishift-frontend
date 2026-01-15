@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '../types';
+import { TOKEN_KEY, USER_KEY } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -26,8 +27,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(() => {
     try {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
       setToken(null);
       setUser(null);
       setError(null);
@@ -51,8 +52,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('Недействительные данные пользователя');
       }
 
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(newUser));
+      localStorage.setItem(TOKEN_KEY, newToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(newUser));
       setToken(newToken);
       setUser(newUser);
     } catch (err) {
@@ -69,8 +70,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
-        const storedUser = localStorage.getItem('user');
-        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem(USER_KEY);
+        const storedToken = localStorage.getItem(TOKEN_KEY);
         
         if (storedToken && storedUser) {
           try {
@@ -103,7 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Auto-logout on storage events (e.g., logout from another tab)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'token' && !e.newValue) {
+      if (e.key === TOKEN_KEY && !e.newValue) {
         logout();
       }
     };

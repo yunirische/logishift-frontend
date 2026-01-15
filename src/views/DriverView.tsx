@@ -54,8 +54,10 @@ export const DriverView = () => {
   };
 
   useEffect(() => {
-    initData();
-  }, []);
+    if (user) {
+      initData();
+    }
+  }, [user]);
 
   const handleStart = async () => {
     if (!selectedTruck || !selectedSite) return;
@@ -76,7 +78,7 @@ export const DriverView = () => {
     if (!confirm("Завершить смену?")) return;
     setLoading(true);
     try {
-      await api.post("/shifts/end");
+      await api.post("/shifts/end", {});
       window.location.reload();
     } catch (e: any) {
       alert(e.response?.data?.error || "Ошибка завершения");

@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "../constants";
+import { API_ENDPOINTS, API_BASE_URL } from "../constants";
 import { User } from "../types";
 
 export const TOKEN_KEY = "logishift_auth_token";
@@ -54,8 +54,10 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
     headers.set("Content-Type", "application/json");
   }
 
+  const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+
   try {
-    const response = await fetch(endpoint, { 
+    const response = await fetch(fullUrl, {
       ...options, 
       headers,
       // Add timeout
