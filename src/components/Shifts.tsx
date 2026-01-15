@@ -64,11 +64,6 @@ const Shifts: React.FC = () => {
             Отображено: {displayShifts.length}
           </p>
         </div>
-        <div className="flex gap-2">
-          <button className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 hover:scale-105 transition-all">
-            + Добавить
-          </button>
-        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -123,9 +118,16 @@ const Shifts: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-8 py-5 text-right">
-                    <button className="w-8 h-8 text-slate-300 hover:text-indigo-600">
-                      🔍
-                    </button>
+                    {s.photo_invoice_url ? (
+                      <button
+                        onClick={() => window.open(`https://pwa.kontrolsmen.ru/uploads/${s.photo_invoice_url}`, '_blank')}
+                        className="w-8 h-8 text-slate-300 hover:text-indigo-600"
+                      >
+                        🔍
+                      </button>
+                    ) : (
+                      <span className="w-8 h-8 text-slate-300">🔍</span>
+                    )}
                   </td>
                 </tr>
               ))
