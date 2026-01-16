@@ -8,6 +8,7 @@ import Login from "./components/Login";
 import Shifts from "./components/Shifts";
 import Fleet from "./components/Fleet";
 import Objects from "./components/Objects";
+import Settings from "./components/Settings";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 const AppContent: React.FC = () => {
@@ -62,10 +63,10 @@ const AppContent: React.FC = () => {
         return <Fleet />;
       case "objects":
         return <Objects />;
+      case "settings":
+        return <Settings />;
       case "users":
         return renderPlaceholder("Контроль Доступа", "👥");
-      case "settings":
-        return renderPlaceholder("Конфигурация Системы", "⚙️");
       default:
         return <Dashboard />;
     }

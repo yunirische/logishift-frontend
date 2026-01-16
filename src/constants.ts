@@ -14,4 +14,5 @@ export const API_ENDPOINTS = {
   DRIVERS: `${API_BASE_URL}/users`, // Изменили с /drivers на /users
   AUDIT: `${API_BASE_URL}/audit`,
   DASHBOARD_STATS: `${API_BASE_URL}/dashboard/stats`,
+  TENANT_SETTINGS: `${API_BASE_URL}/tenant/settings`,
 };
