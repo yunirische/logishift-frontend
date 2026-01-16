@@ -46,6 +46,31 @@ const Shifts: React.FC = () => {
     }
   };
 
+  // Функция для формирования корректной ссылки
+  const getPhotoUrl = (url: string | undefined) => {
+    if (!url) return "#";
+    const baseUrl = window.location.origin;
+    // Заменяем обратные слеши на прямые
+    const cleanUrl = url.replace(/\\/g, "/");
+    return `${baseUrl}/uploads/${cleanUrl}`;
+  };
+
+  // Компонент для отображения иконки-ссылки
+  const PhotoLink = ({ url, icon, title }: { url?: string; icon: string; title: string }) => {
+    if (!url) return null;
+    return (
+      <a
+        href={getPhotoUrl(url)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"
+        title={title}
+      >
+        {icon}
+      </a>
+    );
+  };
+
   if (loading)
     return (
       <div className="p-20 text-center animate-pulse font-black text-indigo-600 uppercase tracking-widest text-[10px]">
@@ -71,8 +96,10 @@ const Shifts: React.FC = () => {
           <thead>
             <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <th className="px-8 py-5">{isAdmin ? "Водитель" : "Машина"}</th>
-              <th className="px-8 py-5">Объект</th>
-              <th className="px-8 py-5">Время</th>
+              {/* Скрываем Объект на мобильных */}
+              <th className="px-8 py-5 hidden md:table-cell">Объект</th>
+              {/* Скрываем Время на мобильных */}
+              <th className="px-8 py-5 hidden md:table-cell">Время</th>
               <th className="px-8 py-5">Статус</th>
               <th className="px-8 py-5 text-right">Детали</th>
             </tr>
@@ -94,10 +121,12 @@ const Shifts: React.FC = () => {
                       </p>
                     )}
                   </td>
-                  <td className="px-8 py-5 font-medium text-slate-600">
+                  {/* Скрываем Объект на мобильных */}
+                  <td className="px-8 py-5 font-medium text-slate-600 hidden md:table-cell">
                     {s.work_object}
                   </td>
-                  <td className="px-8 py-5 text-[12px] font-mono text-slate-500">
+                  {/* Скрываем Время на мобильных */}
+                  <td className="px-8 py-5 text-[12px] font-mono text-slate-500 hidden md:table-cell">
                     {new Date(
                       s.start_time || s.started_at || Date.now()
                     ).toLocaleDateString()}{" "}
@@ -118,18 +147,11 @@ const Shifts: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-8 py-5 text-right">
-                    {s.photo_invoice_url ? (
-                      <a
-                        href={`https://pwa.kontrolsmen.ru/uploads/${s.photo_invoice_url.replace(/\\/g, '/')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-8 h-8 text-slate-300 hover:text-indigo-600 inline-flex items-center justify-center"
-                      >
-                        🔍
-                      </a>
-                    ) : (
-                      <span className="w-8 h-8 text-slate-300">🔍</span>
-                    )}
+                    <div className="flex items-center justify-end gap-1">
+                      <PhotoLink url={(s as any).photo_start_url} icon="🏁" title="Одометр (старт)" />
+                      <PhotoLink url={(s as any).photo_end_url} icon="🏁" title="Одометр (финиш)" />
+                      <PhotoLink url={(s as any).photo_invoice_url} icon="📄" title="Накладная" />
+                    </div>
                   </td>
                 </tr>
               ))
