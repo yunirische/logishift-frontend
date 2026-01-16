@@ -47,12 +47,10 @@ const Shifts: React.FC = () => {
   };
 
   // Функция для формирования корректной ссылки
+  // Согласно контракту API, URL приходят абсолютными (https://...), поэтому возвращаем как есть.
   const getPhotoUrl = (url: string | undefined) => {
     if (!url) return "#";
-    const baseUrl = window.location.origin;
-    // Заменяем обратные слеши на прямые
-    const cleanUrl = url.replace(/\\/g, "/");
-    return `${baseUrl}/uploads/${cleanUrl}`;
+    return url;
   };
 
   // Компонент для отображения иконки-ссылки
@@ -113,11 +111,11 @@ const Shifts: React.FC = () => {
                 >
                   <td className="px-8 py-5">
                     <p className="font-bold text-[#1B254B]">
-                      {isAdmin ? s.driver_name : s.vehicle_plate}
+                      {isAdmin ? s.driver_name : (s as any).truck_name || s.vehicle_plate}
                     </p>
                     {isAdmin && (
                       <p className="text-[10px] font-bold text-slate-400">
-                        {s.vehicle_plate}
+                        {(s as any).truck_name || s.vehicle_plate}
                       </p>
                     )}
                   </td>
@@ -128,10 +126,10 @@ const Shifts: React.FC = () => {
                   {/* Скрываем Время на мобильных */}
                   <td className="px-8 py-5 text-[12px] font-mono text-slate-500 hidden md:table-cell">
                     {new Date(
-                      s.start_time || s.started_at || Date.now()
+                      s.start_time || s.started_at || (s as any).created_at || Date.now()
                     ).toLocaleDateString()}{" "}
                     {new Date(
-                      s.start_time || s.started_at || Date.now()
+                      s.start_time || s.started_at || (s as any).created_at || Date.now()
                     ).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
