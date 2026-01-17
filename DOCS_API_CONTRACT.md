@@ -78,10 +78,41 @@ This document outlines the current API endpoints and their expected request/resp
 
 ---
 
+### 3. GET `/dashboard/stats`
+
+**Description:** Retrieves dashboard statistics for the authenticated tenant, including active shifts, active drivers, and resource usage against plan limits.
+
+**Authentication:** Required (JWT)
+
+**Request:**
+*   **Method:** `GET`
+*   **Headers:**
+    *   `Authorization: Bearer <token>`
+
+**Response:**
+*   **Status:** `200 OK`
+*   **Body:** `application/json`
+    ```json
+    {
+      "activeShifts": 5,
+      "activeDrivers": 3,
+      "usage": {
+        "trucks": { "current": 10, "limit": 20 },
+        "drivers": { "current": 8, "limit": 15 },
+        "sites": { "current": 4, "limit": 10 }
+      }
+    }
+    ```
+*   **Error Statuses:**
+    *   `401 Unauthorized`: If no valid JWT token is provided.
+    *   `404 Not Found`: If the tenant is not found.
+    *   `500 Internal Server Error`: For unexpected server errors.
+
+---
+
 ### Other Endpoints (Summarized)
 
 *   **GET `/health`**: Public health check.
-*   **GET `/dashboard/stats`**: Admin dashboard statistics.
 *   **GET `/shifts/current`**: Current active shift for a driver.
 *   **GET `/trucks`**: List of available trucks.
 *   **GET `/sites`**: List of available sites.
