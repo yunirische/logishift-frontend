@@ -59,7 +59,7 @@ const Objects: React.FC = () => {
     if (!confirm(`Вы уверены, что хотите удалить объект "${name}"?`)) return;
 
     try {
-      await api.delete(API_ENDPOINTS.DELETE_SITE(id));
+      await api.del(API_ENDPOINTS.DELETE_SITE(id));
       await fetchSites();
     } catch (error: any) {
       console.error('Ошибка удаления:', error);

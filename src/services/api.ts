@@ -126,11 +126,26 @@ export const post = (url: string, body: any) => {
   });
 };
 
+export const patch = (url: string, body: any) => {
+  return apiRequest(url, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+};
+
+export const del = (url: string) => {
+  return apiRequest(url, {
+    method: "DELETE",
+  });
+};
+
 const api = {
   loginUser,
   apiRequest,
   get,
   post,
+  patch,
+  del,
   getUserInfo,
   setUserInfo,
   getAuthToken,
