@@ -63,7 +63,6 @@ const Objects: React.FC = () => {
       await fetchSites();
     } catch (error: any) {
       console.error('Ошибка удаления:', error);
-      // Проверка на лимиты или права
       const msg = error?.response?.data?.message || error?.message || 'Ошибка при удалении';
       alert(msg);
     }
@@ -77,17 +76,16 @@ const Objects: React.FC = () => {
     setIsSaving(true);
     try {
       if (editingSite) {
-        // Редактирование
-        await api.patch(API_ENDPOINTS.UPDATE_SITE(editingSite.id), formData);
+        // Редактирование: PATCH на конкретный URL
+        await api.patch(`${API_ENDPOINTS.SITES}/${editingSite.id}`, formData);
       } else {
-        // Создание
+        // Создание: POST на базовый URL
         await api.post(API_ENDPOINTS.ADD_SITE, formData);
       }
       setIsModalOpen(false);
       await fetchSites(); // Обновляем список
     } catch (error: any) {
       console.error('Ошибка сохранения:', error);
-      // Обработка ошибок лимита
       let msg = 'Ошибка сохранения объекта';
       if (error?.response?.status === 403 || error?.response?.status === 400) {
         msg = error?.response?.data?.message || 'Превышен лимит тарифа или недостаточно прав';
@@ -120,8 +118,8 @@ const Objects: React.FC = () => {
         {sites.map((s) => (
           <div key={s.id} className={`bg-white p-6 rounded-[24px] border shadow-sm relative group ${s.is_active ? 'border-slate-50' : 'border-slate-200 opacity-60'}`}>
             
-            {/* Кнопки действий (появляются при наведении или всегда на мобильных) */}
-            <div className="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+            {/* Кнопки действий */}
+            <div className="absolute top-4 right-4 flex gap-2">
               <button
                 onClick={() => handleEditClick(s)}
                 className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-600 transition-colors"
@@ -163,7 +161,7 @@ const Objects: React.FC = () => {
         ))}
       </div>
 
-      {/* Модальное окно */}
+      {/* Модальное окно (с исправленной логикой видимости) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">

@@ -4,6 +4,9 @@ import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { DriverState, Shift, User, UserRole } from "../types";
 
+// Лог версии для проверки очистки кэша
+console.log("Dashboard Version 2.0 Loaded");
+
 // Вспомогательный компонент для карточки лимитов
 const UsageCard: React.FC<{
   label: string;
@@ -11,8 +14,8 @@ const UsageCard: React.FC<{
   current: number;
   limit: number;
 }> = ({ label, icon, current, limit }) => {
-  const percentage = Math.round((current / limit) * 100);
-  const isNearLimit = percentage >= 80; // Если близко к лимиту (80%+)
+  const percentage = limit > 0 ? Math.round((current / limit) * 100) : 0;
+  const isNearLimit = percentage >= 80;
   
   return (
     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
@@ -51,7 +54,8 @@ const Dashboard: React.FC = () => {
   const [step, setStep] = useState<
     "idle" | "selecting_truck" | "selecting_site"
   >("idle");
-  // Расширяем интерфейс stats для включения usage
+
+  // Структура stats соответствует новой спецификации API
   const [stats, setStats] = useState({
     activeShifts: 0,
     activeDrivers: 0,
@@ -74,7 +78,7 @@ const Dashboard: React.FC = () => {
 
   const refreshStatus = useCallback(async () => {
     try {
-      // 1. Запрашиваем текущую смену из бэкенда
+      // 1. Запрашиваем текущую смену
       const shiftRes = await api.get(API_ENDPOINTS.CURRENT_SHIFT);
       setActiveShift(shiftRes);
 
@@ -97,7 +101,7 @@ const Dashboard: React.FC = () => {
         }
       }
 
-      // 3. ЗАГРУЗКА СПИСКОВ
+      // 3. ЗАГРУЗКА СПИСКОВ (если нужно)
       if (!shiftRes && trucks.length === 0) {
         const [trucksData, sitesData] = await Promise.all([
           api.get(API_ENDPOINTS.TRUCKS),
@@ -148,11 +152,21 @@ const Dashboard: React.FC = () => {
   }, [currentUser?.current_state, activeShift?.started_at]);
 
   useEffect(() => {
+    // Загрузка статистики для админа
     if (isAdminView) {
       api
         .get(API_ENDPOINTS.DASHBOARD_STATS)
         .then((res) => {
-          setStats(res);
+          // Явно обновляем стейт, убедившись, что структура соответствует API
+          setStats({
+            activeShifts: res.activeShifts || 0,
+            activeDrivers: res.activeDrivers || 0,
+            usage: res.usage || {
+              trucks: { current: 0, limit: 0 },
+              drivers: { current: 0, limit: 0 },
+              sites: { current: 0, limit: 0 },
+            },
+          });
         })
         .catch(console.error);
     }
@@ -170,33 +184,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsActionLoading(true);
-    try {
-      const fd = new FormData();
-      fd.append("photo", file);
-
-      const response = await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${api.getAuthToken()}`,
-        },
-        body: fd,
-      });
-
-      if (!response.ok) throw new Error("Ошибка загрузки фото");
-
-      await refreshStatus();
-    } catch (err) {
-      alert("Сеть нестабильна. Попробуйте еще раз.");
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
@@ -208,11 +195,12 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // === ADMIN VIEW ===
   if (isAdminView) {
     return (
       <div className="space-y-8 animate-in fade-in">
         {/* Основная статистика */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl mb-4">
               ⏱️
@@ -237,7 +225,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Лимиты тарифа (SaaS Usage) */}
+        {/* НОВЫЙ РАЗДЕЛ: Usage Limits (Лимиты тарифа) */}
         <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
           <h3 className="text-lg font-black text-[#1B254B] mb-6">Лимиты тарифа</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -276,7 +264,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Рендер UI для водителя
+  // === DRIVER VIEW ===
   const renderDriverUI = () => {
     const state = currentUser?.current_state || DriverState.IDLE;
 
@@ -400,6 +388,7 @@ const Dashboard: React.FC = () => {
       }
     }
 
+    // Состояния ожидания фото
     if (
       [
         DriverState.AWAITING_ODO_START,
@@ -471,6 +460,7 @@ const Dashboard: React.FC = () => {
       );
     }
 
+    // Активная смена
     if (state === DriverState.ACTIVE) {
       return (
         <div className="space-y-6 animate-in fade-in">
