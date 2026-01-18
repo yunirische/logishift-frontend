@@ -3,7 +3,39 @@ import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { DriverState, Shift, User, UserRole } from "../types";
-import { API_ENDPOINTS } from '../constants';
+
+// Вспомогательный компонент для карточки лимитов
+const UsageCard: React.FC<{
+  label: string;
+  icon: string;
+  current: number;
+  limit: number;
+}> = ({ label, icon, current, limit }) => {
+  const percentage = Math.round((current / limit) * 100);
+  const isNearLimit = percentage >= 80; // Если близко к лимиту (80%+)
+  
+  return (
+    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{icon}</span>
+          <span className="text-xs font-bold text-slate-500 uppercase">{label}</span>
+        </div>
+        <span className={`text-sm font-black ${isNearLimit ? 'text-orange-500' : 'text-slate-800'}`}>
+          {current} / {limit}
+        </span>
+      </div>
+      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            isNearLimit ? 'bg-orange-500' : 'bg-indigo-500'
+          }`}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
+        ></div>
+      </div>
+    </div>
+  );
+};
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -19,7 +51,16 @@ const Dashboard: React.FC = () => {
   const [step, setStep] = useState<
     "idle" | "selecting_truck" | "selecting_site"
   >("idle");
-  const [stats, setStats] = useState({ activeShifts: 0, activeDrivers: 0 });
+  // Расширяем интерфейс stats для включения usage
+  const [stats, setStats] = useState({
+    activeShifts: 0,
+    activeDrivers: 0,
+    usage: {
+      trucks: { current: 0, limit: 0 },
+      drivers: { current: 0, limit: 0 },
+      sites: { current: 0, limit: 0 },
+    },
+  });
 
   const isAdminView =
     currentUser?.role === UserRole.ADMIN ||
@@ -34,36 +75,29 @@ const Dashboard: React.FC = () => {
   const refreshStatus = useCallback(async () => {
     try {
       // 1. Запрашиваем текущую смену из бэкенда
-      // Этот эндпоинт — главный источник правды
       const shiftRes = await api.get(API_ENDPOINTS.CURRENT_SHIFT);
       setActiveShift(shiftRes);
 
-      // 2. СИНХРОНИЗАЦИЯ СОСТОЯНИЯ (Для связки с ТГ-ботом)
+      // 2. СИНХРОНИЗАЦИЯ СОСТОЯНИЯ
       if (currentUser) {
         let realStateInDb = currentUser.current_state;
 
         if (shiftRes) {
-          // Если в базе есть смена, её статус (active, awaiting_...)
-          // является реальным состоянием водителя
           realStateInDb = shiftRes.status as DriverState;
         } else {
-          // Если смены в базе нет, но в PWA мы не заняты локальным выбором (step === 'idle')
-          // значит водитель точно отдыхает (IDLE)
           if (step === "idle") {
             realStateInDb = DriverState.IDLE;
           }
         }
 
-        // Если состояние в браузере отличается от того, что пришло с сервера — исправляем
         if (currentUser.current_state !== realStateInDb) {
           const updatedUser = { ...currentUser, current_state: realStateInDb };
           setCurrentUser(updatedUser);
-          api.setUserInfo(updatedUser); // Обновляем localStorage
+          api.setUserInfo(updatedUser);
         }
       }
 
-      // 3. ЗАГРУЗКА СПИСКОВ (Машины и Объекты)
-      // Грузим их только если водитель не в активной смене и списки еще пустые
+      // 3. ЗАГРУЗКА СПИСКОВ
       if (!shiftRes && trucks.length === 0) {
         const [trucksData, sitesData] = await Promise.all([
           api.get(API_ENDPOINTS.TRUCKS),
@@ -75,15 +109,11 @@ const Dashboard: React.FC = () => {
       }
     } catch (e: any) {
       console.error("Ошибка синхронизации стейта:", e);
-      // Если сервер ответил 401 (токен протух), apiRequest сам сделает релоад
     } finally {
-      // Убираем скелетон-загрузку только после первого успешного (или неуспешного) запроса
       setLoading(false);
     }
   }, [currentUser, trucks.length, step]);
-  // В зависимости добавили step, чтобы функция знала, когда мы в процессе выбора
 
-  // ВСЕ useEffect должны быть здесь, после useState и useCallback
   useEffect(() => {
     refreshStatus();
     const interval = setInterval(refreshStatus, 15000);
@@ -91,7 +121,7 @@ const Dashboard: React.FC = () => {
   }, [refreshStatus]);
 
   useEffect(() => {
-    // Таймер для отображения времени работы
+    // Таймер
     if (
       currentUser?.current_state === DriverState.ACTIVE &&
       activeShift?.started_at
@@ -128,7 +158,6 @@ const Dashboard: React.FC = () => {
     }
   }, [isAdminView]);
 
-  // Функция для выполнения действий с обновлением состояния
   const performAction = async (action: () => Promise<any>) => {
     setIsActionLoading(true);
     try {
@@ -141,7 +170,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Обработчик загрузки фото
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -169,7 +197,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // ТОЛЬКО ТЕПЕРЬ можно делать условный return
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
@@ -184,6 +211,7 @@ const Dashboard: React.FC = () => {
   if (isAdminView) {
     return (
       <div className="space-y-8 animate-in fade-in">
+        {/* Основная статистика */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl mb-4">
@@ -208,6 +236,36 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
         </div>
+
+        {/* Лимиты тарифа (SaaS Usage) */}
+        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
+          <h3 className="text-lg font-black text-[#1B254B] mb-6">Лимиты тарифа</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {stats.usage && (
+              <>
+                <UsageCard
+                  label="Машины"
+                  icon="🚚"
+                  current={stats.usage.trucks?.current || 0}
+                  limit={stats.usage.trucks?.limit || 0}
+                />
+                <UsageCard
+                  label="Водители"
+                  icon="👷"
+                  current={stats.usage.drivers?.current || 0}
+                  limit={stats.usage.drivers?.limit || 0}
+                />
+                <UsageCard
+                  label="Объекты"
+                  icon="🏗️"
+                  current={stats.usage.sites?.current || 0}
+                  limit={stats.usage.sites?.limit || 0}
+                />
+              </>
+            )}
+          </div>
+        </div>
+
         <div className="bg-white p-8 rounded-[40px] border border-slate-100">
           <h3 className="text-lg font-black text-[#1B254B] mb-6">Мониторинг</h3>
           <p className="text-slate-400 text-sm">
@@ -222,9 +280,7 @@ const Dashboard: React.FC = () => {
   const renderDriverUI = () => {
     const state = currentUser?.current_state || DriverState.IDLE;
 
-    // --- ЛОГИКА СТАРТА (Если водитель еще не в смене по базе данных) ---
     if (state === DriverState.IDLE) {
-      // Шаг 1: Кнопка "Начать"
       if (step === "idle") {
         return (
           <div className="text-center py-10 animate-in zoom-in-95">
@@ -247,7 +303,6 @@ const Dashboard: React.FC = () => {
         );
       }
 
-      // Шаг 2: Выбор машины (локальный)
       if (step === "selecting_truck") {
         return (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
@@ -296,7 +351,6 @@ const Dashboard: React.FC = () => {
         );
       }
 
-      // Шаг 3: Выбор объекта и Финальный старт
       if (step === "selecting_site") {
         return (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
@@ -323,7 +377,6 @@ const Dashboard: React.FC = () => {
                         site_id: site.id,
                       });
                       setStep("idle");
-                      // refreshStatus вызовется автоматически внутри performAction
                     })
                   }
                   className="bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm hover:border-indigo-600 text-left flex items-center justify-between group transition-all"
@@ -347,7 +400,6 @@ const Dashboard: React.FC = () => {
       }
     }
 
-    // --- ЛОГИКА ФОТО (Если сервер перевел юзера в ожидание фото) ---
     if (
       [
         DriverState.AWAITING_ODO_START,
@@ -388,7 +440,7 @@ const Dashboard: React.FC = () => {
                   const file = e.target.files?.[0];
                   if (file) {
                     const fd = new FormData();
-                    fd.append("photo", file); // Поле 'photo' как ждет бэкенд
+                    fd.append("photo", file);
                     performAction(async () => {
                       await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
                         method: "POST",
@@ -403,7 +455,6 @@ const Dashboard: React.FC = () => {
               />
             </label>
           </div>
-          {/* Кнопка отмены для черновика (только на старте) */}
           {isStart && (
             <button
               onClick={() =>
@@ -420,7 +471,6 @@ const Dashboard: React.FC = () => {
       );
     }
 
-    // --- ЛОГИКА АКТИВНОЙ СМЕНЫ (В работе) ---
     if (state === DriverState.ACTIVE) {
       return (
         <div className="space-y-6 animate-in fade-in">

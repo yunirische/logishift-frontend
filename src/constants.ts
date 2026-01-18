@@ -15,4 +15,9 @@ export const API_ENDPOINTS = {
   AUDIT: `${API_BASE_URL}/audit`,
   DASHBOARD_STATS: `${API_BASE_URL}/dashboard/stats`,
   TENANT_SETTINGS: `${API_BASE_URL}/tenant/settings`,
+  
+  // Управление объектами (Sites)
+  ADD_SITE: `${API_BASE_URL}/sites`,
+  UPDATE_SITE: (id: number | string) => `${API_BASE_URL}/sites/${id}`,
+  DELETE_SITE: (id: number | string) => `${API_BASE_URL}/sites/${id}`,
 };
