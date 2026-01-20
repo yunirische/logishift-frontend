@@ -164,6 +164,7 @@ Get dashboard statistics for admin view. **[AUTH REQUIRED]**
 {
   "activeShifts": 5,
   "activeDrivers": 4,
+  "trucksInWork": 3,
   "usage": {
     "trucks": {
       "current": 8,
@@ -180,6 +181,15 @@ Get dashboard statistics for admin view. **[AUTH REQUIRED]**
   }
 }
 ```
+
+**Field descriptions:**
+- `activeShifts` – number of shifts with status not equal to `'finished'`
+- `activeDrivers` – number of drivers with `current_state = 'active'` and role `'driver'`
+- `trucksInWork` – count of **unique** `truck_id` values in `shifts` where `status != 'finished'` (real machines currently on‑site)
+- `usage.trucks.current` – total number of trucks in the tenant's dictionary (for plan‑limit control)
+- `usage.trucks.limit` – maximum allowed trucks according to the tenant's plan (`-1` means unlimited)
+- `usage.drivers.current`, `usage.drivers.limit` – similar for drivers
+- `usage.sites.current`, `usage.sites.limit` – similar for sites
 
 ---
 
@@ -330,7 +340,7 @@ photo: <file>
 ### Trucks (Dictionary)
 
 #### GET `/trucks`
-Get list of all trucks. **[AUTH REQUIRED]**
+Get list of all trucks with active shift information. **[AUTH REQUIRED]**
 
 **Response (200):**
 ```json
@@ -342,10 +352,25 @@ Get list of all trucks. **[AUTH REQUIRED]**
     "plate": "А123БВ777",
     "code": "M1",
     "is_active": true,
-    "is_busy": false
+    "is_busy": false,
+    "shifts": [
+      {
+        "id": 50,
+        "user": {
+          "id": 5,
+          "full_name": "Иван Иванов"
+        }
+      }
+    ]
   }
 ]
 ```
+
+**Field descriptions:**
+- Standard truck fields (`id`, `tenant_id`, `name`, `plate`, `code`, `is_active`, `is_busy`)
+- `shifts` – array of **active** shifts (where `status != 'finished'`) assigned to this truck
+  - Each shift includes `id` and the driver (`user`) with `id` and `full_name`
+- If `is_busy` is `true` but `shifts` array is empty, the truck’s busy flag is considered **stuck** (no actual active shift). Frontend should display a warning and offer a “Force free” button.
 
 #### POST `/trucks`
 Add a new truck. **[AUTH REQUIRED - ADMIN]**
@@ -366,6 +391,39 @@ Add a new truck. **[AUTH REQUIRED - ADMIN]**
   "id": 4,
   "tenant_id": 10,
   "name": "КАМАЗ-55111",
+  "plate": "В456ДЕ777",
+  "code": "K1",
+  "is_active": true,
+  "is_busy": false
+}
+```
+
+#### PATCH `/trucks/:id`
+Update truck details. **[AUTH REQUIRED - ADMIN]**
+
+**URL Parameters:**
+- `id` - Truck ID
+
+**Request Body:**
+```json
+{
+  "name": "КАМАЗ-55111 (обновлено)",
+  "plate": "В456ДЕ777",
+  "is_active": true,
+  "is_busy": false
+}
+```
+
+**Notes:**
+- Setting `is_busy: false` will **force‑reset** the busy flag, even if there is an active shift in the database. This is intentional to resolve stuck‑busy situations.
+- Other fields (`name`, `plate`, `is_active`) behave as usual.
+
+**Response (200):**
+```json
+{
+  "id": 4,
+  "tenant_id": 10,
+  "name": "КАМАЗ-55111 (обновлено)",
   "plate": "В456ДЕ777",
   "code": "K1",
   "is_active": true,
@@ -837,6 +895,13 @@ Interactive commands:
 }
 ```
 
+**403 Forbidden – limit reached:**
+```json
+{
+  "error": "Достигнут лимит машин (10 шт.). Тарифный план: Бесплатный"
+}
+```
+
 **404 Not Found:**
 ```json
 {
@@ -867,6 +932,24 @@ Interactive commands:
 ```json
 {
   "error": "Водитель уже в смене"
+}
+```
+
+```json
+{
+  "error": "Достигнут лимит машин (10 шт.). Тарифный план: Бесплатный"
+}
+```
+
+```json
+{
+  "error": "Достигнут лимит объектов (5 шт.). Тарифный план: Профессиональный"
+}
+```
+
+```json
+{
+  "error": "Достигнут лимит водителей (20 шт.). Тарифный план: Корпоративный"
 }
 ```
 

@@ -6,3 +6,7 @@ build/
 # VS Code workspace
 *.code-workspace
 .aider*
+
+# Добавь в .gitignore
+echo ".aider*" >> .gitignore
+echo "!.aiderignore" >> .gitignore
