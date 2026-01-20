@@ -50,8 +50,9 @@ const Drivers: React.FC = () => {
     setInviteLoading(true);
     try {
       const result = await api.post(API_ENDPOINTS.INVITES, {});
-      // Предполагаем, что ответ содержит поле `link` или `url`
-      const link = result.link || result.url || result.invite_url;
+      // Предполагаем, что ответ содержит поле `link` или `url` или `code`
+      const link = result.link || result.url || result.invite_url || 
+                   (result.code ? `${window.location.origin}/invite/${result.code}` : '');
       setInviteLink(link);
       setInviteModalOpen(true);
     } catch (err: any) {
@@ -80,7 +81,7 @@ const Drivers: React.FC = () => {
     if (!currentDriver) return;
     setSaving(true);
     try {
-      await api.patch(`${API_ENDPOINTS.USERS}/${currentDriver.id}`, editForm);
+      await api.patch(API_ENDPOINTS.UPDATE_USER(currentDriver.id), editForm);
       await fetchDrivers();
       setEditModalOpen(false);
     } catch (err: any) {

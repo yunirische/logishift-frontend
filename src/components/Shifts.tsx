@@ -48,10 +48,12 @@ const Shifts: React.FC = () => {
 
   // Компонент для отображения иконки-ссылки
   const PhotoLink = ({ url, icon, title }: { url?: string; icon: string; title: string }) => {
-    if (!url) return null;
+    if (!url || typeof url !== 'string') return null;
+    // Если путь начинается с '/', добавим базовый URL
+    const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
     return (
       <a
-        href={url}
+        href={fullUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"

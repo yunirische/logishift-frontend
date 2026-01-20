@@ -19,7 +19,7 @@ const UsageCard: React.FC<{
   const displayLimit = limit === -1 ? "∞" : limit;
   
   return (
-    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm w-full">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="text-xl">{icon}</span>
@@ -278,7 +278,7 @@ const Dashboard: React.FC = () => {
                       {shift.driver_name} — {shift.truck_name} — {shift.site_name}
                     </div>
                     <div className="text-xs text-slate-400">
-                      Старт: {new Date(shift.start_time).toLocaleString()}
+                      Старт: {shift.start_time ? new Date(shift.start_time).toLocaleString() : 'Оформление...'}
                     </div>
                   </div>
                   <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full">
