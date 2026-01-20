@@ -16,6 +16,7 @@ const UsageCard: React.FC<{
 }> = ({ label, icon, current, limit }) => {
   const percentage = limit > 0 ? Math.round((current / limit) * 100) : 0;
   const isNearLimit = percentage >= 80;
+  const displayLimit = limit === -1 ? "∞" : limit;
   
   return (
     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
@@ -25,7 +26,7 @@ const UsageCard: React.FC<{
           <span className="text-xs font-bold text-slate-500 uppercase">{label}</span>
         </div>
         <span className={`text-sm font-black ${isNearLimit ? 'text-orange-500' : 'text-slate-800'}`}>
-          {current} / {limit}
+          {current} / {displayLimit}
         </span>
       </div>
       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
