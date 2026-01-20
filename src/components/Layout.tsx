@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import api from "../services/api";
 import { UserRole } from "../types";
+import { Menu, X } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -98,9 +99,75 @@ const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
+import React, { useState } from "react";
+import { Menu, X } from "lucide-react";
+
+const Layout: React.FC<LayoutProps> = ({
+  children,
+  activeTab,
+  setActiveTab,
+}) => {
+  const user = api.getUserInfo();
+  const isAdmin =
+    user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const mainItems = [
+    // ... unchanged
+  ];
+  const adminItems = [
+    // ... unchanged
+  ];
+
+  const renderButton = (item: {
+    id: string;
+    label: string;
+    icon: string;
+    roles: string[];
+  }) => {
+    if (!user || !item.roles.includes(user.role)) return null;
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => {
+          setActiveTab(item.id);
+          setSidebarOpen(false);
+        }}
+        className={`w-full flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 group ${
+          activeTab === item.id
+            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 font-bold"
+            : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50"
+        }`}
+      >
+        <span
+          className={`text-xl transition-transform group-hover:rotate-12 ${
+            activeTab === item.id ? "scale-110" : ""
+          }`}
+        >
+          {item.icon}
+        </span>
+        <span className="text-sm font-semibold">{item.label}</span>
+      </button>
+    );
+  };
+
+  return (
     <div className="flex min-h-screen bg-[#F4F7FE]">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-slate-100 hidden lg:flex flex-col sticky top-0 h-screen z-20">
+      <aside
+        className={`w-72 bg-white border-r border-slate-100 flex-col sticky top-0 h-screen z-50 transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0 lg:flex lg:static`}
+      >
         <div className="p-8">
           <h1 className="text-2xl font-black text-[#1B254B]">
             <span className="text-indigo-600">LOGI</span>SHIFT
@@ -154,11 +221,19 @@ const Layout: React.FC<LayoutProps> = ({
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-50 flex items-center justify-between px-10 sticky top-0 z-30">
-          <div>
-            <h2 className="text-xl font-black text-[#1B254B] capitalize tracking-tight">
-              {activeTab}
-            </h2>
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-50 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
+          <div className="flex items-center gap-4">
+            <button
+              className="lg:hidden p-2"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+            <div>
+              <h2 className="text-xl font-black text-[#1B254B] capitalize tracking-tight">
+                {activeTab}
+              </h2>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-xs border border-indigo-100/50">

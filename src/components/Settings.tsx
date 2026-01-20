@@ -49,7 +49,7 @@ const Settings: React.FC = () => {
       await api.patch(API_ENDPOINTS.TENANT_SETTINGS, {
         name: settings.name,
         timezone: settings.timezone,
-        invoice_required: settings.invoice_required,
+        // invoice_required удалено, т.к. управляется на уровне объектов
       });
       setMessage({ type: "success", text: "Настройки успешно сохранены" });
     } catch (error) {
@@ -118,30 +118,6 @@ const Settings: React.FC = () => {
             </div>
           </div>
 
-          {/* Invoice Toggle */}
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-            <div>
-              <div className="font-bold text-slate-800">
-                Требовать накладную (фото) по умолчанию
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                Водители должны загружать фото накладной для завершения смены
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSettings({ ...settings, invoice_required: !settings.invoice_required })}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                settings.invoice_required ? "bg-indigo-600" : "bg-slate-300"
-              }`}
-            >
-              <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white transition duration-300 ease-in-out ${
-                  settings.invoice_required ? "translate-x-7" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
 
           {/* Message */}
           {message && (

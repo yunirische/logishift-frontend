@@ -46,19 +46,12 @@ const Shifts: React.FC = () => {
     }
   };
 
-  // Функция для формирования корректной ссылки
-  // Согласно контракту API, URL приходят абсолютными (https://...), поэтому возвращаем как есть.
-  const getPhotoUrl = (url: string | undefined) => {
-    if (!url) return "#";
-    return url;
-  };
-
   // Компонент для отображения иконки-ссылки
   const PhotoLink = ({ url, icon, title }: { url?: string; icon: string; title: string }) => {
     if (!url) return null;
     return (
       <a
-        href={getPhotoUrl(url)}
+        href={url}
         target="_blank"
         rel="noopener noreferrer"
         className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"

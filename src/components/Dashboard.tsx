@@ -64,6 +64,8 @@ const Dashboard: React.FC = () => {
       drivers: { current: 0, limit: 0 },
       sites: { current: 0, limit: 0 },
     },
+    currentPlan: '',
+    activeShiftsDetails: [] as any[],
   });
 
   const isAdminView =
@@ -166,6 +168,8 @@ const Dashboard: React.FC = () => {
               drivers: { current: 0, limit: 0 },
               sites: { current: 0, limit: 0 },
             },
+            currentPlan: res.currentPlan || '',
+            activeShiftsDetails: res.activeShiftsDetails || [],
           });
         })
         .catch(console.error);
@@ -227,7 +231,14 @@ const Dashboard: React.FC = () => {
 
         {/* НОВЫЙ РАЗДЕЛ: Usage Limits (Лимиты тарифа) */}
         <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
-          <h3 className="text-lg font-black text-[#1B254B] mb-6">Лимиты тарифа</h3>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-black text-[#1B254B]">Лимиты тарифа</h3>
+            {stats.currentPlan && (
+              <span className="px-3 py-1 bg-indigo-100 text-indigo-600 text-xs font-bold rounded-full">
+                Текущий тариф: {stats.currentPlan}
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {stats.usage && (
               <>
@@ -253,6 +264,30 @@ const Dashboard: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Активные смены */}
+        {stats.activeShiftsDetails && stats.activeShiftsDetails.length > 0 && (
+          <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
+            <h3 className="text-lg font-black text-[#1B254B] mb-6">Активные смены</h3>
+            <div className="space-y-4">
+              {stats.activeShiftsDetails.map((shift: any) => (
+                <div key={shift.id} className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl hover:bg-slate-50">
+                  <div>
+                    <div className="font-bold text-[#1B254B]">
+                      {shift.driver_name} — {shift.truck_name} — {shift.site_name}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Старт: {new Date(shift.start_time).toLocaleString()}
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full">
+                    {shift.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white p-8 rounded-[40px] border border-slate-100">
           <h3 className="text-lg font-black text-[#1B254B] mb-6">Мониторинг</h3>

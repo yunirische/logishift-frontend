@@ -109,6 +109,10 @@ const Fleet: React.FC = () => {
       } else if (error?.message) {
         msg = error.message;
       }
+      // Обработка лимитов
+      if (error?.response?.data?.error === "LIMIT_REACHED" || msg.includes("LIMIT_REACHED") || msg.includes("лимит")) {
+        msg = "Лимит вашего тарифа исчерпан. Удалите старые записи или обновите план.";
+      }
       alert(msg);
     } finally {
       setIsSaving(false);
