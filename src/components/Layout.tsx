@@ -17,6 +17,7 @@ const Layout: React.FC<LayoutProps> = ({
   const user = api.getUserInfo();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const mainItems = [
     {
@@ -67,57 +68,6 @@ const Layout: React.FC<LayoutProps> = ({
       window.location.replace("/");
     }
   };
-
-  const renderButton = (item: {
-    id: string;
-    label: string;
-    icon: string;
-    roles: string[];
-  }) => {
-    if (!user || !item.roles.includes(user.role)) return null;
-
-    return (
-      <button
-        key={item.id}
-        onClick={() => setActiveTab(item.id)}
-        className={`w-full flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 group ${
-          activeTab === item.id
-            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 font-bold"
-            : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50"
-        }`}
-      >
-        <span
-          className={`text-xl transition-transform group-hover:rotate-12 ${
-            activeTab === item.id ? "scale-110" : ""
-          }`}
-        >
-          {item.icon}
-        </span>
-        <span className="text-sm font-semibold">{item.label}</span>
-      </button>
-    );
-  };
-
-  return (
-import React, { useState } from "react";
-import { Menu, X } from "lucide-react";
-
-const Layout: React.FC<LayoutProps> = ({
-  children,
-  activeTab,
-  setActiveTab,
-}) => {
-  const user = api.getUserInfo();
-  const isAdmin =
-    user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const mainItems = [
-    // ... unchanged
-  ];
-  const adminItems = [
-    // ... unchanged
-  ];
 
   const renderButton = (item: {
     id: string;
