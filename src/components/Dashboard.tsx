@@ -236,7 +236,7 @@ const Dashboard: React.FC = () => {
             <h3 className="text-lg font-black text-[#1B254B]">Лимиты тарифа</h3>
             {stats.currentPlan && (
               <span className="px-3 py-1 bg-indigo-100 text-indigo-600 text-xs font-bold rounded-full">
-                Текущий тариф: {stats.currentPlan}
+                Текущий тариф: {stats.currentPlan?.name || "Загрузка..."}
               </span>
             )}
           </div>
