@@ -114,9 +114,9 @@ const Layout: React.FC<LayoutProps> = ({
 
       {/* Sidebar */}
       <aside
-        className={`w-72 bg-white border-r border-slate-100 flex-col sticky top-0 h-screen z-50 transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 hidden lg:flex`}
+        className={`fixed lg:sticky w-72 bg-white border-r border-slate-100 flex flex-col top-0 h-screen z-50 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
       >
         <div className="p-8">
           <h1 className="text-2xl font-black text-[#1B254B]">

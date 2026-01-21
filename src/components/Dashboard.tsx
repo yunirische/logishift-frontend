@@ -85,7 +85,17 @@ const Dashboard: React.FC = () => {
   const [manualLoading, setManualLoading] = useState(false);
 
   // Структура stats соответствует новой спецификации API
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<{
+    activeShifts: number;
+    activeDrivers: number;
+    usage: {
+      trucks: { current: number; limit: number };
+      drivers: { current: number; limit: number };
+      sites: { current: number; limit: number };
+    };
+    currentPlan: string | { name: string };
+    activeShiftsDetails: any[];
+  }>({
     activeShifts: 0,
     activeDrivers: 0,
     usage: {
@@ -94,7 +104,7 @@ const Dashboard: React.FC = () => {
       sites: { current: 0, limit: 0 },
     },
     currentPlan: '',
-    activeShiftsDetails: [] as any[],
+    activeShiftsDetails: [],
   });
 
   const isAdminView =

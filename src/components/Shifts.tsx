@@ -48,7 +48,7 @@ const Shifts: React.FC = () => {
 
   // Компонент для отображения иконки-ссылки
   const PhotoLink = ({ url, icon, title }: { url?: string; icon: string; title: string }) => {
-    if (!url || typeof url !== 'string') return null;
+    if (!url || typeof url !== 'string' || !url.startsWith('/')) return null;
     // Если путь начинается с '/', добавим базовый URL
     const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
     return (
