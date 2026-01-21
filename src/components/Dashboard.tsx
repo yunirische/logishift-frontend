@@ -14,8 +14,20 @@ const UsageCard: React.FC<{
   current: number;
   limit: number;
 }> = ({ label, icon, current, limit }) => {
-  const percentage = limit > 0 ? Math.round((current / limit) * 100) : 0;
-  const isNearLimit = percentage >= 80;
+  let percentage = 0;
+  let isNearLimit = false;
+  if (limit === -1) {
+    // безлимитный тариф
+    percentage = 0;
+    isNearLimit = false;
+  } else if (limit > 0) {
+    percentage = Math.round((current / limit) * 100);
+    isNearLimit = percentage >= 80;
+  } else {
+    // limit === 0 или отрицательный (не -1)
+    percentage = 0;
+    isNearLimit = false;
+  }
   const displayLimit = limit === -1 ? "∞" : limit;
   
   return (
@@ -32,6 +44,7 @@ const UsageCard: React.FC<{
       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
+            limit === -1 ? 'bg-slate-300' : 
             isNearLimit ? 'bg-orange-500' : 'bg-indigo-500'
           }`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
