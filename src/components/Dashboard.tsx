@@ -16,10 +16,12 @@ const UsageCard: React.FC<{
 }> = ({ label, icon, current, limit }) => {
   let percentage = 0;
   let isNearLimit = false;
+  let isUnlimited = false;
   if (limit === -1) {
     // безлимитный тариф
-    percentage = 0;
+    percentage = 100; // показываем полную полоску серым
     isNearLimit = false;
+    isUnlimited = true;
   } else if (limit > 0) {
     percentage = Math.round((current / limit) * 100);
     isNearLimit = percentage >= 80;
@@ -37,14 +39,14 @@ const UsageCard: React.FC<{
           <span className="text-xl">{icon}</span>
           <span className="text-xs font-bold text-slate-500 uppercase">{label}</span>
         </div>
-        <span className={`text-sm font-black ${isNearLimit ? 'text-orange-500' : 'text-slate-800'}`}>
+        <span className={`text-sm font-black ${isNearLimit ? 'text-orange-500' : isUnlimited ? 'text-slate-600' : 'text-slate-800'}`}>
           {current} / {displayLimit}
         </span>
       </div>
       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            limit === -1 ? 'bg-slate-300' : 
+            isUnlimited ? 'bg-slate-300' : 
             isNearLimit ? 'bg-orange-500' : 'bg-indigo-500'
           }`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
