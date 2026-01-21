@@ -116,7 +116,7 @@ const Layout: React.FC<LayoutProps> = ({
       <aside
         className={`w-72 bg-white border-r border-slate-100 flex-col sticky top-0 h-screen z-50 transition-transform duration-300 ease-in-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 lg:flex lg:static`}
+        } lg:translate-x-0 hidden lg:flex`}
       >
         <div className="p-8">
           <h1 className="text-2xl font-black text-[#1B254B]">
@@ -170,7 +170,7 @@ const Layout: React.FC<LayoutProps> = ({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 pl-0 lg:pl-0">
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-50 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button

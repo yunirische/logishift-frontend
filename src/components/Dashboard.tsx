@@ -2,10 +2,15 @@ import React, { useCallback, useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { DriverState, Shift, User, UserRole } from "../types";
+import { DriverState, Shift, User, UserRole, ManualShiftRequest } from "../types";
 
 // Лог версии для проверки очистки кэша
 console.log("Dashboard Version 2.0 Loaded");
+
+// Вспомогательная функция проверки URL фото
+const isValidPhotoUrl = (url: any): boolean => {
+  return url && typeof url === 'string' && url.startsWith('/');
+};
 
 // Вспомогательный компонент для карточки лимитов
 const UsageCard: React.FC<{
@@ -70,6 +75,14 @@ const Dashboard: React.FC = () => {
   const [step, setStep] = useState<
     "idle" | "selecting_truck" | "selecting_site"
   >("idle");
+
+  // Для ручной смены (admin)
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualDriverId, setManualDriverId] = useState<number | null>(null);
+  const [manualTruckId, setManualTruckId] = useState<number | null>(null);
+  const [manualSiteId, setManualSiteId] = useState<number | null>(null);
+  const [driversList, setDriversList] = useState<any[]>([]);
+  const [manualLoading, setManualLoading] = useState(false);
 
   // Структура stats соответствует новой спецификации API
   const [stats, setStats] = useState({
@@ -169,6 +182,41 @@ const Dashboard: React.FC = () => {
     }
   }, [currentUser?.current_state, activeShift?.started_at]);
 
+  // Загрузка данных для ручной смены (водители, машины, объекты)
+  useEffect(() => {
+    if (isAdminView && showManualModal) {
+      const loadManualData = async () => {
+        try {
+          const [driversRes, trucksRes, sitesRes] = await Promise.all([
+            api.get(API_ENDPOINTS.DRIVERS),
+            api.get(API_ENDPOINTS.TRUCKS),
+            api.get(API_ENDPOINTS.SITES),
+          ]);
+          // Водители только с ролью driver и idle
+          const idleDrivers = Array.isArray(driversRes) 
+            ? driversRes.filter((d: any) => 
+                d.role === UserRole.DRIVER && d.current_state === DriverState.IDLE
+              )
+            : [];
+          setDriversList(idleDrivers);
+          // Машины только не занятые
+          const freeTrucks = Array.isArray(trucksRes)
+            ? trucksRes.filter((t: any) => !t.is_busy && t.is_active)
+            : [];
+          setTrucks(freeTrucks);
+          // Объекты активные
+          const activeSites = Array.isArray(sitesRes)
+            ? sitesRes.filter((s: any) => s.is_active)
+            : [];
+          setSites(activeSites);
+        } catch (error) {
+          console.error("Ошибка загрузки данных для ручной смены:", error);
+        }
+      };
+      loadManualData();
+    }
+  }, [isAdminView, showManualModal]);
+
   useEffect(() => {
     // Загрузка статистики для админа
     if (isAdminView) {
@@ -220,7 +268,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="space-y-8 animate-in fade-in">
         {/* Основная статистика */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl mb-4">
               ⏱️
@@ -242,6 +290,20 @@ const Dashboard: React.FC = () => {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
               Водителей в рейсе
             </p>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-4">
+              ✋
+            </div>
+            <p className="text-3xl font-black text-[#1B254B]">
+              +
+            </p>
+            <button
+              onClick={() => setShowManualModal(true)}
+              className="mt-2 w-full py-2 bg-amber-500 text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-amber-600 transition-all"
+            >
+              ➕ Создать смену вручную
+            </button>
           </div>
         </div>
 
@@ -301,6 +363,141 @@ const Dashboard: React.FC = () => {
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно для ручной смены */}
+        {showManualModal && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-8 animate-in zoom-in-95">
+              <h3 className="text-xl font-black text-[#1B254B] mb-2">
+                ✋ Создать смену вручную
+              </h3>
+              <p className="text-sm text-slate-400 mb-6">
+                Выберите водителя, машину и объект
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                    Водитель (idle)
+                  </label>
+                  <select
+                    className="w-full p-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={manualDriverId || ""}
+                    onChange={(e) => setManualDriverId(Number(e.target.value) || null)}
+                    disabled={manualLoading}
+                  >
+                    <option value="">Выберите водителя</option>
+                    {driversList.map((driver) => (
+                      <option key={driver.id} value={driver.id}>
+                        {driver.full_name} (ID: {driver.id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                    Машина (не занята)
+                  </label>
+                  <select
+                    className="w-full p-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={manualTruckId || ""}
+                    onChange={(e) => setManualTruckId(Number(e.target.value) || null)}
+                    disabled={manualLoading}
+                  >
+                    <option value="">Выберите машину</option>
+                    {trucks
+                      .filter((t) => !t.is_busy && t.is_active)
+                      .map((truck) => (
+                        <option key={truck.id} value={truck.id}>
+                          {truck.name} ({truck.plate})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                    Объект
+                  </label>
+                  <select
+                    className="w-full p-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    value={manualSiteId || ""}
+                    onChange={(e) => setManualSiteId(Number(e.target.value) || null)}
+                    disabled={manualLoading}
+                  >
+                    <option value="">Выберите объект</option>
+                    {sites
+                      .filter((s) => s.is_active)
+                      .map((site) => (
+                        <option key={site.id} value={site.id}>
+                          {site.name} (одометр: {site.odometer_required ? "да" : "нет"})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={() => {
+                    setManualDriverId(null);
+                    setManualTruckId(null);
+                    setManualSiteId(null);
+                    setShowManualModal(false);
+                  }}
+                  className="flex-1 py-3 border border-slate-200 text-slate-500 font-bold rounded-xl hover:bg-slate-50 transition-all"
+                  disabled={manualLoading}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!manualDriverId || !manualTruckId || !manualSiteId) {
+                      alert("Заполните все поля");
+                      return;
+                    }
+                    setManualLoading(true);
+                    try {
+                      const payload: ManualShiftRequest = {
+                        driver_id: manualDriverId,
+                        truck_id: manualTruckId,
+                        site_id: manualSiteId,
+                      };
+                      await api.post(API_ENDPOINTS.MANUAL_SHIFT, payload);
+                      alert("Смена успешно создана!");
+                      setManualDriverId(null);
+                      setManualTruckId(null);
+                      setManualSiteId(null);
+                      setShowManualModal(false);
+                      // Обновить статистику
+                      const res = await api.get(API_ENDPOINTS.DASHBOARD_STATS);
+                      setStats({
+                        activeShifts: res.activeShifts || 0,
+                        activeDrivers: res.activeDrivers || 0,
+                        usage: res.usage || {
+                          trucks: { current: 0, limit: 0 },
+                          drivers: { current: 0, limit: 0 },
+                          sites: { current: 0, limit: 0 },
+                        },
+                        currentPlan: res.currentPlan || '',
+                        activeShiftsDetails: res.activeShiftsDetails || [],
+                      });
+                    } catch (err: any) {
+                      alert(err.message || "Ошибка создания смены");
+                    } finally {
+                      setManualLoading(false);
+                    }
+                  }}
+                  className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50"
+                  disabled={manualLoading}
+                >
+                  {manualLoading ? "Создание..." : "Создать смену"}
+                </button>
+              </div>
             </div>
           </div>
         )}

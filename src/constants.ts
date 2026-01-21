@@ -26,4 +26,6 @@ export const API_ENDPOINTS = {
   ADD_SITE: `${API_BASE_URL}/sites`,
   UPDATE_SITE: (id: number | string) => `${API_BASE_URL}/sites/${id}`,
   DELETE_SITE: (id: number | string) => `${API_BASE_URL}/sites/${id}`,
+  // Ручное создание смены (admin)
+  MANUAL_SHIFT: `${API_BASE_URL}/shifts/manual`,
 };

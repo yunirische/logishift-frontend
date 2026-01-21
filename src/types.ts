@@ -80,3 +80,9 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
 }
+
+export interface ManualShiftRequest {
+  driver_id: number;
+  truck_id: number;
+  site_id: number;
+}
