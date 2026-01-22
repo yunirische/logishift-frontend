@@ -31,29 +31,36 @@ export interface User {
 
 export interface Shift {
   id: number;
-  start_time: string;
-  end_time?: string;
-  started_at?: string; // Для совместимости с UI билдера
   status: string | ShiftStatus;
 
-  // Поля для реестра (Admin View)
+  // Поля для списка смен (/shifts)
   driver_name?: string;
-  vehicle_plate?: string;
-  work_object?: string;
+  truck_name?: string;
+  site_name?: string;
+  created_at?: string;
 
-  // Вложенные объекты (из Prisma include)
-  truck?: { name: string; plate: string };
+  // Поля для текущей смены (/shifts/current)
+  tenant_id?: number;
+  user_id?: number;
+  truck_id?: number;
+  site_id?: number;
+  start_time?: string;
+  end_time?: string;
+  hours_worked?: string;
+  salary?: string;
+  comment?: string;
+  updated_at?: string;
+
+  // Вложенные объекты (из /shifts/current)
+  truck?: { name: string };
   site?: {
     name: string;
     odometer_required: boolean;
     invoice_required: boolean;
   };
-  tenant?: { invoice_required: boolean };
+  user?: { full_name: string };
 
-  // Данные одометра и фото
-  odometer_start?: number;
-  odometer_finish?: number;
-  invoice_url?: string;
+  // Данные фото
   photo_start_url?: string;
   photo_end_url?: string;
   photo_invoice_url?: string;

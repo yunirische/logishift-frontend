@@ -1508,6 +1508,18 @@ Get dashboard statistics for admin view. **[AUTH REQUIRED]**
       "current": 5,
       "limit": 10
     }
+  },
+  "activeShiftsDetails": [
+    {
+      "driver_name": "Иван Иванов",
+      "truck_name": "МАЗ-533",
+      "site_name": "Стройплощадка №1",
+      "start_time": "2024-01-15T08:00:00.000Z"
+    }
+  ],
+  "currentPlan": {
+    "name": "Профессиональный",
+    "billingUrl": "https://pwa.kontrolsmen.ru/billing"
   }
 }
 ```
@@ -1521,6 +1533,9 @@ Get dashboard statistics for admin view. **[AUTH REQUIRED]**
 - `usage.trucks.limit` – maximum allowed trucks according to the tenant's plan (`-1` means unlimited)
 - `usage.drivers.current`, `usage.drivers.limit` – similar for drivers
 - `usage.sites.current`, `usage.sites.limit` – similar for sites
+- `activeShiftsDetails` – array of active shift objects with `driver_name`, `truck_name`, `site_name`, `start_time`
+- `currentPlan.name` – tenant's subscription plan name
+- `currentPlan.billingUrl` – link to billing page
 
 ---
 
@@ -1865,6 +1880,7 @@ Update site settings. **[AUTH REQUIRED - ADMIN]**
 ```json
 {
   "name": "Стройплощадка №5 (обновлено)",
+  "address": "ул. Обновленная, 30",
   "odometer_required": false,
   "invoice_required": true,
   "is_active": true
@@ -1878,6 +1894,7 @@ Update site settings. **[AUTH REQUIRED - ADMIN]**
   "id": 8,
   "tenant_id": 10,
   "name": "Стройплощадка №5 (обновлено)",
+  "address": "ул. Обновленная, 30",
   "odometer_required": false,
   "invoice_required": true,
   "is_active": true

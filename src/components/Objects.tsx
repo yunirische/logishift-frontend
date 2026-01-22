@@ -9,9 +9,9 @@ const Objects: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<any | null>(null);
   
-  // Форма состояния
   const [formData, setFormData] = useState({
     name: '',
+    address: '',
     odometer_required: false,
     invoice_required: false,
     is_active: true
@@ -35,18 +35,17 @@ const Objects: React.FC = () => {
     fetchSites();
   }, []);
 
-  // Открытие модалки для создания
   const handleAddClick = () => {
     setEditingSite(null);
-    setFormData({ name: '', odometer_required: false, invoice_required: false, is_active: true });
+    setFormData({ name: '', address: '', odometer_required: false, invoice_required: false, is_active: true });
     setIsModalOpen(true);
   };
 
-  // Открытие модалки для редактирования
   const handleEditClick = (site: any) => {
     setEditingSite(site);
     setFormData({
       name: site.name,
+      address: site.address || '',
       odometer_required: site.odometer_required,
       invoice_required: site.invoice_required,
       is_active: site.is_active
@@ -146,6 +145,12 @@ const Objects: React.FC = () => {
             </div>
             
             <h4 className="mt-4 font-bold text-[#1B254B] text-lg">{s.name}</h4>
+            {s.address && (
+              <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-400">
+                <MapPin size={12} />
+                <span className="truncate">{s.address}</span>
+              </div>
+            )}
             
             <div className="flex flex-wrap gap-2 mt-3">
               {s.odometer_required && (
@@ -193,6 +198,19 @@ const Objects: React.FC = () => {
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-bold text-[#1B254B]"
                   placeholder="Например, Стройка №1"
                   autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                  Адрес
+                </label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-600"
+                  placeholder="Например, ул. Строителей, 10"
                 />
               </div>
 

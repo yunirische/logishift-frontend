@@ -84,17 +84,22 @@ const Dashboard: React.FC = () => {
   const [driversList, setDriversList] = useState<any[]>([]);
   const [manualLoading, setManualLoading] = useState(false);
 
-  // Структура stats соответствует новой спецификации API
   const [stats, setStats] = useState<{
     activeShifts: number;
     activeDrivers: number;
+    trucksInWork?: number;
     usage: {
       trucks: { current: number; limit: number };
       drivers: { current: number; limit: number };
       sites: { current: number; limit: number };
     };
-    currentPlan: string | { name: string };
-    activeShiftsDetails: any[];
+    currentPlan: { name: string; billingUrl: string };
+    activeShiftsDetails: Array<{
+      driver_name: string;
+      truck_name: string;
+      site_name: string;
+      start_time: string;
+    }>;
   }>({
     activeShifts: 0,
     activeDrivers: 0,
@@ -103,7 +108,7 @@ const Dashboard: React.FC = () => {
       drivers: { current: 0, limit: 0 },
       sites: { current: 0, limit: 0 },
     },
-    currentPlan: '',
+    currentPlan: { name: '', billingUrl: '' },
     activeShiftsDetails: [],
   });
 
@@ -169,11 +174,11 @@ const Dashboard: React.FC = () => {
     // Таймер
     if (
       currentUser?.current_state === DriverState.ACTIVE &&
-      activeShift?.started_at
+      activeShift?.start_time
     ) {
       const timer = setInterval(() => {
         const start = new Date(
-          activeShift.start_time || activeShift.started_at || Date.now()
+          activeShift.start_time || Date.now()
         ).getTime();
         const now = new Date().getTime();
         const diff = Math.max(0, now - start);
@@ -190,7 +195,7 @@ const Dashboard: React.FC = () => {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [currentUser?.current_state, activeShift?.started_at]);
+  }, [currentUser?.current_state, activeShift?.start_time]);
 
   // Загрузка данных для ручной смены (водители, машины, объекты)
   useEffect(() => {
@@ -233,16 +238,16 @@ const Dashboard: React.FC = () => {
       api
         .get(API_ENDPOINTS.DASHBOARD_STATS)
         .then((res) => {
-          // Явно обновляем стейт, убедившись, что структура соответствует API
           setStats({
             activeShifts: res.activeShifts || 0,
             activeDrivers: res.activeDrivers || 0,
+            trucksInWork: res.trucksInWork,
             usage: res.usage || {
               trucks: { current: 0, limit: 0 },
               drivers: { current: 0, limit: 0 },
               sites: { current: 0, limit: 0 },
             },
-            currentPlan: res.currentPlan || '',
+            currentPlan: res.currentPlan || { name: '', billingUrl: '' },
             activeShiftsDetails: res.activeShiftsDetails || [],
           });
         })
@@ -321,9 +326,9 @@ const Dashboard: React.FC = () => {
         <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-black text-[#1B254B]">Лимиты тарифа</h3>
-            {stats.currentPlan && (
+            {stats.currentPlan && stats.currentPlan.name && (
               <span className="px-3 py-1 bg-indigo-100 text-indigo-600 text-xs font-bold rounded-full">
-                Текущий тариф: {typeof stats.currentPlan === 'string' ? stats.currentPlan : stats.currentPlan?.name || "Загрузка..."}
+                {stats.currentPlan.name}
               </span>
             )}
           </div>
@@ -358,18 +363,18 @@ const Dashboard: React.FC = () => {
           <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
             <h3 className="text-lg font-black text-[#1B254B] mb-6">Активные смены</h3>
             <div className="space-y-4">
-              {stats.activeShiftsDetails.map((shift: any) => (
-                <div key={shift.id} className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl hover:bg-slate-50">
+              {stats.activeShiftsDetails.map((shift, index) => (
+                <div key={index} className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl hover:bg-slate-50">
                   <div>
                     <div className="font-bold text-[#1B254B]">
                       {shift.driver_name} — {shift.truck_name} — {shift.site_name}
                     </div>
                     <div className="text-xs text-slate-400">
-                      Старт: {shift.start_time ? new Date(shift.start_time).toLocaleString() : 'Оформление...'}
+                      Старт: {shift.start_time ? new Date(shift.start_time).toLocaleString() : 'В процессе оформления'}
                     </div>
                   </div>
-                  <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full">
-                    {shift.status}
+                  <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full">
+                    В работе
                   </span>
                 </div>
               ))}
@@ -483,17 +488,17 @@ const Dashboard: React.FC = () => {
                       setManualTruckId(null);
                       setManualSiteId(null);
                       setShowManualModal(false);
-                      // Обновить статистику
                       const res = await api.get(API_ENDPOINTS.DASHBOARD_STATS);
                       setStats({
                         activeShifts: res.activeShifts || 0,
                         activeDrivers: res.activeDrivers || 0,
+                        trucksInWork: res.trucksInWork,
                         usage: res.usage || {
                           trucks: { current: 0, limit: 0 },
                           drivers: { current: 0, limit: 0 },
                           sites: { current: 0, limit: 0 },
                         },
-                        currentPlan: res.currentPlan || '',
+                        currentPlan: res.currentPlan || { name: '', billingUrl: '' },
                         activeShiftsDetails: res.activeShiftsDetails || [],
                       });
                     } catch (err: any) {
@@ -743,7 +748,7 @@ const Dashboard: React.FC = () => {
                 🚛 Машина
               </span>
               <span className="text-sm font-black text-[#1B254B]">
-                {activeShift?.truck?.name || activeShift?.vehicle_plate || "—"}
+                {activeShift?.truck?.name || "—"}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -751,7 +756,7 @@ const Dashboard: React.FC = () => {
                 🏗️ Объект
               </span>
               <span className="text-sm font-black text-[#1B254B]">
-                {activeShift?.site?.name || activeShift?.work_object || "—"}
+                {activeShift?.site?.name || "—"}
               </span>
             </div>
           </div>

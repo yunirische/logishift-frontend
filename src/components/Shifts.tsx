@@ -104,29 +104,25 @@ const Shifts: React.FC = () => {
                 >
                   <td className="px-8 py-5">
                     <p className="font-bold text-[#1B254B]">
-                      {isAdmin ? s.driver_name : (s as any).truck_name || s.vehicle_plate}
+                      {isAdmin ? s.driver_name : s.truck_name}
                     </p>
                     {isAdmin && (
                       <p className="text-[10px] font-bold text-slate-400">
-                        {(s as any).truck_name || s.vehicle_plate}
+                        {s.truck_name}
                       </p>
                     )}
                   </td>
                   {/* Скрываем Объект на мобильных */}
                   <td className="px-8 py-5 font-medium text-slate-600 hidden md:table-cell">
-                    {s.work_object}
+                    {s.site_name || "—"}
                   </td>
                   {/* Скрываем Время на мобильных */}
                   <td className="px-8 py-5 text-[12px] font-mono text-slate-500 hidden md:table-cell">
-                    {new Date(
-                      s.start_time || s.started_at || (s as any).created_at || Date.now()
-                    ).toLocaleDateString()}{" "}
-                    {new Date(
-                      s.start_time || s.started_at || (s as any).created_at || Date.now()
-                    ).toLocaleTimeString([], {
+                    {s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}{" "}
+                    {s.created_at ? new Date(s.created_at).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
-                    })}
+                    }) : ''}
                   </td>
                   <td className="px-8 py-5">
                     <span
