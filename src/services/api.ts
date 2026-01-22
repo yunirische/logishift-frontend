@@ -142,15 +142,20 @@ export const del = (url: string) => {
 export const getPhotoUrl = (path?: string | null): string | null => {
   if (!path) return null;
   
-  if (path.startsWith('http')) {
-    return path;
+  // 1. Убираем обратные слэши, если они просочились с бэка
+  const cleanPath = path.replace(/\\/g, '/');
+  
+  // 2. Если это уже полный URL
+  if (cleanPath.startsWith('http')) return cleanPath;
+  
+  // 3. Формируем путь. Убеждаемся, что между /uploads/ и путем нет двойного слэша
+  const normalizedPath = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+  
+  if (normalizedPath.startsWith('uploads/')) {
+    return `${STATIC_BASE_URL}/${normalizedPath}`;
   }
   
-  if (path.startsWith('/uploads/')) {
-    return `${STATIC_BASE_URL}${path}`;
-  }
-  
-  return `${STATIC_BASE_URL}/uploads/${path}`;
+  return `${STATIC_BASE_URL}/uploads/${normalizedPath}`;
 };
 
 const api = {
