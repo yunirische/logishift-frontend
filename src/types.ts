@@ -26,6 +26,7 @@ export interface User {
   role: UserRole;
   current_state: DriverState;
   tenant_id: number;
+  avatar_url?: string;
 }
 
 export interface Shift {

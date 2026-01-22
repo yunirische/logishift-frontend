@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
-import api from "../services/api";
+import api, { getPhotoUrl } from "../services/api";
 import { Shift, UserRole } from "../types";
 
 const Shifts: React.FC = () => {
@@ -46,14 +46,12 @@ const Shifts: React.FC = () => {
     }
   };
 
-  // Компонент для отображения иконки-ссылки
   const PhotoLink = ({ url, icon, title }: { url?: string; icon: string; title: string }) => {
-    if (!url || typeof url !== 'string' || !url.startsWith('/')) return null;
-    // Если путь начинается с '/', добавим базовый URL
-    const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
+    const photoUrl = getPhotoUrl(url);
+    if (!photoUrl) return null;
     return (
       <a
-        href={fullUrl}
+        href={photoUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"

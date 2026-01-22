@@ -71,6 +71,7 @@ External Services:
 ## Core Components & Modules
 
 ### 1. Entry Point (`src/index.ts`)
+
 - Express app initialization
 - Middleware setup (CORS, JSON, no-cache)
 - Multer configuration for file uploads
@@ -80,15 +81,21 @@ External Services:
 ### 2. Controllers
 
 #### WebApiController (`src/web-api.controller.ts`)
+
 Handles Web PWA endpoints:
+
 - Dashboard statistics
 - Shift management (start/end/photo)
 - Truck and Site CRUD
 - Tenant settings
 - Authentication flow
+- `normalizeShiftPhotoPaths()` - Normalizes photo paths in database (replaces `https://bot.kontrolsmen.ru/` with `/`, adds leading `/` to `uploads/` paths)
+- `prefixPhotoUrl()` - Ensures photo URLs returned to client have leading `/uploads/` prefix
 
 #### GatewayController (`src/routes/gateway.ts`)
+
 Handles Telegram Bot integration via n8n:
+
 - Webhook processing
 - User state machine management
 - Callback query handling
@@ -98,7 +105,9 @@ Handles Telegram Bot integration via n8n:
 ### 3. Services Layer
 
 #### ShiftService (`src/services/shift.service.ts`)
+
 Core business logic for shift lifecycle:
+
 - `startShiftDraft()` - Initialize shift creation
 - `selectTruck()` - Select and reserve truck
 - `selectSite()` - Select site and determine requirements
@@ -109,23 +118,32 @@ Core business logic for shift lifecycle:
 - PWA methods: `startShiftPWA()`, `endShiftPWA()`, `handlePWAPhotoUpload()`
 
 #### MediaService (`src/services/media.service.ts`)
+
 File handling:
+
 - `downloadAndSave()` - Download from Telegram API
 - `saveRawFile()` - Save uploaded files from PWA
 - Organizes files by: `tenant_id/year/month/`
+- All paths returned with leading `/uploads/` prefix (e.g., `/uploads/10/2026/01/1234567890-photo.jpg`)
 
 #### OnboardingService (`src/services/onboarding.service.ts`)
+
 New tenant registration:
+
 - `performOnboarding()` - Create tenant, plan, admin user
 - Default email: `admin_{tg_user_id}@logishift.ru`
 - Default password: `password123`
 
 #### ExcelService (`src/services/excel.service.ts`)
+
 Reporting:
+
 - `generateShiftReport()` - Create Excel file of completed shifts
 
 #### TenantService (`src/services/tenant.service.ts`)
+
 Plan‑limit enforcement:
+
 - `checkTruckLimit()` – verifies if tenant has reached the maximum allowed trucks according to their subscription plan
 - `checkDriverLimit()` – same for drivers
 - `checkSiteLimit()` – same for sites
@@ -134,15 +152,18 @@ Plan‑limit enforcement:
 ### 4. Core Utilities
 
 #### Prisma Client (`src/core/prisma.ts`)
+
 - Singleton Prisma Client instance
 - All database operations
 
 #### Bot Integration (`src/core/bot.ts`)
+
 - `notifyAdmin()` - Send notifications to tenant admins
 - `saveAuditLog()` - Log actions to audit_logs table
 - `answerCallbackQuery()` - Telegram API callback response
 
 #### Helpers (`src/utils/helpers.ts`)
+
 - `parseId()` - Parse and validate ID
 - `formatInTimezone()` - Format date with timezone
 - `formatDuration()` - Convert decimal hours to human readable
@@ -151,6 +172,7 @@ Plan‑limit enforcement:
 ### 5. Middleware
 
 #### Authentication (`src/middleware/auth.ts`)
+
 - JWT token verification
 - Token expiration: 12 hours
 - Extends Request with user object (id, tenant_id, role)
@@ -158,37 +180,47 @@ Plan‑limit enforcement:
 ### 6. Routes
 
 #### API Router (`src/routes/api.ts`)
+
 Web PWA endpoints (JWT protected):
+
 - `/auth/login` - User authentication
 - `/auth/onboard` - Self-registration
 - `/dashboard/stats` - Dashboard statistics
-- `/shifts/*` - Shift management
+- `/shifts/*` - Shift management (including `/shifts/normalize-paths` for path normalization)
 - `/trucks`, `/sites` - Dictionary endpoints
 - `/reports/*` - Reports export
 - `/users` - User management
 - `/audit` - Audit logs
 
 #### Gateway Router (`src/routes/gateway.ts`)
+
 Telegram Bot integration:
+
 - `/gateway` - POST endpoint for webhook processing
 - Processes: callbacks, text messages, photos
 
 ## Design Patterns
 
 ### 1. Service Layer Pattern
+
 Business logic separated from controllers:
+
 - Controllers handle HTTP request/response
 - Services contain reusable business logic
 - Services can be called by multiple controllers
 
 ### 2. Repository Pattern (via Prisma)
+
 All database access through Prisma Client:
+
 - Type-safe database operations
 - Automatic migrations
 - Transaction support
 
 ### 3. State Machine Pattern (User Workflow)
+
 User state transitions for shift management:
+
 ```
 idle → pending_truck → pending_site → awaiting_odo_start → active
   ↑                                                         │
@@ -198,22 +230,28 @@ idle → pending_truck → pending_site → awaiting_odo_start → active
 ```
 
 Admin states:
+
 - `admin_adding_site` - Adding new site
 - `admin_adding_truck` - Adding new truck
 
 ### 4. Transaction Pattern
+
 All critical operations in Prisma transactions:
+
 - Prevents data inconsistency
 - Atomic multi-table operations
 - Automatic rollback on failure
 
 ### 5. Gateway Pattern (Telegram Integration)
+
 n8n acts as gateway between Telegram Bot API and backend:
+
 - Single endpoint: `/api/v1/gateway`
 - Standardized request/response format
 - Centralized bot interaction logic
 
 ### 6. Singleton Pattern
+
 - Prisma Client - Single instance
 - Services - Single exported instance (e.g., `shiftService`)
 
@@ -304,32 +342,39 @@ User → /shifts/end → shiftService.endShiftPWA()
 ## Technologies & Libraries
 
 ### Backend Framework
+
 - **Node.js 20+** - Runtime
 - **Express.js 4.18** - HTTP server framework
 - **TypeScript 5.0** - Type-safe JavaScript
 
 ### Database & ORM
+
 - **PostgreSQL** - Primary database
 - **Prisma 5.7** - ORM and migration tool
 - **Binary Targets:** native, linux-musl-openssl-3.0.x (Docker support)
 
 ### Authentication & Security
+
 - **jsonwebtoken 9.0** - JWT token generation/verification
 - **bcrypt 5.1** - Password hashing
 - **cors 2.8** - Cross-origin resource sharing
 
 ### External Integrations
+
 - **axios 1.6** - HTTP client for Telegram API
 - **Multer 1.4** - File upload handling
 
 ### File Processing
+
 - **ExcelJS 4.4** - Excel report generation
 - **fs/fs-extra** - File system operations
 
 ### Configuration
+
 - **dotenv 16.3** - Environment variable management
 
 ### Deployment
+
 - **Docker & Docker Compose** - Containerization
 - **Network:** smenabot-net (external network)
 
@@ -369,38 +414,46 @@ logishift-backend/
 ## Security Architecture
 
 ### Authentication
+
 - JWT tokens with 12-hour expiration
 - Token payload: `{ id, role, tenant_id }`
 - HTTP header: `Authorization: Bearer <token>`
 
 ### Authorization (RBAC)
+
 Roles:
+
 - **admin** - Full access to all endpoints
 - **driver** - Limited to shift operations and view access
 
 ### Multi-Tenant Isolation
+
 - All database queries filtered by `tenant_id`
 - Tenant ID extracted from JWT token
 - Automatic enforcement at service layer
 
 ### Data Protection
+
 - Passwords hashed with bcrypt (10 rounds)
 - No secrets in code (environment variables only)
 - CORS enabled for all origins (consider restricting in production)
 
 ### Audit Logging
+
 - All critical actions logged to `audit_logs` table
 - Includes: tenant_id, user_id, action, entity, details, timestamp
 
 ## Deployment Architecture
 
 ### Docker Environment
+
 - **Container:** logishift_api
 - **Port Mapping:** 3000:3000
 - **Volume:** `/opt/docker-data/static_files:/app/uploads` (persistent storage)
 - **Network:** smenabot-net (external, shared with n8n)
 
 ### Environment Variables Required
+
 - `PORT` - Server port (default: 3000)
 - `DATABASE_URL` - PostgreSQL connection string
 - `JWT_SECRET` - JWT signing secret
@@ -410,19 +463,23 @@ Roles:
 ## Data Synchronization & Busy Flag Handling
 
 ### Busy Flag Synchronization
+
 To prevent `is_busy` flag in `dict_trucks` from getting stuck in `true` when no active shift exists:
+
 - `WebApiController.getTrucks` now performs a `left join` with `shifts` where `status != 'finished'`
 - Each truck includes a `shifts` array containing active shift(s) with driver information
 - Frontend can detect "hanging" busy states: if `is_busy === true` but `shifts.length === 0`, the truck is considered "stuck"
 - Admin can manually reset the flag via `PATCH /trucks/:id` with `is_busy: false` (forced reset)
 
 ### Real‑time Usage Counters
+
 - Dashboard statistics now include two distinct truck counters:
   - `usage.trucks.current` – total trucks in the dictionary (for plan‑limit enforcement)
   - `trucksInWork` – unique trucks currently assigned to active shifts (`status != 'finished'`)
 - The `busyTrucksCount` (used in admin widget) is derived from `trucksInWork`, not from the `is_busy` flag
 
 ### Limit Checking
+
 - All CRUD operations for trucks and sites call `TenantService.checkTruckLimit` / `checkSiteLimit` before creating new records
 - Limits are enforced per the tenant’s plan (`limit_machines`, `limit_sites`, `limit_drivers`)
 - A `403` error with message "Лимит тарифа исчерпан" is returned when the limit is reached
@@ -430,18 +487,28 @@ To prevent `is_busy` flag in `dict_trucks` from getting stuck in `true` when no 
 ## Performance Considerations
 
 ### Database
+
 - Prisma connection pooling
 - Transactions for multi-table operations
 - Indexed fields: `user_id`, `tenant_id`, `created_at`
 
 ### Caching
+
 - No caching headers for API responses (real-time data)
 - Consider implementing Redis for future scaling
 
 ### File Storage
+
 - Local filesystem storage
 - Organized by tenant/date for efficient access
 - Consider moving to S3/object storage for production scaling
+
+### Media Storage
+
+- Paths in database and API responses must start with `/uploads/` and be relative to the domain root
+- Database stores relative paths (e.g., `tenant_id/year/month/filename.jpg`)
+- API responses automatically prefix with `/uploads/` for frontend consumption
+- Example: DB stores `1/2024/01/1234567890-photo.jpg`, API returns `/uploads/1/2024/01/1234567890-photo.jpg`
 
 ## Scalability Path
 
@@ -465,6 +532,7 @@ To prevent `is_busy` flag in `dict_trucks` from getting stuck in `true` when no 
 # LogiShift Backend - Database Schema
 
 ## Overview
+
 - **Database:** PostgreSQL
 - **ORM:** Prisma
 - **Multi-tenant:** All data isolated by `tenant_id`
@@ -475,24 +543,27 @@ To prevent `is_busy` flag in `dict_trucks` from getting stuck in `true` when no 
 ## Tables & Models
 
 ### 1. `plans`
+
 Subscription plans for tenants.
 
-| Column | Type | Default | Nullable | Description |
-|--------|------|---------|----------|-------------|
-| id | `Int` | autoincrement | NO | Primary key |
-| code | `String(50)` | - | NO | Plan code (e.g., "free", "pro") |
-| name | `String(100)` | - | NO | Display name |
-| price_monthly | `Decimal(10,2)` | 0.00 | NO | Monthly price |
-| limit_machines | `Int` | 0 | NO | Max trucks allowed |
-| limit_drivers | `Int` | 0 | NO | Max drivers allowed (0 = unlimited?) |
-| limit_sites | `Int` | -1 | NO | Max sites allowed (-1 = unlimited) |
-| is_active | `Boolean` | true | NO | Plan availability |
+| Column         | Type            | Default       | Nullable | Description                          |
+| -------------- | --------------- | ------------- | -------- | ------------------------------------ |
+| id             | `Int`           | autoincrement | NO       | Primary key                          |
+| code           | `String(50)`    | -             | NO       | Plan code (e.g., "free", "pro")      |
+| name           | `String(100)`   | -             | NO       | Display name                         |
+| price_monthly  | `Decimal(10,2)` | 0.00          | NO       | Monthly price                        |
+| limit_machines | `Int`           | 0             | NO       | Max trucks allowed                   |
+| limit_drivers  | `Int`           | 0             | NO       | Max drivers allowed (0 = unlimited?) |
+| limit_sites    | `Int`           | -1            | NO       | Max sites allowed (-1 = unlimited)   |
+| is_active      | `Boolean`       | true          | NO       | Plan availability                    |
 
 **Unique Index:** `code`
 **Relations:**
+
 - One-to-many: `plans` → `tenants`
 
 **Example Data:**
+
 ```sql
 INSERT INTO plans (code, name, price_monthly, limit_machines, limit_drivers, limit_sites, is_active)
 VALUES
@@ -504,22 +575,25 @@ VALUES
 ---
 
 ### 2. `tenants`
+
 Multi-tenant isolation - companies/organizations.
 
-| Column | Type | Default | Nullable | Description |
-|--------|------|---------|----------|-------------|
-| id | `Int` | autoincrement | NO | Primary key |
-| name | `String` | - | NO | Company name |
-| plan_id | `Int` | - | NO | Foreign key to `plans.id` |
-| api_key | `String?` | - | YES | API key for n8n integration |
-| timezone | `String` | "Europe/Moscow" | NO | Default timezone for tenant |
-| invoice_required | `Boolean` | false | NO | Require invoice photo globally |
+| Column           | Type      | Default         | Nullable | Description                    |
+| ---------------- | --------- | --------------- | -------- | ------------------------------ |
+| id               | `Int`     | autoincrement   | NO       | Primary key                    |
+| name             | `String`  | -               | NO       | Company name                   |
+| plan_id          | `Int`     | -               | NO       | Foreign key to `plans.id`      |
+| api_key          | `String?` | -               | YES      | API key for n8n integration    |
+| timezone         | `String`  | "Europe/Moscow" | NO       | Default timezone for tenant    |
+| invoice_required | `Boolean` | false           | NO       | Require invoice photo globally |
 
 **Unique Index:** `api_key`
 **Foreign Keys:**
+
 - `plan_id` → `plans(id)`
 
 **Relations:**
+
 - Many-to-one: `tenants.plan` → `plans`
 - One-to-many: `tenants` → `users`
 - One-to-many: `tenants` → `dict_trucks`
@@ -529,6 +603,7 @@ Multi-tenant isolation - companies/organizations.
 - One-to-many: `tenants` → `audit_logs`
 
 **Example Data:**
+
 ```sql
 INSERT INTO tenants (name, plan_id, api_key, timezone, invoice_required)
 VALUES
@@ -538,32 +613,36 @@ VALUES
 ---
 
 ### 3. `users`
+
 System users (admins, drivers, foremen).
 
-| Column | Type | Default | Nullable | Description |
-|--------|------|---------|----------|-------------|
-| id | `Int` | autoincrement | NO | Primary key |
-| tenant_id | `Int` | - | NO | Foreign key to `tenants.id` (isolation) |
-| role | `String` | - | NO | User role: "admin", "driver", "foreman" |
-| full_name | `String?` | - | YES | User full name |
-| tg_user_id | `BigInt?` | - | YES | Telegram user ID (for bot integration) |
-| email | `String?` | - | YES | Email for PWA login (unique) |
-| password_hash | `String?` | - | YES | Bcrypt hashed password |
-| current_state | `String` | "idle" | NO | User state machine (see States section) |
-| hourly_rate | `Decimal(12,2)` | 0.00 | NO | Hourly wage rate (for salary calculation) |
-| last_menu_message_id | `BigInt?` | - | YES | Last Telegram menu message ID |
-| settings | `Json?` | - | YES | User settings (language, theme, etc.) |
+| Column               | Type            | Default       | Nullable | Description                               |
+| -------------------- | --------------- | ------------- | -------- | ----------------------------------------- |
+| id                   | `Int`           | autoincrement | NO       | Primary key                               |
+| tenant_id            | `Int`           | -             | NO       | Foreign key to `tenants.id` (isolation)   |
+| role                 | `String`        | -             | NO       | User role: "admin", "driver", "foreman"   |
+| full_name            | `String?`       | -             | YES      | User full name                            |
+| tg_user_id           | `BigInt?`       | -             | YES      | Telegram user ID (for bot integration)    |
+| email                | `String?`       | -             | YES      | Email for PWA login (unique)              |
+| password_hash        | `String?`       | -             | YES      | Bcrypt hashed password                    |
+| current_state        | `String`        | "idle"        | NO       | User state machine (see States section)   |
+| hourly_rate          | `Decimal(12,2)` | 0.00          | NO       | Hourly wage rate (for salary calculation) |
+| last_menu_message_id | `BigInt?`       | -             | YES      | Last Telegram menu message ID             |
+| settings             | `Json?`         | -             | YES      | User settings (language, theme, etc.)     |
 
 **Unique Indexes:** `tg_user_id`, `email`
 **Foreign Keys:**
+
 - `tenant_id` → `tenants(id)`
 
 **Relations:**
+
 - Many-to-one: `users.tenant` → `tenants`
 - One-to-many: `users` → `shifts`
 - One-to-many: `users` → `audit_logs`
 
 **User States (State Machine):**
+
 ```
 idle                    # No active shift
 pending_truck           # Selecting truck
@@ -579,6 +658,7 @@ admin_adding_truck      # Adding new truck (text input mode)
 ```
 
 **Example Data:**
+
 ```sql
 INSERT INTO users (tenant_id, role, full_name, email, password_hash, current_state, hourly_rate)
 VALUES
@@ -589,26 +669,30 @@ VALUES
 ---
 
 ### 4. `dict_trucks`
+
 Vehicle/truck catalog (dictionary).
 
-| Column | Type | Default | Nullable | Description |
-|--------|------|---------|----------|-------------|
-| id | `Int` | autoincrement | NO | Primary key |
-| tenant_id | `Int` | - | NO | Foreign key to `tenants.id` (isolation) |
-| name | `String` | - | NO | Truck display name |
-| plate | `String?` | - | YES | License plate number |
-| code | `String?` | - | YES | Internal code |
-| is_active | `Boolean` | true | NO | Truck availability status |
-| is_busy | `Boolean` | false | NO | Truck current usage status |
+| Column    | Type      | Default       | Nullable | Description                             |
+| --------- | --------- | ------------- | -------- | --------------------------------------- |
+| id        | `Int`     | autoincrement | NO       | Primary key                             |
+| tenant_id | `Int`     | -             | NO       | Foreign key to `tenants.id` (isolation) |
+| name      | `String`  | -             | NO       | Truck display name                      |
+| plate     | `String?` | -             | YES      | License plate number                    |
+| code      | `String?` | -             | YES      | Internal code                           |
+| is_active | `Boolean` | true          | NO       | Truck availability status               |
+| is_busy   | `Boolean` | false         | NO       | Truck current usage status              |
 
 **Foreign Keys:**
+
 - `tenant_id` → `tenants(id)`
 
 **Relations:**
+
 - Many-to-one: `dict_trucks.tenant` → `tenants`
 - One-to-many: `dict_trucks` → `shifts`
 
 **Example Data:**
+
 ```sql
 INSERT INTO dict_trucks (tenant_id, name, plate, code, is_active, is_busy)
 VALUES
@@ -619,27 +703,31 @@ VALUES
 ---
 
 ### 5. `dict_sites`
+
 Work sites/locations catalog (dictionary).
 
-| Column | Type | Default | Nullable | Description |
-|--------|------|---------|----------|-------------|
-| id | `Int` | autoincrement | NO | Primary key |
-| tenant_id | `Int` | - | NO | Foreign key to `tenants.id` (isolation) |
-| name | `String` | - | NO | Site display name |
-| address | `String?` | - | YES | Physical address |
-| code | `String?` | - | YES | Internal code |
-| odometer_required | `Boolean` | false | NO | Require odometer photos |
-| invoice_required | `Boolean` | false | NO | Require invoice photo |
-| is_active | `Boolean` | true | NO | Site availability status |
+| Column            | Type      | Default       | Nullable | Description                             |
+| ----------------- | --------- | ------------- | -------- | --------------------------------------- |
+| id                | `Int`     | autoincrement | NO       | Primary key                             |
+| tenant_id         | `Int`     | -             | NO       | Foreign key to `tenants.id` (isolation) |
+| name              | `String`  | -             | NO       | Site display name                       |
+| address           | `String?` | -             | YES      | Physical address                        |
+| code              | `String?` | -             | YES      | Internal code                           |
+| odometer_required | `Boolean` | false         | NO       | Require odometer photos                 |
+| invoice_required  | `Boolean` | false         | NO       | Require invoice photo                   |
+| is_active         | `Boolean` | true          | NO       | Site availability status                |
 
 **Foreign Keys:**
+
 - `tenant_id` → `tenants(id)`
 
 **Relations:**
+
 - Many-to-one: `dict_sites.tenant` → `tenants`
 - One-to-many: `dict_sites` → `shifts`
 
 **Example Data:**
+
 ```sql
 INSERT INTO dict_sites (tenant_id, name, address, code, odometer_required, invoice_required, is_active)
 VALUES
@@ -650,44 +738,48 @@ VALUES
 ---
 
 ### 6. `shifts`
+
 Work shifts - core business entity.
 
-| Column | Type | Default | Nullable | Description |
-|--------|------|---------|----------|-------------|
-| id | `Int` | autoincrement | NO | Primary key |
-| tenant_id | `Int` | - | NO | Foreign key to `tenants.id` (isolation) |
-| user_id | `Int` | - | NO | Foreign key to `users.id` |
-| truck_id | `Int?` | - | YES | Foreign key to `dict_trucks.id` |
-| site_id | `Int?` | - | YES | Foreign key to `dict_sites.id` |
-| status | `String` | - | NO | Shift status |
-| start_time | `DateTime?` | - | YES | Shift start timestamp |
-| end_time | `DateTime?` | - | YES | Shift end timestamp |
-| hours_worked | `Decimal(12,2)` | 0.00 | NO | Calculated hours worked |
-| salary | `Decimal(12,2)` | 0.00 | NO | Calculated salary (hours × rate) |
-| photo_start_url | `String?` | - | YES | Odometer start photo path |
-| photo_end_url | `String?` | - | YES | Odometer end photo path |
-| photo_invoice_url | `String?` | - | YES | Invoice photo path |
-| geo_start | `Json?` | - | YES | Start location {lat, lon} |
-| geo_end | `Json?` | - | YES | End location {lat, lon} |
-| mileage_start | `Int?` | - | YES | Odometer reading at start |
-| mileage_end | `Int?` | - | YES | Odometer reading at end |
-| comment | `String?` | - | YES | Shift comment |
-| updated_at | `DateTime` | auto | NO | Last update timestamp |
-| created_at | `DateTime` | now() | NO | Creation timestamp |
+| Column            | Type            | Default       | Nullable | Description                                                                      |
+| ----------------- | --------------- | ------------- | -------- | -------------------------------------------------------------------------------- |
+| id                | `Int`           | autoincrement | NO       | Primary key                                                                      |
+| tenant_id         | `Int`           | -             | NO       | Foreign key to `tenants.id` (isolation)                                          |
+| user_id           | `Int`           | -             | NO       | Foreign key to `users.id`                                                        |
+| truck_id          | `Int?`          | -             | YES      | Foreign key to `dict_trucks.id`                                                  |
+| site_id           | `Int?`          | -             | YES      | Foreign key to `dict_sites.id`                                                   |
+| status            | `String`        | -             | NO       | Shift status                                                                     |
+| start_time        | `DateTime?`     | -             | YES      | Shift start timestamp                                                            |
+| end_time          | `DateTime?`     | -             | YES      | Shift end timestamp                                                              |
+| hours_worked      | `Decimal(12,2)` | 0.00          | NO       | Calculated hours worked                                                          |
+| salary            | `Decimal(12,2)` | 0.00          | NO       | Calculated salary (hours × rate)                                                 |
+| photo_start_url   | `String?`       | -             | YES      | Odometer start photo path (format: `/uploads/tenant_id/year/month/filename.jpg`) |
+| photo_end_url     | `String?`       | -             | YES      | Odometer end photo path (format: `/uploads/tenant_id/year/month/filename.jpg`)   |
+| photo_invoice_url | `String?`       | -             | YES      | Invoice photo path (format: `/uploads/tenant_id/year/month/filename.jpg`)        |
+| geo_start         | `Json?`         | -             | YES      | Start location {lat, lon}                                                        |
+| geo_end           | `Json?`         | -             | YES      | End location {lat, lon}                                                          |
+| mileage_start     | `Int?`          | -             | YES      | Odometer reading at start                                                        |
+| mileage_end       | `Int?`          | -             | YES      | Odometer reading at end                                                          |
+| comment           | `String?`       | -             | YES      | Shift comment                                                                    |
+| updated_at        | `DateTime`      | auto          | NO       | Last update timestamp                                                            |
+| created_at        | `DateTime`      | now()         | NO       | Creation timestamp                                                               |
 
 **Foreign Keys:**
+
 - `tenant_id` → `tenants(id)`
 - `user_id` → `users(id)`
 - `truck_id` → `dict_trucks(id)`
 - `site_id` → `dict_sites(id)`
 
 **Relations:**
+
 - Many-to-one: `shifts.tenant` → `tenants`
 - Many-to-one: `shifts.user` → `users`
 - Many-to-one: `shifts.truck` → `dict_trucks`
 - Many-to-one: `shifts.site` → `dict_sites`
 
 **Shift Statuses:**
+
 ```
 pending_truck           # Truck selection in progress
 pending_site            # Site selection in progress
@@ -699,6 +791,7 @@ finished                # Shift completed
 ```
 
 **Example Data:**
+
 ```sql
 INSERT INTO shifts (tenant_id, user_id, truck_id, site_id, status, start_time, end_time, hours_worked, salary)
 VALUES
@@ -708,28 +801,33 @@ VALUES
 ---
 
 ### 7. `invites`
+
 Invitation codes for new driver registration.
 
-| Column | Type | Default | Nullable | Description |
-|--------|------|---------|----------|-------------|
-| id | `Int` | autoincrement | NO | Primary key |
-| tenant_id | `Int` | - | NO | Foreign key to `tenants.id` |
-| code | `String` | - | NO | Invitation code (unique) |
-| expires_at | `DateTime` | - | NO | Expiration timestamp |
-| status | `String` | "pending" | NO | Invitation status |
+| Column     | Type       | Default       | Nullable | Description                 |
+| ---------- | ---------- | ------------- | -------- | --------------------------- |
+| id         | `Int`      | autoincrement | NO       | Primary key                 |
+| tenant_id  | `Int`      | -             | NO       | Foreign key to `tenants.id` |
+| code       | `String`   | -             | NO       | Invitation code (unique)    |
+| expires_at | `DateTime` | -             | NO       | Expiration timestamp        |
+| status     | `String`   | "pending"     | NO       | Invitation status           |
 
 **Unique Index:** `code`
 **Foreign Keys:**
+
 - `tenant_id` → `tenants(id)`
 
 **Relations:**
+
 - Many-to-one: `invites.tenant` → `tenants`
 
 **Status Values:**
+
 - `pending` - Not yet used
 - `used` - Already used
 
 **Example Data:**
+
 ```sql
 INSERT INTO invites (tenant_id, code, expires_at, status)
 VALUES
@@ -739,33 +837,38 @@ VALUES
 ---
 
 ### 8. `audit_logs`
+
 Audit trail for system actions.
 
-| Column | Type | Default | Nullable | Description |
-|--------|------|---------|----------|-------------|
-| id | `Int` | autoincrement | NO | Primary key |
-| tenant_id | `Int` | - | NO | Foreign key to `tenants.id` (isolation) |
-| user_id | `Int?` | - | YES | Foreign key to `users.id` (null for system actions) |
-| action | `String` | - | NO | Action type (e.g., "SHIFT_FINISHED") |
-| entity | `String?` | - | YES | Entity type (e.g., "shift") |
-| entity_id | `Int?` | - | YES | Entity ID |
-| details | `Json?` | - | YES | Additional action details |
-| created_at | `DateTime` | now() | NO | Timestamp of action |
+| Column     | Type       | Default       | Nullable | Description                                         |
+| ---------- | ---------- | ------------- | -------- | --------------------------------------------------- |
+| id         | `Int`      | autoincrement | NO       | Primary key                                         |
+| tenant_id  | `Int`      | -             | NO       | Foreign key to `tenants.id` (isolation)             |
+| user_id    | `Int?`     | -             | YES      | Foreign key to `users.id` (null for system actions) |
+| action     | `String`   | -             | NO       | Action type (e.g., "SHIFT_FINISHED")                |
+| entity     | `String?`  | -             | YES      | Entity type (e.g., "shift")                         |
+| entity_id  | `Int?`     | -             | YES      | Entity ID                                           |
+| details    | `Json?`    | -             | YES      | Additional action details                           |
+| created_at | `DateTime` | now()         | NO       | Timestamp of action                                 |
 
 **Foreign Keys:**
+
 - `tenant_id` → `tenants(id)`
 - `user_id` → `users(id)`
 
 **Relations:**
+
 - Many-to-one: `audit_logs.tenant` → `tenants`
 - Many-to-one: `audit_logs.user` → `users`
 
 **Indexes:**
+
 - `idx_audit_logs_user_id` on `user_id`
 - `idx_audit_logs_tenant_id` on `tenant_id`
 - `idx_audit_logs_created_at` on `created_at`
 
 **Example Data:**
+
 ```sql
 INSERT INTO audit_logs (tenant_id, user_id, action, entity, entity_id, details, created_at)
 VALUES
@@ -802,12 +905,14 @@ dict_sites (1) ───< (N) shifts
 ## Indexes
 
 ### User-defined indexes:
+
 - `audit_logs` table:
   - `idx_audit_logs_user_id` on `user_id`
   - `idx_audit_logs_tenant_id` on `tenant_id`
   - `idx_audit_logs_created_at` on `created_at`
 
 ### Unique indexes:
+
 - `plans.code`
 - `tenants.api_key`
 - `users.tg_user_id`
@@ -815,6 +920,7 @@ dict_sites (1) ───< (N) shifts
 - `invites.code`
 
 ### Foreign key indexes (created automatically):
+
 - `tenants.plan_id`
 - `users.tenant_id`
 - `dict_trucks.tenant_id`
@@ -830,39 +936,47 @@ dict_sites (1) ───< (N) shifts
 ### Prisma Migrations
 
 **Generate Prisma Client:**
+
 ```bash
 npx prisma generate
 ```
 
 **Create a new migration:**
+
 ```bash
 npx prisma migrate dev --name <migration_name>
 ```
 
 **Apply migrations in production:**
+
 ```bash
 npx prisma migrate deploy
 ```
 
 **Reset database (development only):**
+
 ```bash
 npx prisma migrate reset
 ```
 
 **View migration history:**
+
 ```bash
 npx prisma migrate status
 ```
 
 ### Schema File Location
+
 ```
 prisma/schema.prisma
 ```
 
 ### Migration Storage
+
 Migrations are stored in `prisma/migrations/` directory (not visible in current codebase - may need to initialize).
 
 ### Recommended Workflow
+
 1. Modify `prisma/schema.prisma`
 2. Run `npx prisma migrate dev --name descriptive_name`
 3. Review generated migration SQL in `prisma/migrations/`
@@ -877,21 +991,23 @@ Migrations are stored in `prisma/migrations/` directory (not visible in current 
 ### Create
 
 **Create new user:**
+
 ```typescript
 await prisma.users.create({
   data: {
     tenant_id: 10,
-    role: 'driver',
-    full_name: 'Иван Иванов',
-    email: 'ivan@example.com',
+    role: "driver",
+    full_name: "Иван Иванов",
+    email: "ivan@example.com",
     password_hash: hashedPassword,
-    current_state: 'idle',
-    hourly_rate: 400
-  }
+    current_state: "idle",
+    hourly_rate: 400,
+  },
 });
 ```
 
 **Create new shift:**
+
 ```typescript
 await prisma.shifts.create({
   data: {
@@ -899,95 +1015,103 @@ await prisma.shifts.create({
     user_id: 5,
     truck_id: 3,
     site_id: 7,
-    status: 'active',
-    start_time: new Date()
-  }
+    status: "active",
+    start_time: new Date(),
+  },
 });
 ```
 
 ### Read
 
 **Get user with tenant:**
+
 ```typescript
 const user = await prisma.users.findUnique({
   where: { id: 5 },
-  include: { tenant: true }
+  include: { tenant: true },
 });
 ```
 
 **Get active shifts for tenant:**
+
 ```typescript
 const shifts = await prisma.shifts.findMany({
   where: {
     tenant_id: 10,
-    status: 'active'
+    status: "active",
   },
   include: {
     user: true,
     truck: true,
-    site: true
-  }
+    site: true,
+  },
 });
 ```
 
 **Get trucks (filtered by tenant):**
+
 ```typescript
 const trucks = await prisma.dict_trucks.findMany({
   where: {
     tenant_id: 10,
     is_active: true,
-    is_busy: false
+    is_busy: false,
   },
-  orderBy: { name: 'asc' }
+  orderBy: { name: "asc" },
 });
 ```
 
 ### Update
 
 **Update user state:**
+
 ```typescript
 await prisma.users.update({
   where: { id: 5 },
-  data: { current_state: 'active' }
+  data: { current_state: "active" },
 });
 ```
 
 **Mark truck as busy:**
+
 ```typescript
 await prisma.dict_trucks.update({
   where: { id: 3 },
-  data: { is_busy: true }
+  data: { is_busy: true },
 });
 ```
 
 **Update shift with photo:**
+
 ```typescript
 await prisma.shifts.update({
   where: { id: 45 },
   data: {
-    photo_start_url: '1/2024/01/1705315200000-photo.jpg',
-    status: 'active',
-    start_time: new Date()
-  }
+    photo_start_url: "1/2024/01/1705315200000-photo.jpg",
+    status: "active",
+    start_time: new Date(),
+  },
 });
 ```
 
 ### Delete
 
 **Delete draft shift:**
+
 ```typescript
 await prisma.shifts.delete({
-  where: { id: 46 }
+  where: { id: 46 },
 });
 ```
 
 **Delete expired invites:**
+
 ```typescript
 await prisma.invites.deleteMany({
   where: {
     expires_at: { lt: new Date() },
-    status: 'pending'
-  }
+    status: "pending",
+  },
 });
 ```
 
@@ -998,21 +1122,24 @@ await prisma.invites.deleteMany({
 All critical multi-table operations must use Prisma transactions.
 
 ### Transaction Pattern:
+
 ```typescript
 await prisma.$transaction(async (tx) => {
   // Atomic operations
   const shift = await tx.shifts.create({
-    data: { /* ... */ }
+    data: {
+      /* ... */
+    },
   });
 
   await tx.dict_trucks.update({
     where: { id: truckId },
-    data: { is_busy: true }
+    data: { is_busy: true },
   });
 
   await tx.users.update({
     where: { id: userId },
-    data: { current_state: 'active' }
+    data: { current_state: "active" },
   });
 
   // All changes commit together or rollback together
@@ -1020,6 +1147,7 @@ await prisma.$transaction(async (tx) => {
 ```
 
 ### Common Transaction Use Cases:
+
 - Starting a shift (create shift + mark truck busy + update user state)
 - Ending a shift (calculate salary + release truck + update user state)
 - Creating manual shift (admin action)
@@ -1032,10 +1160,12 @@ await prisma.$transaction(async (tx) => {
 ### Data Integrity
 
 **Foreign Key Constraints:**
+
 - All foreign keys enforce referential integrity
 - Cascade behavior: Restrict (default)
 
 **Unique Constraints:**
+
 - User email unique per system
 - Telegram user ID unique per system
 - Invite code unique per system
@@ -1043,20 +1173,24 @@ await prisma.$transaction(async (tx) => {
 ### Business Logic Constraints
 
 **Tenant Isolation:**
+
 - ALL queries MUST filter by `tenant_id`
 - Enforced at service layer
 
 **Shift Constraints:**
+
 - User can only have one active shift (status != 'finished')
 - Truck can only be used by one shift at a time (`is_busy` flag)
 
 **Plan Limits:**
+
 - Check `limit_machines` before creating truck
 - Check `limit_drivers` before creating user
 - Check `limit_sites` before creating site
 - `-1` means unlimited
 
 **State Machine Constraints:**
+
 - User state transitions must follow valid paths
 - Shift status transitions must be valid
 
@@ -1073,8 +1207,8 @@ if (truck?.is_busy) {
 const existing = await prisma.shifts.findFirst({
   where: {
     user_id: userId,
-    status: { not: "finished" }
-  }
+    status: { not: "finished" },
+  },
 });
 if (existing) {
   throw new Error("У вас уже есть активная смена");
@@ -1092,13 +1226,17 @@ if (count >= limit_machines) {
 ## Performance Considerations
 
 ### Indexed Queries
+
 Always use indexed fields in WHERE clauses:
+
 - `user_id`, `tenant_id`, `created_at` (in audit_logs)
 - `id` (all primary keys)
 - `tg_user_id`, `email` (in users)
 
 ### N+1 Query Prevention
+
 Use `include` or `select` to fetch related data:
+
 ```typescript
 // ❌ Bad (N+1 queries)
 const shifts = await prisma.shifts.findMany();
@@ -1108,18 +1246,20 @@ for (const shift of shifts) {
 
 // ✅ Good (single query)
 const shifts = await prisma.shifts.findMany({
-  include: { user: true, truck: true, site: true }
+  include: { user: true, truck: true, site: true },
 });
 ```
 
 ### Pagination (Future Enhancement)
+
 For large datasets, use cursor-based or offset pagination:
+
 ```typescript
 const shifts = await prisma.shifts.findMany({
   where: { tenant_id: tid },
   take: 20,
   skip: 0,
-  orderBy: { created_at: 'desc' }
+  orderBy: { created_at: "desc" },
 });
 ```
 
@@ -1128,6 +1268,7 @@ const shifts = await prisma.shifts.findMany({
 ## Backup & Recovery
 
 ### Backup Commands
+
 ```bash
 # Full database backup
 pg_dump -U username -d database_name > backup.sql
@@ -1140,6 +1281,7 @@ pg_dump -U username -d database_name --data-only > data.sql
 ```
 
 ### Recovery Commands
+
 ```bash
 # Restore from backup
 psql -U username -d database_name < backup.sql
@@ -1150,16 +1292,19 @@ psql -U username -d database_name < backup.sql
 ## Security Considerations
 
 ### Sensitive Data Protection
+
 - Passwords hashed with bcrypt (10 rounds)
 - Never store plain text passwords
 - JWT tokens stored client-side only
 
 ### Access Control
+
 - Multi-tenant isolation via `tenant_id`
 - Role-based access control (admin, driver, foreman)
 - Never expose other tenants' data
 
 ### SQL Injection Prevention
+
 - All queries through Prisma ORM (parameterized)
 - Never use raw SQL queries with user input
 - Validate all input before database operations
@@ -1167,6 +1312,7 @@ psql -U username -d database_name < backup.sql
 # LogiShift Backend - API Contract
 
 ## Base URL
+
 ```
 Production: https://pwa.kontrolsmen.ru/api/v1
 Local: http://localhost:3000/api/v1
@@ -1175,27 +1321,31 @@ Local: http://localhost:3000/api/v1
 ## Authentication
 
 ### JWT Token Authentication
+
 Most endpoints require JWT authentication via `Authorization` header.
 
 **Header:**
+
 ```
 Authorization: Bearer <token>
 ```
 
 **Token Payload:**
+
 ```typescript
 {
-  id: number;        // User ID
-  role: string;      // "admin" | "driver" | "foreman"
+  id: number; // User ID
+  role: string; // "admin" | "driver" | "foreman"
   tenant_id: number; // Tenant ID for multi-tenant isolation
-  iat: number;       // Issued at timestamp
-  exp: number;       // Expiration timestamp (12 hours)
+  iat: number; // Issued at timestamp
+  exp: number; // Expiration timestamp (12 hours)
 }
 ```
 
 **Token Expiration:** 12 hours
 
 ### Public Endpoints (No Auth Required)
+
 - `GET /health` - Health check
 - `POST /auth/login` - User login
 - `POST /auth/onboard` - Self-registration
@@ -1203,6 +1353,7 @@ Authorization: Bearer <token>
 ## Response Format
 
 ### Success Response
+
 ```typescript
 {
   // Single object
@@ -1218,6 +1369,7 @@ Authorization: Bearer <token>
 ```
 
 ### Error Response
+
 ```typescript
 {
   error: string;  // Error message (Russian)
@@ -1228,6 +1380,7 @@ Authorization: Bearer <token>
 ```
 
 ### HTTP Status Codes
+
 - `200` - Success
 - `400` - Bad request / validation error
 - `401` - Unauthorized (no token or invalid token)
@@ -1240,11 +1393,13 @@ Authorization: Bearer <token>
 ## API Endpoints
 
 ### Health Check
+
 **GET** `/health`
 
 No authentication required.
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -1258,9 +1413,11 @@ No authentication required.
 ### Authentication
 
 #### POST `/auth/login`
+
 User authentication via email/password.
 
 **Request Body:**
+
 ```json
 {
   "login": "user@example.com",
@@ -1269,6 +1426,7 @@ User authentication via email/password.
 ```
 
 **Response (200):**
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIs...",
@@ -1282,6 +1440,7 @@ User authentication via email/password.
 ```
 
 **Error Response (401):**
+
 ```json
 {
   "error": "User not found"
@@ -1289,9 +1448,11 @@ User authentication via email/password.
 ```
 
 #### POST `/auth/onboard`
+
 Self-registration for new tenants.
 
 **Request Body:**
+
 ```json
 {
   "company_name": "СтройМастер ООО",
@@ -1301,6 +1462,7 @@ Self-registration for new tenants.
 ```
 
 **Response (200):**
+
 ```json
 {
   "tenant": {
@@ -1323,9 +1485,11 @@ Self-registration for new tenants.
 ### Dashboard
 
 #### GET `/dashboard/stats`
+
 Get dashboard statistics for admin view. **[AUTH REQUIRED]**
 
 **Response (200):**
+
 ```json
 {
   "activeShifts": 5,
@@ -1349,6 +1513,7 @@ Get dashboard statistics for admin view. **[AUTH REQUIRED]**
 ```
 
 **Field descriptions:**
+
 - `activeShifts` – number of shifts with status not equal to `'finished'`
 - `activeDrivers` – number of drivers with `current_state = 'active'` and role `'driver'`
 - `trucksInWork` – count of **unique** `truck_id` values in `shifts` where `status != 'finished'` (real machines currently on‑site)
@@ -1362,9 +1527,11 @@ Get dashboard statistics for admin view. **[AUTH REQUIRED]**
 ### Shifts
 
 #### GET `/shifts`
+
 Get list of recent shifts (last 10). **[AUTH REQUIRED]**
 
 **Response (200):**
+
 ```json
 [
   {
@@ -1381,9 +1548,11 @@ Get list of recent shifts (last 10). **[AUTH REQUIRED]**
 ```
 
 #### GET `/shifts/current`
+
 Get current active shift for authenticated user. **[AUTH REQUIRED]**
 
 **Response (200) or `null`:**
+
 ```json
 {
   "id": 50,
@@ -1417,9 +1586,11 @@ Get current active shift for authenticated user. **[AUTH REQUIRED]**
 ```
 
 #### POST `/shifts/start`
+
 Start a new shift. **[AUTH REQUIRED]**
 
 **Request Body:**
+
 ```json
 {
   "truck_id": 3,
@@ -1428,6 +1599,7 @@ Start a new shift. **[AUTH REQUIRED]**
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": 50,
@@ -1444,10 +1616,12 @@ Start a new shift. **[AUTH REQUIRED]**
 ```
 
 **Possible statuses:**
+
 - `awaiting_odo_start` - Waiting for odometer start photo
 - `active` - Shift is active (no odometer required)
 
 **Error Response (400):**
+
 ```json
 {
   "error": "Машина уже занята или не найдена"
@@ -1455,11 +1629,13 @@ Start a new shift. **[AUTH REQUIRED]**
 ```
 
 #### POST `/shifts/end`
+
 End the current shift. **[AUTH REQUIRED]**
 
 **Request Body:** Empty
 
 **Response (200):**
+
 ```json
 {
   "message": "🏁 Смена завершена!\nОтработано: 4 ч. 30 мин.",
@@ -1468,6 +1644,7 @@ End the current shift. **[AUTH REQUIRED]**
 ```
 
 **Or if photo required:**
+
 ```json
 {
   "message": "📸 Пришлите фото одометра (ФИНИШ):",
@@ -1476,6 +1653,7 @@ End the current shift. **[AUTH REQUIRED]**
 ```
 
 **Or if invoice required:**
+
 ```json
 {
   "message": "📸 Пришлите фото НАКЛАДНОЙ:",
@@ -1484,16 +1662,19 @@ End the current shift. **[AUTH REQUIRED]**
 ```
 
 #### POST `/shifts/photo`
+
 Upload shift photo (odometer/invoice). **[AUTH REQUIRED]**
 
 **Content-Type:** `multipart/form-data`
 
 **Request:**
+
 ```
 photo: <file>
 ```
 
 **Response (200):**
+
 ```json
 {
   "message": "Фото успешно загружено",
@@ -1506,9 +1687,11 @@ photo: <file>
 ### Trucks (Dictionary)
 
 #### GET `/trucks`
+
 Get list of all trucks with active shift information. **[AUTH REQUIRED]**
 
 **Response (200):**
+
 ```json
 [
   {
@@ -1533,15 +1716,18 @@ Get list of all trucks with active shift information. **[AUTH REQUIRED]**
 ```
 
 **Field descriptions:**
+
 - Standard truck fields (`id`, `tenant_id`, `name`, `plate`, `code`, `is_active`, `is_busy`)
 - `shifts` – array of **active** shifts (where `status != 'finished'`) assigned to this truck
   - Each shift includes `id` and the driver (`user`) with `id` and `full_name`
 - If `is_busy` is `true` but `shifts` array is empty, the truck’s busy flag is considered **stuck** (no actual active shift). Frontend should display a warning and offer a “Force free” button.
 
 #### POST `/trucks`
+
 Add a new truck. **[AUTH REQUIRED - ADMIN]**
 
 **Request Body:**
+
 ```json
 {
   "name": "КАМАЗ-55111",
@@ -1552,6 +1738,7 @@ Add a new truck. **[AUTH REQUIRED - ADMIN]**
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": 4,
@@ -1565,12 +1752,15 @@ Add a new truck. **[AUTH REQUIRED - ADMIN]**
 ```
 
 #### PATCH `/trucks/:id`
+
 Update truck details. **[AUTH REQUIRED - ADMIN]**
 
 **URL Parameters:**
+
 - `id` - Truck ID
 
 **Request Body:**
+
 ```json
 {
   "name": "КАМАЗ-55111 (обновлено)",
@@ -1581,10 +1771,12 @@ Update truck details. **[AUTH REQUIRED - ADMIN]**
 ```
 
 **Notes:**
+
 - Setting `is_busy: false` will **force‑reset** the busy flag, even if there is an active shift in the database. This is intentional to resolve stuck‑busy situations.
 - Other fields (`name`, `plate`, `is_active`) behave as usual.
 
 **Response (200):**
+
 ```json
 {
   "id": 4,
@@ -1602,9 +1794,11 @@ Update truck details. **[AUTH REQUIRED - ADMIN]**
 ### Sites (Dictionary)
 
 #### GET `/sites`
+
 Get list of active sites. **[AUTH REQUIRED]**
 
 **Response (200):**
+
 ```json
 [
   {
@@ -1621,9 +1815,11 @@ Get list of active sites. **[AUTH REQUIRED]**
 ```
 
 #### POST `/sites`
+
 Create a new site. **[AUTH REQUIRED - ADMIN]**
 
 **Request Body:**
+
 ```json
 {
   "name": "Стройплощадка №5",
@@ -1635,6 +1831,7 @@ Create a new site. **[AUTH REQUIRED - ADMIN]**
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": 8,
@@ -1648,6 +1845,7 @@ Create a new site. **[AUTH REQUIRED - ADMIN]**
 ```
 
 **Error Response (403):**
+
 ```json
 {
   "error": "Лимит тарифа исчерпан"
@@ -1655,12 +1853,15 @@ Create a new site. **[AUTH REQUIRED - ADMIN]**
 ```
 
 #### PATCH `/sites/:id`
+
 Update site settings. **[AUTH REQUIRED - ADMIN]**
 
 **URL Parameters:**
+
 - `id` - Site ID
 
 **Request Body:**
+
 ```json
 {
   "name": "Стройплощадка №5 (обновлено)",
@@ -1671,6 +1872,7 @@ Update site settings. **[AUTH REQUIRED - ADMIN]**
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": 8,
@@ -1687,9 +1889,11 @@ Update site settings. **[AUTH REQUIRED - ADMIN]**
 ### Users
 
 #### GET `/users`
+
 Get list of all users (requires admin role). **[AUTH REQUIRED - ADMIN]**
 
 **Response (200):**
+
 ```json
 [
   {
@@ -1706,9 +1910,11 @@ Get list of all users (requires admin role). **[AUTH REQUIRED - ADMIN]**
 ```
 
 #### POST `/users`
+
 Create a new user (requires admin role). **[AUTH REQUIRED - ADMIN]**
 
 **Request Body:**
+
 ```json
 {
   "full_name": "Иван Иванов",
@@ -1720,6 +1926,7 @@ Create a new user (requires admin role). **[AUTH REQUIRED - ADMIN]**
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": 20,
@@ -1733,6 +1940,7 @@ Create a new user (requires admin role). **[AUTH REQUIRED - ADMIN]**
 ```
 
 **Error Response (403):**
+
 ```json
 {
   "error": "Access denied"
@@ -1740,9 +1948,11 @@ Create a new user (requires admin role). **[AUTH REQUIRED - ADMIN]**
 ```
 
 #### POST `/users/set-menu-id`
+
 Update Telegram menu message ID (public endpoint for bot integration).
 
 **Request Body:**
+
 ```json
 {
   "user_id": 5,
@@ -1751,6 +1961,7 @@ Update Telegram menu message ID (public endpoint for bot integration).
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true
@@ -1762,23 +1973,28 @@ Update Telegram menu message ID (public endpoint for bot integration).
 ### Reports
 
 #### GET `/reports/excel`
+
 Download Excel report of finished shifts. **[AUTH REQUIRED]**
 
 **Query Parameters:** None
 
 **Response (200):**
+
 - Content-Type: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
 - Content-Disposition: `attachment; filename=shifts_report.xlsx`
 - Body: Binary Excel file data
 
 #### GET `/reports/photos`
+
 Get archive of shift photos. **[AUTH REQUIRED]**
 
 **Query Parameters:**
+
 - `driver_id` (optional) - Filter by driver ID
 - `truck_id` (optional) - Filter by truck ID
 
 **Response (200):**
+
 ```json
 [
   {
@@ -1797,18 +2013,22 @@ Get archive of shift photos. **[AUTH REQUIRED]**
 ```
 
 #### GET `/reports/export`
+
 Export shifts as JSON with date filtering. **[AUTH REQUIRED]**
 
 **Query Parameters:**
+
 - `start` (optional) - Start date (ISO format)
 - `end` (optional) - End date (ISO format)
 
 **Example:**
+
 ```
 GET /reports/export?start=2024-01-01T00:00:00.000Z&end=2024-01-31T23:59:59.999Z
 ```
 
 **Response (200):**
+
 ```json
 [
   {
@@ -1836,11 +2056,13 @@ GET /reports/export?start=2024-01-01T00:00:00.000Z&end=2024-01-31T23:59:59.999Z
 ### Audit
 
 #### GET `/audit`
+
 Get audit log entries. **[AUTH REQUIRED - ADMIN]**
 
 **Query Parameters:** None
 
 **Response (200):**
+
 ```json
 [
   {
@@ -1858,9 +2080,11 @@ Get audit log entries. **[AUTH REQUIRED - ADMIN]**
 ### Tenant Settings
 
 #### GET `/tenant/settings`
+
 Get tenant configuration. **[AUTH REQUIRED]**
 
 **Response (200):**
+
 ```json
 {
   "name": "СтройМастер ООО",
@@ -1870,9 +2094,11 @@ Get tenant configuration. **[AUTH REQUIRED]**
 ```
 
 #### PATCH `/tenant/settings`
+
 Update tenant settings. **[AUTH REQUIRED - ADMIN]**
 
 **Request Body:**
+
 ```json
 {
   "timezone": "Asia/Yekaterinburg",
@@ -1881,6 +2107,7 @@ Update tenant settings. **[AUTH REQUIRED - ADMIN]**
 ```
 
 **Response (200):**
+
 ```json
 {
   "id": 10,
@@ -1895,9 +2122,11 @@ Update tenant settings. **[AUTH REQUIRED - ADMIN]**
 ### Admin Stats
 
 #### GET `/admin/stats`
+
 Get admin dashboard statistics. **[AUTH REQUIRED - ADMIN]**
 
 **Response (200):**
+
 ```json
 {
   "activeShifts": 5,
@@ -1911,9 +2140,11 @@ Get admin dashboard statistics. **[AUTH REQUIRED - ADMIN]**
 ## Gateway API (Telegram Bot Integration)
 
 ### POST `/gateway`
+
 Telegram Bot webhook endpoint (via n8n gateway).
 
 **Request Body:**
+
 ```typescript
 {
   user_id: string;        // Telegram user ID (string)
@@ -1934,6 +2165,7 @@ Telegram Bot webhook endpoint (via n8n gateway).
 ```
 
 **Response (200):**
+
 ```typescript
 {
   ui: {
@@ -1956,6 +2188,7 @@ Telegram Bot webhook endpoint (via n8n gateway).
 ```
 
 **Response Example:**
+
 ```json
 {
   "ui": {
@@ -1989,12 +2222,14 @@ Telegram Bot webhook endpoint (via n8n gateway).
 **Callback Data Commands:**
 
 Driver commands:
+
 - `START_SHIFT` - Start new shift
 - `END_SHIFT` - End current shift
 - `CANCEL` - Cancel shift draft
 - `REQUEST_COMMENT` - Add comment to shift
 
 Admin commands:
+
 - `ADMIN_MAIN` - Admin main menu
 - `ADMIN_SETTINGS` - Settings menu
 - `DRIVER_MENU` - Switch to driver menu
@@ -2008,6 +2243,7 @@ Admin commands:
 - `DOWNLOAD_EXCEL` - Get Excel download link
 
 Interactive commands:
+
 - `TRK_<truck_id>` - Select truck
 - `STE_<site_id>` - Select site
 - `MS_DRV_<driver_id>` - Manual shift: select driver
@@ -2029,6 +2265,7 @@ Interactive commands:
 ### Common Error Responses
 
 **400 Bad Request:**
+
 ```json
 {
   "error": "Invalid ID format"
@@ -2036,6 +2273,7 @@ Interactive commands:
 ```
 
 **401 Unauthorized:**
+
 ```json
 {
   "error": "User not found"
@@ -2049,6 +2287,7 @@ Interactive commands:
 ```
 
 **403 Forbidden:**
+
 ```json
 {
   "error": "Access denied"
@@ -2062,6 +2301,7 @@ Interactive commands:
 ```
 
 **403 Forbidden – limit reached:**
+
 ```json
 {
   "error": "Достигнут лимит машин (10 шт.). Тарифный план: Бесплатный"
@@ -2069,6 +2309,7 @@ Interactive commands:
 ```
 
 **404 Not Found:**
+
 ```json
 {
   "error": "Tenant not found"
@@ -2076,6 +2317,7 @@ Interactive commands:
 ```
 
 **500 Internal Server Error:**
+
 ```json
 {
   "error": "Server error"
@@ -2083,6 +2325,7 @@ Interactive commands:
 ```
 
 ### Business Logic Errors
+
 ```json
 {
   "error": "У вас уже есть активная смена или черновик"
@@ -2124,11 +2367,13 @@ Interactive commands:
 ## Rate Limiting
 
 Currently **no rate limiting** is implemented. Consider implementing:
+
 - Per-tenant rate limits
 - Per-user rate limits for sensitive operations
 - IP-based rate limiting for public endpoints
 
 Recommended libraries:
+
 - `express-rate-limit` - Basic rate limiting
 - `rate-limiter-flexible` - Advanced rate limiting with Redis
 
@@ -2141,12 +2386,14 @@ Recommended libraries:
 **Strategy:** URL-based versioning
 
 **Migration Path:**
+
 1. New features added to `/api/v1`
 2. Breaking changes require `/api/v2`
 3. Deprecated endpoints remain for 6 months with warning headers
 4. Remove deprecated endpoints after deprecation period
 
 **Deprecation Header:**
+
 ```
 Deprecation: true
 Warning: This endpoint is deprecated and will be removed on 2024-07-01
@@ -2160,6 +2407,7 @@ Link: <https://api.example.com/v2/endpoint>; rel="successor-version"
 Currently **no pagination** is implemented for list endpoints. Lists return all items or limited to fixed count (e.g., last 10 shifts).
 
 **Recommended Pagination Pattern:**
+
 ```json
 {
   "data": [...],
@@ -2173,6 +2421,7 @@ Currently **no pagination** is implemented for list endpoints. Lists return all 
 ```
 
 **Query Parameters:**
+
 - `page` - Page number (default: 1)
 - `limit` - Items per page (default: 20, max: 100)
 
@@ -2183,6 +2432,7 @@ Currently **no pagination** is implemented for list endpoints. Lists return all 
 **Current Policy:** No caching (cache headers disabled)
 
 **Cache Headers:**
+
 ```
 Cache-Control: no-store, no-cache, must-revalidate, private
 Pragma: no-cache
@@ -2190,6 +2440,7 @@ Expires: 0
 ```
 
 **Future Considerations:**
+
 - Implement Redis caching for frequently accessed data
 - Cache dictionary data (trucks, sites) for 5 minutes
 - Cache dashboard stats for 1 minute

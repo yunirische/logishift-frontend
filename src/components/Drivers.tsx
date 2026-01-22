@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
-import api from "../services/api";
+import api, { getPhotoUrl } from "../services/api";
 import { UserRole } from "../types";
-import { Pencil, Copy, Plus, X, CheckCircle2 } from "lucide-react";
+import { Pencil, Copy, Plus, X, CheckCircle2, User as UserIcon } from "lucide-react";
 
 interface Driver {
   id: number;
@@ -13,6 +13,7 @@ interface Driver {
   last_activity?: string;
   is_active: boolean;
   hourly_rate?: number;
+  avatar_url?: string;
 }
 
 const Drivers: React.FC = () => {
@@ -52,7 +53,7 @@ const Drivers: React.FC = () => {
       const result = await api.post(API_ENDPOINTS.INVITES, {});
       // Предполагаем, что ответ содержит поле `link` или `url` или `code`
       const link = result.link || result.url || result.invite_url || 
-                   (result.code ? `${window.location.origin}/invite/${result.code}` : '');
+                   (result.code ? `/invite/${result.code}` : '');
       setInviteLink(link);
       setInviteModalOpen(true);
     } catch (err: any) {
@@ -136,12 +137,26 @@ const Drivers: React.FC = () => {
                 <span className="text-4xl">🚚</span>
               </div>
               <div className="flex items-center gap-4 mb-4 relative z-10">
+                {getPhotoUrl(driver.avatar_url) ? (
+                  <img
+                    src={getPhotoUrl(driver.avatar_url) || undefined}
+                    alt={driver.full_name}
+                    className="w-12 h-12 rounded-2xl object-cover shadow-inner"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
                 <div
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shadow-inner ${
                     driver.is_active
                       ? "bg-indigo-100 text-indigo-600"
                       : "bg-slate-100 text-slate-400"
                   }`}
+                  style={{ display: getPhotoUrl(driver.avatar_url) ? 'none' : 'flex' }}
                 >
                   {driver.full_name.charAt(0)}
                 </div>

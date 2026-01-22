@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
-import api from "../services/api";
+import api, { getPhotoUrl } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { DriverState, Shift, User, UserRole, ManualShiftRequest } from "../types";
 

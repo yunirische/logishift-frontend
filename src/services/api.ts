@@ -1,4 +1,4 @@
-import { API_ENDPOINTS, API_BASE_URL } from "../constants";
+import { API_ENDPOINTS, API_BASE_URL, STATIC_BASE_URL } from "../constants";
 import { User } from "../types";
 
 export const TOKEN_KEY = "logishift_auth_token";
@@ -139,6 +139,20 @@ export const del = (url: string) => {
   });
 };
 
+export const getPhotoUrl = (path?: string | null): string | null => {
+  if (!path) return null;
+  
+  if (path.startsWith('http')) {
+    return path;
+  }
+  
+  if (path.startsWith('/uploads/')) {
+    return `${STATIC_BASE_URL}${path}`;
+  }
+  
+  return `${STATIC_BASE_URL}/uploads/${path}`;
+};
+
 const api = {
   loginUser,
   apiRequest,
@@ -151,6 +165,7 @@ const api = {
   getAuthToken,
   setAuthToken,
   clearAuth,
+  getPhotoUrl,
   TOKEN_KEY,
   USER_KEY,
 };
