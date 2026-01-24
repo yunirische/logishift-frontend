@@ -117,6 +117,17 @@ Core business logic for shift lifecycle:
 - `createManualShift()` - Admin creates shift for driver
 - PWA methods: `startShiftPWA()`, `endShiftPWA()`, `handlePWAPhotoUpload()`
 
+**Shift Overlap Validation:**
+
+- Private method `validateShiftOverlap()` prevents physically impossible situations where one driver or one truck is assigned to multiple shifts simultaneously
+- Checks both driver (`user_id`) and truck (`truck_id`) conflicts against ALL shifts with recorded time ranges
+- Overlap detection logic: `existing.start_time < new.end_time AND existing.end_time > new.start_time`
+- Integration points:
+  - `forceCloseShift()` - validates before closing with custom times (excludes current shift from check)
+  - `createManualShift()` - validates for "active" shifts (assumes zero duration: start_time = end_time = now)
+- Error message: `Время смены пересекается с существующей записью (Водитель или Машина уже заняты в этот период)`
+- Note: Active shifts are protected by the `is_busy` flag; overlap validation covers finished shifts and time-based conflicts
+
 #### MediaService (`src/services/media.service.ts`)
 
 File handling:
@@ -158,9 +169,22 @@ Plan‑limit enforcement:
 
 #### Bot Integration (`src/core/bot.ts`)
 
-- `notifyAdmin()` - Send notifications to tenant admins
+- `notifyAdmin(tenantId, text)` - Send notifications to tenant admins and foremen
+- `notifyDriver(userId, message)` - Send notification to specific driver via Telegram
 - `saveAuditLog()` - Log actions to audit_logs table
 - `answerCallbackQuery()` - Telegram API callback response
+
+**Notification Targeting:**
+| Function | Recipients | Use Case |
+|----------|-----------|-----------|
+| `notifyAdmin()` | Admins + Foremen | System alerts, stuck shifts, notifications summary |
+| `notifyDriver()` | Individual driver | Long shift reminders (>12h), personal alerts |
+
+**Message Format:**
+
+- HTML parsing enabled (`parse_mode: "HTML"`)
+- Supports bold text, line breaks
+- Automatic error handling per recipient
 
 #### Helpers (`src/utils/helpers.ts`)
 
@@ -338,6 +362,105 @@ User → /shifts/end → shiftService.endShiftPWA()
                               ↓
                     Return result
 ```
+
+---
+
+### 4. Request-Triggered Cleanup (Lazy Cleanup)
+
+**Architecture Pattern:** Instead of scheduled background jobs (cron), the system uses request-triggered cleanup that runs automatically when users interact with the system. Multiple trigger points ensure aggressive cleanup.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CLEANUP TRIGGER POINTS                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│ 1. Driver starts shift via PWA                                  │
+│    startShiftPWA() → cleanupStaleShifts() → Begin shift         │
+│    🎯 Driver self-cleans path before starting                   │
+│                                                                  │
+│ 2. Admin creates manual shift                                   │
+│    createManualShift() → cleanupStaleShifts() → Create shift     │
+│    🎯 Admin cleans before creating manual shift                │
+│                                                                  │
+│ 3. Dashboard load (any user)                                    │
+│    getDashboardStats() → cleanupStaleShifts() → Return stats    │
+│    🎯 Passive cleanup when dashboard is opened                 │
+│                                                                  │
+│ 4. Driver starts shift via Telegram Bot                         │
+│    startShiftDraft() → cleanupStaleShifts() → Begin draft       │
+│    🎯 Bot cleans before starting draft                         │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                                    ↓
+                    ┌─────────────────────────┐
+                    │  Check stuck shifts    │
+                    │    (15+ min in state)  │
+                    └───────────┬─────────────┘
+                                ↓
+                    ┌─────────────────────────┐
+                    │  Send reminder if       │
+                    │    stuck shifts exist   │
+                    └─────────────────────────┘
+```
+
+**Benefits:**
+
+- ✅ No external dependencies (node-cron not needed)
+- ✅ No persistent process management
+- ✅ Works in serverless/container environments
+- ✅ Cleanup happens when there's actual activity
+- ✅ Low overhead
+- ✅ **Aggressive:** Multiple trigger points ensure cleanup happens frequently
+- ✅ **Self-healing:** Drivers automatically clear stuck trucks before starting shift
+
+**Endpoints:**
+
+- `POST /maintenance/cleanup` - Manual cleanup trigger (admin only)
+- `GET /shifts/stuck` - Get stuck shifts for monitoring
+- `POST /shifts/reminder` - Manual reminder trigger (admin only)
+- `GET /dashboard/stats` - Auto-triggers cleanup + reminder check
+- `POST /shifts/start` - Auto-triggers cleanup before starting (PWA)
+- `POST /shifts/manual` - Auto-triggers cleanup before manual creation
+
+**Stale Shift Criteria:**
+
+- Status in: `pending_truck`, `pending_site`, `awaiting_odo_start`, `awaiting_odo_end`, `awaiting_invoice`
+- Age: 30+ minutes (configurable)
+- Action: Delete shift, release truck, reset user state
+
+**Stuck Shift Reminder Criteria:**
+
+- Status in: `awaiting_odo_end`, `awaiting_invoice`
+- Stuck for: 15+ minutes (configurable)
+- Action: Send Telegram notification to admins
+
+**Long Shift Reminder Criteria (Driver-Side):**
+
+- Status: `active`
+- Duration: 12+ hours
+- Trigger: Dashboard load, cleanup checks, reminder checks
+- Action: Send Telegram notification to driver AND admins
+
+**Driver Notification Example:**
+
+```
+⏰ <b>Напоминание о смене</b>
+
+Ваша смена длится уже <b>12 часов</b>.
+🚛 Машина: МАЗ-533
+📍 Объект: Стройплощадка №1
+
+Не забудьте закрыть смену в своё время!
+```
+
+**Benefits:**
+
+- ✅ Prevents unpaid overtime
+- ✅ Drivers receive timely reminders directly
+- ✅ Admins are copied on all notifications
+- ✅ Transparent audit trail
+
+---
 
 ## Technologies & Libraries
 
@@ -1182,12 +1305,15 @@ await prisma.$transaction(async (tx) => {
 - User can only have one active shift (status != 'finished')
 - Truck can only be used by one shift at a time (`is_busy` flag)
 
-**Plan Limits:**
+**Plan Limits (Active Slots Policy):**
 
 - Check `limit_machines` before creating truck
 - Check `limit_drivers` before creating user
 - Check `limit_sites` before creating site
 - `-1` means unlimited
+- **Important:** Only `is_active: true` records count toward limits
+- **Reactivation check:** Limits are enforced on UPDATE when `is_active` changes from `false` to `true`
+- This allows admins to deactivate old records and add new ones within plan limits
 
 **State Machine Constraints:**
 
@@ -1695,6 +1821,217 @@ photo: <file>
   "message": "Фото успешно загружено",
   "newState": "active"
 }
+```
+
+#### POST `/shifts/cancel`
+
+Cancel current draft shift. **[AUTH REQUIRED]**
+
+**Request Body:** Empty
+
+**Response (200):**
+
+```json
+{
+  "message": "Черновик смены отменён",
+  "newState": "idle"
+}
+```
+
+**Behavior:**
+- Only works for draft shifts (pending_truck, pending_site, awaiting_odo_start)
+- Releases truck if reserved
+- Resets user state to "idle"
+- Creates audit log entry
+
+#### PATCH `/shifts/:id`
+
+Admin force-close or modify shift times. **[ADMIN ONLY]**
+
+**Request Body:**
+
+```json
+{
+  "start_time": "2024-01-15T08:00:00.000Z", // Optional
+  "end_time": "2024-01-15T14:30:00.000Z", // Optional
+  "comment": "Исправлено админом" // Optional - appended to existing
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "message": "✅ Смена принудительно закрыта",
+  "hours": 6.5,
+  "salary": 1300
+}
+```
+
+**Features:**
+
+- Modify `start_time` and `end_time` for correction
+- Force-close shift in any status
+- Automatically recalculates `hours_worked` and `salary`
+- Releases truck and resets driver state
+- Creates audit log entry
+- Sends Telegram notification to admins
+
+**Comment Append Logic:**
+The `comment` field uses append logic (NOT overwrite) to create a transparent negotiation log:
+
+```
+[24.01 15:30 Admin]: Исправлено админом
+[24.01 16:00 Driver]: Дополнительная информация
+[25.01 10:15 Admin]: Финальное решение
+```
+
+Format: `[DD.MM HH:MM Role]: Text` (each new entry on new line)
+
+- **Admin comments** - added via `PATCH /shifts/:id`
+- **Driver comments** - added via Telegram Bot during active shift
+- Creates audit trail of all negotiations/decisions within shift
+
+**Error Response (400):**
+
+```json
+{
+  "error": "Время окончания должно быть позже времени начала"
+}
+```
+
+**Error Response (403):**
+
+```json
+{
+  "error": "Только администратор может принудительно закрывать смены"
+}
+```
+
+---
+
+### Maintenance & Monitoring
+
+#### POST `/maintenance/cleanup`
+
+Manually trigger cleanup of stale shift drafts. **[ADMIN ONLY]**
+
+Stale shifts are those stuck in draft states (`pending_truck`, `pending_site`, `awaiting_odo_start`, `awaiting_odo_end`, `awaiting_invoice`) for longer than 30 minutes.
+
+**Query Parameters:**
+
+- `stale_minutes` (optional): Custom threshold in minutes (default: 30)
+- `dry_run` (optional): Set to "true" to only report, not delete
+
+**Response (200):**
+
+```json
+{
+  "message": "Очищено 3 просроченных смен",
+  "cleaned": 3,
+  "details": [
+    {
+      "shiftId": 123,
+      "userId": 5,
+      "truckId": 2,
+      "status": "awaiting_odo_start",
+      "ageMinutes": 45
+    }
+  ]
+}
+```
+
+**Dry run response:**
+
+```json
+{
+  "message": "Найдено 3 просроченных смен (dry run)",
+  "cleaned": 3,
+  "details": [...]
+}
+```
+
+**Behavior:**
+
+- Releases truck (`is_busy: false`)
+- Resets user state to "idle"
+- Deletes stale shift record
+- Creates audit log entry
+- Sends Telegram notification to admins (unless dry run)
+- All operations in transaction
+
+**Note:** This endpoint is primarily for manual cleanup. Automatic cleanup also occurs on dashboard load via request-triggered approach.
+
+---
+
+#### GET `/shifts/stuck`
+
+Get list of shifts stuck in a state for too long. **[AUTH REQUIRED]**
+
+Useful for monitoring and displaying warnings in UI.
+
+**Query Parameters:**
+
+- `state` (optional): State to check (default: "awaiting_odo_end,awaiting_invoice")
+- `threshold` (optional): Minutes threshold (default: 15)
+
+**Response (200):**
+
+```json
+{
+  "shifts": [
+    {
+      "id": 124,
+      "driver_name": "Петр Петров",
+      "truck_name": "МАЗ-533",
+      "site_name": "Стройплощадка №1",
+      "status": "awaiting_odo_end",
+      "stuck_minutes": 23
+    }
+  ],
+  "shouldRemind": true
+}
+```
+
+---
+
+#### POST `/shifts/reminder`
+
+Send reminder notification for stuck shifts. **[ADMIN ONLY]**
+
+Triggers Telegram notification to admins about shifts that have been stuck for too long.
+
+**Response (200):**
+
+```json
+{
+  "message": "Напоминание отправлено (3 смен)",
+  "notified": true,
+  "count": 3
+}
+```
+
+**Or if no stuck shifts:**
+
+```json
+{
+  "message": "Нет смен для напоминания",
+  "notified": false,
+  "count": 0
+}
+```
+
+**Telegram message format:**
+
+```
+⚠️ Смены требуют внимания!
+
+Следующие водители застряли в статусе более 15 минут:
+
+1. Иван Иванов
+   🚛 МАЗ-533 | 📍 Стройплощадка №1
+   Статус: awaiting_odo_end
+   ⏱ Застрял: 23 мин
 ```
 
 ---
@@ -2467,25 +2804,10 @@ Expires: 0
 
 # Frontend Change History
 
-This section documents all changes made to the LogiShift frontend codebase. Used for synchronization with cloud code agents and project tracking.
+## [2025-01-24] - Sync: Add missing API constants to match ARCHITECTURE.md
 
-## [2025-01-24] - Feature: Timezone-Aware Date Handling + Shift Editing
-
-- **Files:**
-  - `package.json` (added `dayjs` dependency)
-  - `src/utils/dateUtils.ts` (new file)
-  - `src/constants.ts`
-  - `src/components/EditShiftModal.tsx` (new file)
-  - `src/components/Shifts.tsx`
-- **Change:** Implemented timezone-aware date/time handling for shift editing interface
-- **Before:** No shift editing capability; dates stored without timezone awareness
-- **After:**
-  - Admins/Foremen can edit shift start/end times via modal (✏️ button in Shifts tab)
-  - Date utilities (`toTenantISO`, `fromTenantISO`, `formatForDisplay`) handle tenant timezone conversions
-  - Frontend displays times in tenant's configured timezone (fetched from `/tenant/settings`)
-  - Backend receives times in UTC ISO format
-- **Details:**
-  - `datetime-local` inputs use tenant timezone for display
-  - On save, times convert to UTC via `dayjs.tz(date, timezone).utc().toISOString()`
-  - On load, UTC times convert to tenant timezone via `dayjs.utc(date).tz(timezone).format(...)`
-  - Modal supports optional end_time and comment field
+- **File:** `src/constants.ts`
+- **Change:** Added missing endpoint constants for maintenance, monitoring, reports, health check, and user management
+- **Reason:** Frontend constants now fully match ARCHITECTURE.md API contract
+- **Before:** Several documented endpoints were missing from constants (HEALTH, AUTH_ONBOARD, MAINTENANCE_CLEANUP, SHIFTS_STUCK, SHIFTS_REMINDER, ADMIN_STATS, USERS_SET_MENU_ID, REPORTS_EXCEL, REPORTS_PHOTOS, REPORTS_EXPORT)
+- **After:** All documented endpoints available in frontend for future use
