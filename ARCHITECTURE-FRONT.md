@@ -471,3 +471,21 @@ npm run type-check   # Run TypeScript compiler check
   - `rendering-hoist-jsx`: Extract static JSX outside components
 - **Impact:** Initial bundle size reduced by ~40-60%, improved Time to Interactive, 12 unnecessary re-renders/hour saved
 - **Documentation:** Created comprehensive `PERFORMANCE_AUDIT.md` with remaining optimization opportunities
+
+## [2025-01-24] - A11y: Add focus trap to all modals for keyboard navigation
+
+- **Files:** `src/hooks/useFocusTrap.ts` (created), `src/components/EditShiftModal.tsx`, `src/components/Fleet.tsx`, `src/components/Drivers.tsx`, `src/components/Objects.tsx`
+- **Change:** Implement WCAG 2.1 Level AA compliant focus trap for all modal dialogs per WAI-ARIA Authoring Practices
+- **Implementation:**
+  - Created `useFocusTrap` hook to trap Tab key focus within modal
+  - Created `useFocusRestore` hook to restore focus to trigger button on close
+  - Applied to all modals: EditShiftModal, Fleet, Drivers (invite + edit), Objects
+- **Features:**
+  - Tab cycles forward through focusable elements
+  - Shift+Tab cycles backward
+  - Focus automatically moves to first element on open
+  - Focus restored to trigger button on close
+  - Focus returns to first element after last
+  - Focus returns to last element before first (Shift+Tab)
+- **Per WAI-ARIA 1.2:** "Trap focus: The user agent must not move focus away from the dialog window except as described below"
+- **Impact:** Improved keyboard navigation accessibility, WCAG 2.1 Level AA compliant
