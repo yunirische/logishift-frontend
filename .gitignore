@@ -69,3 +69,4 @@ Thumbs.db
 # Custom
 uploads/
 temp/
+.claude/settings.local.json
