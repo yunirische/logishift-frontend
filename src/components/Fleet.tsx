@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Pencil, Trash2, X, Power, Loader2 } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
+import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
 
 const Fleet: React.FC = () => {
   const [trucks, setTrucks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTruck, setEditingTruck] = useState<any | null>(null);
+  const modalRef = useFocusTrap(isModalOpen);
+  useFocusRestore(isModalOpen);
   
   // Форма состояния
   const [formData, setFormData] = useState({
@@ -203,6 +206,7 @@ const Fleet: React.FC = () => {
       {/* Модальное окно */}
       {isModalOpen && (
         <div
+          ref={modalRef}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
           role="dialog"
           aria-modal="true"

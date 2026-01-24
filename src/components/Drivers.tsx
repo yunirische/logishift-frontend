@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
 import { UserRole } from "../types";
 import { Pencil, Copy, Plus, X, CheckCircle2 } from "lucide-react";
+import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
 
 interface Driver {
   id: number;
@@ -30,6 +31,14 @@ const Drivers: React.FC = () => {
     hourly_rate: 0,
   });
   const [saving, setSaving] = useState(false);
+
+  // Focus trap for invite modal
+  const inviteModalRef = useFocusTrap(inviteModalOpen);
+  useFocusRestore(inviteModalOpen);
+
+  // Focus trap for edit modal
+  const editModalRef = useFocusTrap(editModalOpen);
+  useFocusRestore(editModalOpen);
 
   useEffect(() => {
     fetchDrivers();
@@ -189,6 +198,7 @@ const Drivers: React.FC = () => {
       {/* Модалка приглашения */}
       {inviteModalOpen && (
         <div
+          ref={inviteModalRef}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
           role="dialog"
           aria-modal="true"
@@ -245,6 +255,7 @@ const Drivers: React.FC = () => {
       {/* Модалка редактирования */}
       {editModalOpen && currentDriver && (
         <div
+          ref={editModalRef}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
           role="dialog"
           aria-modal="true"

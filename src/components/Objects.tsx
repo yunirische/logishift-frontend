@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Camera, FileText, Plus, Pencil, Trash2, X } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
+import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
 
 const Objects: React.FC = () => {
   const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<any | null>(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -17,6 +18,9 @@ const Objects: React.FC = () => {
     is_active: true
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  const modalRef = useFocusTrap(isModalOpen);
+  useFocusRestore(isModalOpen);
 
   // Функция загрузки объектов
   const fetchSites = async () => {
@@ -173,6 +177,7 @@ const Objects: React.FC = () => {
       {/* Модальное окно (с исправленной логикой видимости) */}
       {isModalOpen && (
         <div
+          ref={modalRef}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
           role="dialog"
           aria-modal="true"

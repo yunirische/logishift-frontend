@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
 import { Shift } from "../types";
 import { toTenantISO, fromTenantISO } from "../utils/dateUtils";
+import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
 
 interface EditShiftModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   shift,
   timezone,
 }) => {
+  const containerRef = useFocusTrap(isOpen);
+  useFocusRestore(isOpen);
   const [formData, setFormData] = useState({
     start_time: "",
     end_time: "",
@@ -76,6 +79,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
       onKeyDown={handleKeyDown}
       role="dialog"
