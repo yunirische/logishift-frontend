@@ -235,6 +235,7 @@ const Fleet: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-bold text-[#1B254B]"
                   placeholder="Например, КАМАЗ-55111"
+                  spellCheck={false}
                   autoFocus
                 />
               </div>
@@ -249,8 +250,10 @@ const Fleet: React.FC = () => {
                   type="text"
                   value={formData.plate}
                   onChange={(e) => setFormData({ ...formData, plate: e.target.value })}
+                  inputMode="text"
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono text-[#1B254B]"
                   placeholder="А123БВ777"
+                  spellCheck={false}
                 />
               </div>
 

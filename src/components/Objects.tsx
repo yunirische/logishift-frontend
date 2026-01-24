@@ -172,15 +172,21 @@ const Objects: React.FC = () => {
 
       {/* Модальное окно (с исправленной логикой видимости) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="site-modal-title"
+        >
           <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-[#1B254B]">
+              <h3 id="site-modal-title" className="text-xl font-black text-[#1B254B]">
                 {editingSite ? 'Редактировать объект' : 'Новый объект'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                aria-label="Закрыть модальное окно"
               >
                 <X size={20} className="text-slate-500" />
               </button>
@@ -188,27 +194,33 @@ const Objects: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="site-name" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Название
                 </label>
                 <input
+                  id="site-name"
+                  name="site-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-bold text-[#1B254B]"
                   placeholder="Например, Стройка №1"
+                  spellCheck={false}
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="site-address" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Адрес
                 </label>
                 <input
+                  id="site-address"
+                  name="site-address"
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  inputMode="text"
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-600"
                   placeholder="Например, ул. Строителей, 10"
                 />

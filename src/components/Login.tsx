@@ -52,6 +52,7 @@ const Login: React.FC = () => {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="admin"
               autoComplete="username"
+              spellCheck={false}
               className="w-full bg-[#F4F7FE] border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
               required
             />

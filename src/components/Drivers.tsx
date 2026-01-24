@@ -272,6 +272,7 @@ const Drivers: React.FC = () => {
                   type="text"
                   value={editForm.full_name}
                   onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                  spellCheck={false}
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
                 />
               </div>
@@ -299,8 +300,10 @@ const Drivers: React.FC = () => {
                   id="driver-rate"
                   name="driver-rate"
                   type="number"
+                  inputMode="numeric"
                   value={editForm.hourly_rate}
                   onChange={(e) => setEditForm({ ...editForm, hourly_rate: Number(e.target.value) })}
+                  spellCheck={false}
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
                 />
               </div>
