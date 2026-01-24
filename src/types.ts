@@ -46,8 +46,8 @@ export interface Shift {
   site_id?: number;
   start_time?: string;
   end_time?: string;
-  hours_worked?: string;
-  salary?: string;
+  hours_worked?: number;
+  salary?: number;
   comment?: string;
   updated_at?: string;
 
