@@ -5,3 +5,26 @@
 body {
     @apply bg-slate-50 text-slate-900;
 }
+
+/* Focus-visible styles - only show focus ring on keyboard navigation */
+*:focus-visible {
+    @apply outline-none ring-2 ring-indigo-500 ring-offset-2;
+}
+
+/* Hide focus ring on mouse/pointer devices */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
+    @apply outline-none;
+}
+
+/* Ensure interactive elements have visible focus on keyboard navigation */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    @apply outline-none ring-2 ring-indigo-500 ring-offset-2 rounded-lg;
+}
