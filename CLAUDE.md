@@ -95,7 +95,7 @@ Configured in `vite.config.ts` with `vite-plugin-pwa`:
 
 ## Change Logging
 
-**IMPORTANT:** Every time you make a change to the codebase, you MUST document it in `ARCHITECTURE.md` under the "Frontend Change History" section at the end of the file.
+**IMPORTANT:** Every time you make a change to the codebase, you MUST document it in `ARCHITECTURE-FRONT.md` under the "Frontend Change History" section at the end of the file.
 
 Format for each change:
 ```markdown
