@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from "react";
-import AuditLogs from "./components/AuditLogs";
-import Dashboard from "./components/Dashboard";
-import Drivers from "./components/Drivers";
+import React, { useEffect, useState, lazy, Suspense } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
-import Shifts from "./components/Shifts";
-import Fleet from "./components/Fleet";
-import Objects from "./components/Objects";
-import Settings from "./components/Settings";
+import Dashboard from "./components/Dashboard";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+
+// Bundle optimization: lazy load heavy components (bundle-dynamic-imports)
+const Drivers = lazy(() => import("./components/Drivers"));
+const AuditLogs = lazy(() => import("./components/AuditLogs"));
+const Shifts = lazy(() => import("./components/Shifts"));
+const Fleet = lazy(() => import("./components/Fleet"));
+const Objects = lazy(() => import("./components/Objects"));
+const Settings = lazy(() => import("./components/Settings"));
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -49,22 +51,54 @@ const AppContent: React.FC = () => {
     </div>
   );
 
+  // Hoist static loading state outside render (rendering-hoist-jsx)
+  const loadingFallback = (
+    <div className="flex flex-col items-center justify-center h-[60vh] text-slate-300">
+      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      <p className="mt-4 text-sm text-slate-400">Загрузка...</p>
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
         return <Dashboard />;
       case "shifts":
-        return <Shifts />;
+        return (
+          <Suspense fallback={loadingFallback}>
+            <Shifts />
+          </Suspense>
+        );
       case "drivers":
-        return <Drivers />;
+        return (
+          <Suspense fallback={loadingFallback}>
+            <Drivers />
+          </Suspense>
+        );
       case "audit":
-        return <AuditLogs />;
+        return (
+          <Suspense fallback={loadingFallback}>
+            <AuditLogs />
+          </Suspense>
+        );
       case "fleet":
-        return <Fleet />;
+        return (
+          <Suspense fallback={loadingFallback}>
+            <Fleet />
+          </Suspense>
+        );
       case "objects":
-        return <Objects />;
+        return (
+          <Suspense fallback={loadingFallback}>
+            <Objects />
+          </Suspense>
+        );
       case "settings":
-        return <Settings />;
+        return (
+          <Suspense fallback={loadingFallback}>
+            <Settings />
+          </Suspense>
+        );
       case "users":
         return renderPlaceholder("Контроль Доступа", "👥");
       default:

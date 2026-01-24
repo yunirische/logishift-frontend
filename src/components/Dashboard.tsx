@@ -13,12 +13,13 @@ const isValidPhotoUrl = (url: any): boolean => {
 };
 
 // Вспомогательный компонент для карточки лимитов
+// Bundle optimization: memo to prevent unnecessary re-renders (rerender-memo)
 const UsageCard: React.FC<{
   label: string;
   icon: string;
   current: number;
   limit: number;
-}> = ({ label, icon, current, limit }) => {
+}> = React.memo(({ label, icon, current, limit }) => {
   let percentage = 0;
   let isNearLimit = false;
   let isUnlimited = false;
@@ -59,7 +60,7 @@ const UsageCard: React.FC<{
       </div>
     </div>
   );
-};
+});
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
