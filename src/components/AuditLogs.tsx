@@ -10,8 +10,8 @@ const AuditLogs: React.FC = () => {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        // Fixed: Используем apiRequest вместо fetch для автоматической подстановки токена авторизации
         const data = await apiRequest(API_ENDPOINTS.AUDIT);
+        console.log("Audit data:", data);
         setLogs(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error fetching logs:", error);
@@ -38,7 +38,11 @@ const AuditLogs: React.FC = () => {
         </button>
       </div>
       <div className="divide-y divide-slate-50">
-        {logs.length > 0 ? (
+        {!logs || logs.length === 0 ? (
+          <div className="p-20 text-center text-slate-400">
+            История действий пуста
+          </div>
+        ) : (
           logs.map((log) => (
             <div
               key={log.id}
@@ -59,14 +63,14 @@ const AuditLogs: React.FC = () => {
                   </span>
                   <span
                     className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${
-                      log.action.includes("SHIFT")
+                      (log.action_display || log.action).includes("Смена")
                         ? "bg-blue-100 text-blue-600"
-                        : log.action.includes("DELETE")
+                        : (log.action_display || log.action).includes("DELETE")
                         ? "bg-red-100 text-red-600"
                         : "bg-slate-100 text-slate-500"
                     }`}
                   >
-                    {log.action}
+                    {log.action_display || log.action}
                   </span>
                 </div>
                 <p className="text-sm text-slate-500 leading-relaxed">
@@ -75,10 +79,6 @@ const AuditLogs: React.FC = () => {
               </div>
             </div>
           ))
-        ) : (
-          <div className="p-20 text-center text-slate-400">
-            История действий пуста
-          </div>
         )}
       </div>
     </div>

@@ -78,6 +78,7 @@ export interface Driver {
 export interface AuditLog {
   id: string;
   action: string;
+  action_display?: string;
   performed_by: string;
   timestamp: string;
   details: string;
