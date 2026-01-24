@@ -12,7 +12,8 @@ const AuditLogs: React.FC = () => {
       try {
         const data = await apiRequest(API_ENDPOINTS.AUDIT);
         console.log("Audit data:", data);
-        setLogs(Array.isArray(data) ? data : []);
+        const logsArray = Array.isArray(data) ? data : (data?.data || []);
+        setLogs(logsArray);
       } catch (error) {
         console.error("Error fetching logs:", error);
       } finally {
