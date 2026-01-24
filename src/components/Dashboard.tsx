@@ -678,15 +678,16 @@ const Dashboard: React.FC = () => {
               Сфотографируйте документ или панель приборов для продолжения.
             </p>
 
-            <label className="block">
+            <label htmlFor="photo-upload" className="block">
               <div className="w-full py-6 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-widest cursor-pointer hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100">
                 {isActionLoading ? "Загрузка..." : "Открыть камеру"}
               </div>
               <input
+                id="photo-upload"
                 type="file"
                 accept="image/*"
                 capture="environment"
-                className="hidden"
+                className="sr-only"
                 disabled={isActionLoading}
                 onChange={(e) => {
                   const file = e.target.files?.[0];

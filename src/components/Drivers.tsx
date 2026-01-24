@@ -156,7 +156,7 @@ const Drivers: React.FC = () => {
                 <button
                   onClick={() => openEditModal(driver)}
                   className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-600 transition-colors"
-                  title="Редактировать"
+                  aria-label={`Редактировать ${driver.full_name}`}
                 >
                   <Pencil size={16} />
                 </button>
@@ -188,11 +188,20 @@ const Drivers: React.FC = () => {
 
       {/* Модалка приглашения */}
       {inviteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="invite-modal-title"
+        >
           <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-[#1B254B]">Приглашение создано</h3>
-              <button onClick={() => setInviteModalOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200">
+              <h3 id="invite-modal-title" className="text-xl font-black text-[#1B254B]">Приглашение создано</h3>
+              <button
+                onClick={() => setInviteModalOpen(false)}
+                className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"
+                aria-label="Закрыть модальное окно"
+              >
                 <X size={20} className="text-slate-500" />
               </button>
             </div>
@@ -205,11 +214,12 @@ const Drivers: React.FC = () => {
                 readOnly
                 value={inviteLink}
                 className="flex-1 p-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-mono"
+                aria-label="Ссылка приглашения"
               />
               <button
                 onClick={copyToClipboard}
                 className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"
-                title="Копировать"
+                aria-label="Копировать ссылку приглашения"
               >
                 <Copy size={18} />
               </button>
@@ -234,20 +244,31 @@ const Drivers: React.FC = () => {
 
       {/* Модалка редактирования */}
       {editModalOpen && currentDriver && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-modal-title"
+        >
           <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-[#1B254B]">Редактировать сотрудника</h3>
-              <button onClick={() => setEditModalOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200">
+              <h3 id="edit-modal-title" className="text-xl font-black text-[#1B254B]">Редактировать сотрудника</h3>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"
+                aria-label="Закрыть модальное окно"
+              >
                 <X size={20} className="text-slate-500" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="driver-name" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Имя
                 </label>
                 <input
+                  id="driver-name"
+                  name="driver-name"
                   type="text"
                   value={editForm.full_name}
                   onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
@@ -255,10 +276,12 @@ const Drivers: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="driver-role" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Роль
                 </label>
                 <select
+                  id="driver-role"
+                  name="driver-role"
                   value={editForm.role}
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
@@ -269,10 +292,12 @@ const Drivers: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="driver-rate" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Ставка (₽/час)
                 </label>
                 <input
+                  id="driver-rate"
+                  name="driver-rate"
                   type="number"
                   value={editForm.hourly_rate}
                   onChange={(e) => setEditForm({ ...editForm, hourly_rate: Number(e.target.value) })}

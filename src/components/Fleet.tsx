@@ -154,14 +154,14 @@ const Fleet: React.FC = () => {
               <button
                 onClick={() => handleEditClick(t)}
                 className="p-2 bg-white border border-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-600 transition-colors shadow-sm"
-                title="Редактировать"
+                aria-label={`Редактировать ${t.name}`}
               >
                 <Pencil size={16} />
               </button>
               <button
                 onClick={() => handleDeleteClick(t.id, t.name)}
                 className="p-2 bg-white border border-slate-100 text-red-500 rounded-lg hover:bg-red-50 hover:border-red-100 transition-colors shadow-sm"
-                title="Удалить"
+                aria-label={`Удалить ${t.name}`}
               >
                 <Trash2 size={16} />
               </button>
@@ -202,15 +202,21 @@ const Fleet: React.FC = () => {
 
       {/* Модальное окно */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="truck-modal-title"
+        >
           <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-[#1B254B]">
+              <h3 id="truck-modal-title" className="text-xl font-black text-[#1B254B]">
                 {editingTruck ? 'Редактировать машину' : 'Новая машина'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                aria-label="Закрыть модальное окно"
               >
                 <X size={20} className="text-slate-500" />
               </button>
@@ -218,10 +224,12 @@ const Fleet: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="truck-name" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Название
                 </label>
                 <input
+                  id="truck-name"
+                  name="truck-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -232,10 +240,12 @@ const Fleet: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="truck-plate" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Госномер
                 </label>
                 <input
+                  id="truck-plate"
+                  name="truck-plate"
                   type="text"
                   value={formData.plate}
                   onChange={(e) => setFormData({ ...formData, plate: e.target.value })}

@@ -60,6 +60,12 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && !saving) {
+      // Optional: close form or navigate away
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -85,10 +91,12 @@ const Settings: React.FC = () => {
         <form onSubmit={handleSave} className="p-8 space-y-8">
           {/* Company Name */}
           <div className="space-y-3">
-            <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
+            <label htmlFor="company-name" className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
               Название компании
             </label>
             <input
+              id="company-name"
+              name="company-name"
               type="text"
               value={settings.name}
               onChange={(e) => setSettings({ ...settings, name: e.target.value })}
@@ -99,11 +107,13 @@ const Settings: React.FC = () => {
 
           {/* Timezone */}
           <div className="space-y-3">
-            <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
+            <label htmlFor="timezone" className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
               Часовой пояс
             </label>
             <div className="relative">
               <select
+                id="timezone"
+                name="timezone"
                 value={settings.timezone}
                 onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-slate-800 font-medium appearance-none bg-white cursor-pointer"
@@ -112,7 +122,7 @@ const Settings: React.FC = () => {
                 <option value="Asia/Yekaterinburg">Asia/Yekaterinburg (UTC+5)</option>
                 <option value="Asia/Novosibirsk">Asia/Novosibirsk (UTC+7)</option>
               </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" aria-hidden="true">
                 ▼
               </div>
             </div>

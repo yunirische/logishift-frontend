@@ -43,24 +43,30 @@ const Login: React.FC = () => {
           )}
           
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Логин</label>
+            <label htmlFor="username" className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Логин</label>
             <input
+              id="username"
+              name="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="admin"
+              autoComplete="username"
               className="w-full bg-[#F4F7FE] border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
               required
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Пароль</label>
+            <label htmlFor="password" className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Пароль</label>
             <input
+              id="password"
+              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              autoComplete="current-password"
               className="w-full bg-[#F4F7FE] border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
               required
             />

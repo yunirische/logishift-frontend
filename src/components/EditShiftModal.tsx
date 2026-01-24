@@ -66,13 +66,25 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && !loading) {
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      onKeyDown={handleKeyDown}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
       <div className="bg-white rounded-[40px] shadow-xl w-full max-w-md overflow-hidden">
         <div className="p-8 border-b border-slate-50">
-          <h3 className="text-xl font-black text-[#1B254B]">
+          <h3 id="modal-title" className="text-xl font-black text-[#1B254B]">
             Редактировать смену
           </h3>
           <p className="text-slate-400 text-xs font-medium mt-1">
@@ -88,10 +100,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
+            <label htmlFor="start-time" className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
               Время начала
             </label>
             <input
+              id="start-time"
+              name="start-time"
               type="datetime-local"
               value={formData.start_time}
               onChange={(e) =>
@@ -106,10 +120,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
+            <label htmlFor="end-time" className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
               Время окончания (опционально)
             </label>
             <input
+              id="end-time"
+              name="end-time"
               type="datetime-local"
               value={formData.end_time}
               onChange={(e) =>
@@ -120,10 +136,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
+            <label htmlFor="comment" className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
               Комментарий
             </label>
             <textarea
+              id="comment"
+              name="comment"
               value={formData.comment}
               onChange={(e) =>
                 setFormData({ ...formData, comment: e.target.value })

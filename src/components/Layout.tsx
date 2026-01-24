@@ -84,6 +84,15 @@ const Layout: React.FC<LayoutProps> = ({
           setActiveTab(item.id);
           setSidebarOpen(false);
         }}
+        aria-label={item.label}
+        aria-current={activeTab === item.id ? "page" : undefined}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setActiveTab(item.id);
+            setSidebarOpen(false);
+          }
+        }}
         className={`w-full flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 group ${
           activeTab === item.id
             ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 font-bold"
@@ -94,6 +103,7 @@ const Layout: React.FC<LayoutProps> = ({
           className={`text-xl transition-transform group-hover:rotate-12 ${
             activeTab === item.id ? "scale-110" : ""
           }`}
+          aria-hidden="true"
         >
           {item.icon}
         </span>
@@ -114,9 +124,11 @@ const Layout: React.FC<LayoutProps> = ({
 
       {/* Sidebar */}
       <aside
+        id="sidebar-navigation"
         className={`fixed lg:sticky w-72 bg-white border-r border-slate-100 flex flex-col top-0 h-screen z-50 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
+        aria-label="Основная навигация"
       >
         <div className="p-8">
           <h1 className="text-2xl font-black text-[#1B254B]">
@@ -162,9 +174,11 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
           <button
             onClick={handleLogout}
+            aria-label="Выйти из системы"
             className="w-full py-4 px-4 rounded-xl text-[11px] font-bold text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center gap-2 border border-slate-100"
           >
-            🚪 Выход из системы
+            <span aria-hidden="true">🚪</span>
+            <span>Выход из системы</span>
           </button>
         </div>
       </aside>
@@ -176,6 +190,9 @@ const Layout: React.FC<LayoutProps> = ({
             <button
               className="lg:hidden p-2"
               onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? "Закрыть меню" : "Открыть меню"}
+              aria-expanded={sidebarOpen}
+              aria-controls="sidebar-navigation"
             >
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
