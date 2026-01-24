@@ -2,10 +2,14 @@ import React, { useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift, UserRole } from "../types";
+import EditShiftModal from "./EditShiftModal";
 
 const Shifts: React.FC = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timezone, setTimezone] = useState("Europe/Moscow");
+  const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const user = api.getUserInfo();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
@@ -22,6 +26,16 @@ const Shifts: React.FC = () => {
       }
     };
     fetchShifts();
+
+    const fetchTimezone = async () => {
+      try {
+        const data = await api.get(API_ENDPOINTS.TENANT_SETTINGS);
+        setTimezone(data.timezone || "Europe/Moscow");
+      } catch (err) {
+        console.error("Failed to fetch timezone:", err);
+      }
+    };
+    fetchTimezone();
   }, []);
 
   const displayShifts = isAdmin
@@ -138,6 +152,18 @@ const Shifts: React.FC = () => {
                       <PhotoLink url={(s as any).photo_start_url} icon="🏁" title="Одометр (старт)" />
                       <PhotoLink url={(s as any).photo_end_url} icon="🏁" title="Одометр (финиш)" />
                       <PhotoLink url={(s as any).photo_invoice_url} icon="📄" title="Накладная" />
+                      {isAdmin && (
+                        <button
+                          onClick={() => {
+                            setEditingShift(s);
+                            setIsEditModalOpen(true);
+                          }}
+                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"
+                          title="Редактировать"
+                        >
+                          ✏️
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -155,6 +181,20 @@ const Shifts: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {isEditModalOpen && editingShift && (
+        <EditShiftModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={async () => {
+            setIsEditModalOpen(false);
+            const data = await api.get(API_ENDPOINTS.SHIFTS);
+            setShifts(Array.isArray(data) ? data : []);
+          }}
+          shift={editingShift}
+          timezone={timezone}
+        />
+      )}
     </div>
   );
 };

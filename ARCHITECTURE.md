@@ -2462,3 +2462,30 @@ Expires: 0
 - Cache dictionary data (trucks, sites) for 5 minutes
 - Cache dashboard stats for 1 minute
 - Use ETag for conditional requests
+
+---
+
+# Frontend Change History
+
+This section documents all changes made to the LogiShift frontend codebase. Used for synchronization with cloud code agents and project tracking.
+
+## [2025-01-24] - Feature: Timezone-Aware Date Handling + Shift Editing
+
+- **Files:**
+  - `package.json` (added `dayjs` dependency)
+  - `src/utils/dateUtils.ts` (new file)
+  - `src/constants.ts`
+  - `src/components/EditShiftModal.tsx` (new file)
+  - `src/components/Shifts.tsx`
+- **Change:** Implemented timezone-aware date/time handling for shift editing interface
+- **Before:** No shift editing capability; dates stored without timezone awareness
+- **After:**
+  - Admins/Foremen can edit shift start/end times via modal (✏️ button in Shifts tab)
+  - Date utilities (`toTenantISO`, `fromTenantISO`, `formatForDisplay`) handle tenant timezone conversions
+  - Frontend displays times in tenant's configured timezone (fetched from `/tenant/settings`)
+  - Backend receives times in UTC ISO format
+- **Details:**
+  - `datetime-local` inputs use tenant timezone for display
+  - On save, times convert to UTC via `dayjs.tz(date, timezone).utc().toISOString()`
+  - On load, UTC times convert to tenant timezone via `dayjs.utc(date).tz(timezone).format(...)`
+  - Modal supports optional end_time and comment field

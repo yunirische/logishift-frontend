@@ -92,3 +92,16 @@ Configured in `vite.config.ts` with `vite-plugin-pwa`:
 - Empty API responses return text, non-JSON responses handled gracefully
 - Driver state can get out of sync - `refreshStatus()` in Dashboard syncs state with DB
 - Admin can create manual shifts via modal (filters for idle drivers, free trucks, active sites)
+
+## Change Logging
+
+**IMPORTANT:** Every time you make a change to the codebase, you MUST document it in `ARCHITECTURE.md` under the "Frontend Change History" section at the end of the file.
+
+Format for each change:
+```markdown
+## [YYYY-MM-DD] - <Type>: <Brief Description>
+- **File(s):** `path/to/file.ts`
+- **Change:** Description of what changed and why
+- **Before:** (optional) How it worked before
+- **After:** (optional) How it works now
+```
