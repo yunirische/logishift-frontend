@@ -141,21 +141,16 @@ export const del = (url: string) => {
 
 export const getPhotoUrl = (path?: string | null): string | null => {
   if (!path) return null;
-  
-  // 1. Убираем обратные слэши, если они просочились с бэка
+  if (path.startsWith('http')) return path;
+
   const cleanPath = path.replace(/\\/g, '/');
-  
-  // 2. Если это уже полный URL
-  if (cleanPath.startsWith('http')) return cleanPath;
-  
-  // 3. Формируем путь. Убеждаемся, что между /uploads/ и путем нет двойного слэша
-  const normalizedPath = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
-  
-  if (normalizedPath.startsWith('uploads/')) {
-    return `${STATIC_BASE_URL}/${normalizedPath}`;
+
+  // Если путь уже начинается с /uploads/, просто добавляем домен
+  if (cleanPath.startsWith('/uploads/')) {
+    return `${STATIC_BASE_URL}${cleanPath}`;
   }
-  
-  return `${STATIC_BASE_URL}/uploads/${normalizedPath}`;
+
+  return `${STATIC_BASE_URL}/uploads/${cleanPath.replace(/^\/+/, '')}`;
 };
 
 const api = {
