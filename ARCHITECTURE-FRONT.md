@@ -489,3 +489,12 @@ npm run type-check   # Run TypeScript compiler check
   - Focus returns to last element before first (Shift+Tab)
 - **Per WAI-ARIA 1.2:** "Trap focus: The user agent must not move focus away from the dialog window except as described below"
 - **Impact:** Improved keyboard navigation accessibility, WCAG 2.1 Level AA compliant
+
+## [2025-01-25] - Feature: Add Shift ID Display and Error Handling
+- **File(s):** `src/components/Shifts.tsx`, `src/components/EditShiftModal.tsx`
+- **Change:**
+  - Added "Смена №{id}" column to shift registry table
+  - Added debug logging for missing start_time in EditShiftModal
+  - Improved error handling to extract backend error messages from response
+  - Confirmed closing logic for active shifts is correct (backend handles forced closure)
+- **After:** Shift registry now shows shift IDs, and EditShiftModal provides better debugging and error feedback

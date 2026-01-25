@@ -100,6 +100,7 @@ const Shifts: React.FC = () => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <th className="px-8 py-5">№</th>
               <th className="px-8 py-5">{isAdmin ? "Водитель" : "Машина"}</th>
               {/* Скрываем Объект на мобильных */}
               <th className="px-8 py-5 hidden md:table-cell">Объект</th>
@@ -116,6 +117,11 @@ const Shifts: React.FC = () => {
                   key={s.id}
                   className="hover:bg-indigo-50/10 transition-colors"
                 >
+                  <td className="px-8 py-5">
+                    <span className="text-[10px] font-bold text-slate-400">
+                      Смена №{s.id}
+                    </span>
+                  </td>
                   <td className="px-8 py-5">
                     <p className="font-bold text-[#1B254B]">
                       {isAdmin ? s.driver_name : s.truck_name}
@@ -171,7 +177,7 @@ const Shifts: React.FC = () => {
             ) : (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="py-20 text-center text-slate-300 italic"
                 >
                   Данных нет

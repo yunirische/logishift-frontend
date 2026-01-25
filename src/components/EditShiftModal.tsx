@@ -32,6 +32,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
   useEffect(() => {
     if (isOpen && shift) {
+      // DEBUG: Log shift keys if start_time is missing
+      if (!shift.start_time) {
+        console.log("DEBUG: shift object keys:", Object.keys(shift));
+        console.log("DEBUG: full shift object:", shift);
+      }
+
       setFormData({
         start_time: shift.start_time ? fromTenantISO(shift.start_time, timezone) : "",
         end_time: shift.end_time ? fromTenantISO(shift.end_time, timezone) : "",
@@ -63,7 +69,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       onSave();
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to update shift");
+      setError(err.response?.data?.message || err.message || "Failed to update shift");
     } finally {
       setLoading(false);
     }
