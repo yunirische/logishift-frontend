@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift, UserRole } from "../types";
 import EditShiftModal from "./EditShiftModal";
-import { formatInTimezone } from "../utils/dateUtils";
+import { formatForDisplay } from "../utils/dateUtils";
 
 const Shifts: React.FC = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -69,8 +69,8 @@ const Shifts: React.FC = () => {
     // For finished shifts, show start and end time range
     if (status === "finished" || status === "completed") {
       if (s.start_time && s.end_time) {
-        const startTime = formatInTimezone(s.start_time, timezone, "HH:mm");
-        const endTime = formatInTimezone(s.end_time, timezone, "HH:mm");
+        const startTime = formatForDisplay(s.start_time, timezone, "HH:mm");
+        const endTime = formatForDisplay(s.end_time, timezone, "HH:mm");
         return `${startTime} - ${endTime}`;
       }
     }
