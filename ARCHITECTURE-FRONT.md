@@ -498,3 +498,14 @@ npm run type-check   # Run TypeScript compiler check
   - Improved error handling to extract backend error messages from response
   - Confirmed closing logic for active shifts is correct (backend handles forced closure)
 - **After:** Shift registry now shows shift IDs, and EditShiftModal provides better debugging and error feedback
+
+## [2025-01-25] - Feature: Enhanced Shift Registry Time Display and Edit Validation
+- **File(s):** `src/components/Shifts.tsx`, `src/components/EditShiftModal.tsx`
+- **Change:**
+  - Modified time column in shift registry: finished shifts show "HH:mm - HH:mm" range (e.g., "14:40 - 20:00")
+  - Fixed site display to handle nested site object: `{s.site?.name || s.site_name || "—"}`
+  - Fixed error handling in EditShiftModal to properly extract backend error messages from `err.response.data.message`
+  - Added validation: disable submit button if end_time <= start_time
+  - Added visual feedback (red border + hint text) for invalid end_time
+  - Refactored fetchShifts as a useCallback function for proper refresh after edit
+- **After:** Better UX with clear time ranges for finished shifts, proper site names, helpful error messages, and validation prevents invalid time ranges

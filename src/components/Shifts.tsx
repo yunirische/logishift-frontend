@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { API_ENDPOINTS } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift, UserRole } from "../types";
 import EditShiftModal from "./EditShiftModal";
+import { formatInTimezone } from "../utils/dateUtils";
 
 const Shifts: React.FC = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -14,17 +15,18 @@ const Shifts: React.FC = () => {
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
 
+  const fetchShifts = useCallback(async () => {
+    try {
+      const data = await api.get(API_ENDPOINTS.SHIFTS);
+      setShifts(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Shifts fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchShifts = async () => {
-      try {
-        const data = await api.get(API_ENDPOINTS.SHIFTS);
-        setShifts(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Shifts fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchShifts();
 
     const fetchTimezone = async () => {
@@ -36,7 +38,7 @@ const Shifts: React.FC = () => {
       }
     };
     fetchTimezone();
-  }, []);
+  }, [fetchShifts]);
 
   const displayShifts = isAdmin
     ? shifts
@@ -58,6 +60,30 @@ const Shifts: React.FC = () => {
       default:
         return "bg-slate-50 text-slate-600 border-slate-100";
     }
+  };
+
+  // Format time display based on shift status
+  const formatShiftTime = (s: Shift) => {
+    const status = (s.status || "").toLowerCase();
+
+    // For finished shifts, show start and end time range
+    if (status === "finished" || status === "completed") {
+      if (s.start_time && s.end_time) {
+        const startTime = formatInTimezone(s.start_time, timezone, "HH:mm");
+        const endTime = formatInTimezone(s.end_time, timezone, "HH:mm");
+        return `${startTime} - ${endTime}`;
+      }
+    }
+
+    // For other shifts, show created_at time
+    if (s.created_at) {
+      return new Date(s.created_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    return "—";
   };
 
   const PhotoLink = ({ url, icon, title }: { url?: string; icon: string; title: string }) => {
@@ -134,15 +160,11 @@ const Shifts: React.FC = () => {
                   </td>
                   {/* Скрываем Объект на мобильных */}
                   <td className="px-8 py-5 font-medium text-slate-600 hidden md:table-cell">
-                    {s.site_name || "—"}
+                    {(s as any).site?.name || s.site_name || "—"}
                   </td>
                   {/* Скрываем Время на мобильных */}
                   <td className="px-8 py-5 text-[12px] font-mono text-slate-500 hidden md:table-cell">
-                    {s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'}{" "}
-                    {s.created_at ? new Date(s.created_at).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }) : ''}
+                    {formatShiftTime(s)}
                   </td>
                   <td className="px-8 py-5">
                     <span
@@ -192,10 +214,9 @@ const Shifts: React.FC = () => {
         <EditShiftModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          onSave={async () => {
+          onSave={() => {
             setIsEditModalOpen(false);
-            const data = await api.get(API_ENDPOINTS.SHIFTS);
-            setShifts(Array.isArray(data) ? data : []);
+            fetchShifts();
           }}
           shift={editingShift}
           timezone={timezone}

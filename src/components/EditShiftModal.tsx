@@ -69,7 +69,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       onSave();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to update shift");
+      // Extract backend error message from response
+      const errorMessage = err?.response?.data?.message || err?.message || "Failed to update shift";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -80,6 +82,11 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       onClose();
     }
   };
+
+  // Validate: end_time must be after start_time
+  const isEndTimeInvalid = formData.start_time && formData.end_time
+    ? new Date(formData.end_time) <= new Date(formData.start_time)
+    : false;
 
   if (!isOpen) return null;
 
@@ -141,8 +148,17 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               onChange={(e) =>
                 setFormData({ ...formData, end_time: e.target.value })
               }
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm"
+              className={`w-full px-4 py-3 rounded-2xl border outline-none transition-all text-sm ${
+                isEndTimeInvalid
+                  ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  : "border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+              }`}
             />
+            {isEndTimeInvalid && (
+              <p className="text-[10px] text-red-500 mt-1">
+                Время окончания должно быть позже начала
+              </p>
+            )}
           </div>
 
           <div>
@@ -173,7 +189,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isEndTimeInvalid}
               className="flex-1 px-6 py-3 rounded-2xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Сохранение..." : "Сохранить"}
