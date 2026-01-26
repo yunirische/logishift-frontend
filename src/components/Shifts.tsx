@@ -87,20 +87,27 @@ const Shifts: React.FC = () => {
   };
 
   const PhotoLink = ({ url, icon, title }: { url?: string; icon: string; title: string }) => {
-    const photoUrl = getPhotoUrl(url);
-    if (!photoUrl) return null;
-    return (
-      <a
-        href={photoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"
-        title={title}
-      >
-        {icon}
-      </a>
-    );
-  };
+  const photoUrl = getPhotoUrl(url);
+  if (!photoUrl) return null;
+  
+  return (
+    <a
+      href={photoUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"
+      title={title}
+      onClick={(e) => {
+        // Принудительно открыть в новой вкладке, предотвратить любую обработку
+        e.stopPropagation();
+        window.open(photoUrl, '_blank', 'noopener,noreferrer');
+        e.preventDefault();
+      }}
+    >
+      {icon}
+    </a>
+  );
+};
 
   if (loading)
     return (
