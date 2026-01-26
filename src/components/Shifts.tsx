@@ -91,23 +91,18 @@ const Shifts: React.FC = () => {
   if (!photoUrl) return null;
   
   return (
-    <a
-      href={photoUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"
+    <button
+      type="button"
+      onClick={() => window.open(photoUrl, '_blank', 'noopener,noreferrer')}
+      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
       title={title}
-      onClick={(e) => {
-        // Принудительно открыть в новой вкладке, предотвратить любую обработку
-        e.stopPropagation();
-        window.open(photoUrl, '_blank', 'noopener,noreferrer');
-        e.preventDefault();
-      }}
+      aria-label={title}
     >
       {icon}
-    </a>
+    </button>
   );
 };
+
 
   if (loading)
     return (
