@@ -9,6 +9,14 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       workbox: {
+        // ДОБАВЬ ЭТИ СТРОКИ - форсируй обновление и очистку
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+        
+        // ДОБАВЬ - исключи /uploads/ из навигации
+        navigateFallbackDenylist: [/^\/uploads/],
+        
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/pwa\.kontrolsmen\.ru\/api\/.*/i,
@@ -23,6 +31,11 @@ export default defineConfig({
                 statuses: [0, 200]
               }
             }
+          },
+          // ДОБАВЬ - явно НЕ кэшируй /uploads/
+          {
+            urlPattern: /^https:\/\/pwa\.kontrolsmen\.ru\/uploads\/.*/i,
+            handler: 'NetworkOnly', // ВСЕГДА запрашивать с сервера
           }
         ]
       },
