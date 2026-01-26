@@ -76,10 +76,10 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-8">
-          <h1 className="text-3xl font-black text-white tracking-tight">
+          <h1 className="text-3xl font-semibold text-white tracking-tight">
             Настройки организации
           </h1>
           <p className="text-indigo-100 mt-2 text-sm font-medium opacity-90">
@@ -100,7 +100,7 @@ const Settings: React.FC = () => {
               type="text"
               value={settings.name}
               onChange={(e) => setSettings({ ...settings, name: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-slate-800 font-medium"
+              className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-slate-800 font-medium"
               placeholder="Введите название компании"
             />
           </div>
@@ -116,7 +116,7 @@ const Settings: React.FC = () => {
                 name="timezone"
                 value={settings.timezone}
                 onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-slate-800 font-medium appearance-none bg-white cursor-pointer"
+                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-slate-800 font-medium appearance-none bg-white cursor-pointer"
               >
                 <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
                 <option value="Asia/Yekaterinburg">Asia/Yekaterinburg (UTC+5)</option>
@@ -132,7 +132,7 @@ const Settings: React.FC = () => {
           {/* Message */}
           {message && (
             <div
-              className={`flex items-center gap-3 p-4 rounded-xl ${
+              className={`flex items-center gap-3 p-4 rounded-lg ${
                 message.type === "success"
                   ? "bg-green-50 text-green-800 border border-green-100"
                   : "bg-red-50 text-red-800 border border-red-100"
@@ -152,7 +152,7 @@ const Settings: React.FC = () => {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-indigo-500/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>

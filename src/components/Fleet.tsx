@@ -129,12 +129,12 @@ const Fleet: React.FC = () => {
       {/* Кнопка добавления */}
       <div className="flex justify-between items-center">
         <div>
-           <h2 className="text-2xl font-black text-[#1B254B]">Техника</h2>
+           <h2 className="text-2xl font-semibold text-[#1B254B]">Техника</h2>
            <p className="text-sm text-slate-400 font-medium">Управление парком машин</p>
         </div>
         <button
           onClick={handleAddClick}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
         >
           <Plus size={20} />
           Добавить машину
@@ -144,13 +144,13 @@ const Fleet: React.FC = () => {
       {/* Сетка техники */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
         {trucks.length === 0 && (
-          <div className="col-span-full text-center py-12 text-slate-400 italic bg-slate-50 rounded-[24px] border-2 border-dashed border-slate-200">
+          <div className="col-span-full text-center py-12 text-slate-400 italic bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
             В автопарке пока нет машин
           </div>
         )}
 
         {trucks.map((t) => (
-          <div key={t.id} className={`bg-white p-6 rounded-[24px] border shadow-sm relative group transition-all ${t.is_busy ? 'border-orange-200 bg-orange-50/30' : 'border-slate-50'}`}>
+          <div key={t.id} className={`bg-white p-6 rounded-lg border shadow-sm relative group transition-all ${t.is_busy ? 'border-orange-200 bg-orange-50/30' : 'border-slate-50'}`}>
             
             {/* Кнопки действий */}
             <div className="absolute top-4 right-4 flex gap-2 z-10">
@@ -173,7 +173,7 @@ const Fleet: React.FC = () => {
             <div className="flex justify-between items-start pr-16">
               <span className="text-4xl drop-shadow-sm">🚛</span>
               {/* Статус в карточке */}
-              <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1.5 ${t.is_busy ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
+              <div className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1.5 ${t.is_busy ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
                  <Power size={10} fill="currentColor" />
                  {t.is_busy ? 'В рейсе' : 'Свободна'}
               </div>
@@ -190,7 +190,7 @@ const Fleet: React.FC = () => {
             <div className="mt-6 pt-4 border-t border-slate-100/50">
                <button
                  onClick={() => handleToggleBusy(t)}
-                 className={`w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
+                 className={`w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${
                    t.is_busy 
                    ? 'bg-white text-orange-600 border-orange-200 hover:bg-orange-50' 
                    : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50'
@@ -212,9 +212,9 @@ const Fleet: React.FC = () => {
           aria-modal="true"
           aria-labelledby="truck-modal-title"
         >
-          <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
-              <h3 id="truck-modal-title" className="text-xl font-black text-[#1B254B]">
+              <h3 id="truck-modal-title" className="text-xl font-semibold text-[#1B254B]">
                 {editingTruck ? 'Редактировать машину' : 'Новая машина'}
               </h3>
               <button
@@ -237,7 +237,7 @@ const Fleet: React.FC = () => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-bold text-[#1B254B]"
+                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-bold text-[#1B254B]"
                   placeholder="Например, КАМАЗ-55111"
                   spellCheck={false}
                   autoFocus
@@ -255,7 +255,7 @@ const Fleet: React.FC = () => {
                   value={formData.plate}
                   onChange={(e) => setFormData({ ...formData, plate: e.target.value })}
                   inputMode="text"
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono text-[#1B254B]"
+                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-mono text-[#1B254B]"
                   placeholder="А123БВ777"
                   spellCheck={false}
                 />
@@ -265,14 +265,14 @@ const Fleet: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-3 rounded-xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+                  className="flex-1 py-3 rounded-lg border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition-colors"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-3 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? 'Сохранение...' : (editingTruck ? 'Сохранить' : 'Создать')}
                 </button>

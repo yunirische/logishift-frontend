@@ -27,9 +27,9 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-[40px] shadow-2xl p-10 border border-slate-50">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-2xl p-10 border border-slate-50">
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-black text-[#1B254B] flex items-center justify-center gap-2">
+          <h1 className="text-3xl font-semibold text-[#1B254B] flex items-center justify-center gap-2">
             <span className="text-indigo-600">LOGI</span>SHIFT
           </h1>
           <p className="text-slate-400 text-sm mt-2 font-medium">Войдите в панель управления</p>
@@ -37,13 +37,13 @@ const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-bold border border-red-100 animate-shake">
+            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-xs font-bold border border-red-100 animate-shake">
               ⚠️ {error}
             </div>
           )}
           
           <div className="space-y-1">
-            <label htmlFor="username" className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Логин</label>
+            <label htmlFor="username" className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest">Логин</label>
             <input
               id="username"
               name="username"
@@ -53,13 +53,13 @@ const Login: React.FC = () => {
               placeholder="admin"
               autoComplete="username"
               spellCheck={false}
-              className="w-full bg-[#F4F7FE] border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+              className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
               required
             />
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="password" className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Пароль</label>
+            <label htmlFor="password" className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest">Пароль</label>
             <input
               id="password"
               name="password"
@@ -68,7 +68,7 @@ const Login: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               autoComplete="current-password"
-              className="w-full bg-[#F4F7FE] border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+              className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
               required
             />
           </div>
@@ -76,7 +76,7 @@ const Login: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-lg shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
           >
             {isLoading ? 'Вход...' : 'Войти в систему'}
           </button>

@@ -151,7 +151,7 @@ export const DriverView = () => {
         // --- ЭКРАН 1: ВЫБОР (Если смены нет в БД или статус idle) ---
         <div className="space-y-4">
           <Card className="p-4 border-none shadow-sm">
-            <h3 className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest">
+            <h3 className="text-[10px] font-semibold text-slate-400 mb-3 uppercase tracking-widest">
               Выберите транспорт
             </h3>
             <div className="grid grid-cols-2 gap-2">
@@ -159,7 +159,7 @@ export const DriverView = () => {
                 <div
                   key={t.id}
                   onClick={() => setSelectedTruck(t.id)}
-                  className={`p-3 rounded-xl border-2 transition-all ${
+                  className={`p-3 rounded-lg border-2 transition-all ${
                     selectedTruck === t.id
                       ? "border-blue-500 bg-blue-50"
                       : "border-slate-100"
@@ -185,7 +185,7 @@ export const DriverView = () => {
           </Card>
 
           <Card className="p-4 border-none shadow-sm">
-            <h3 className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-widest">
+            <h3 className="text-[10px] font-semibold text-slate-400 mb-3 uppercase tracking-widest">
               Выберите объект
             </h3>
             <div className="space-y-2">
@@ -193,7 +193,7 @@ export const DriverView = () => {
                 <div
                   key={s.id}
                   onClick={() => setSelectedSite(s.id)}
-                  className={`p-4 rounded-xl border flex items-center gap-3 transition-all ${
+                  className={`p-4 rounded-lg border flex items-center gap-3 transition-all ${
                     selectedSite === s.id
                       ? "border-blue-500 bg-blue-50"
                       : "border-slate-100"
@@ -216,7 +216,7 @@ export const DriverView = () => {
           <Button
             onClick={handleStart}
             disabled={!selectedTruck || !selectedSite}
-            className="w-full py-4 bg-blue-600 text-white font-black text-lg shadow-xl shadow-blue-100 disabled:opacity-30"
+            className="w-full py-4 bg-blue-600 text-white font-semibold text-lg shadow-xl shadow-blue-100 disabled:opacity-30"
             isLoading={loading}
           >
             <Play size={20} fill="currentColor" className="mr-2" />
@@ -230,7 +230,7 @@ export const DriverView = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-blue-600">
                 <Clock size={18} />
-                <span className="font-black text-sm uppercase">
+                <span className="font-semibold text-sm uppercase">
                   Смена #{activeShift.id}
                 </span>
               </div>
@@ -250,7 +250,7 @@ export const DriverView = () => {
                   <Truck size={20} />
                 </div>
                 <div>
-                  <div className="text-[9px] uppercase text-slate-400 font-black tracking-tighter">
+                  <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-tighter">
                     Машина
                   </div>
                   <div className="text-sm font-bold text-slate-700">
@@ -263,7 +263,7 @@ export const DriverView = () => {
                   <MapPin size={20} />
                 </div>
                 <div>
-                  <div className="text-[9px] uppercase text-slate-400 font-black tracking-tighter">
+                  <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-tighter">
                     Объект
                   </div>
                   <div className="text-sm font-bold text-slate-700">
@@ -277,7 +277,7 @@ export const DriverView = () => {
           {user?.current_state === "active" ? (
             // ПОД-ЭКРАН: ПРОСТО РАБОТА
             <div className="space-y-4">
-              <div className="p-4 bg-green-50 border border-green-100 rounded-2xl flex items-center gap-3 text-green-700">
+              <div className="p-4 bg-green-50 border border-green-100 rounded-lg flex items-center gap-3 text-green-700">
                 <CheckCircle2 size={24} />
                 <div>
                   <div className="font-bold text-sm">Смена активна</div>
@@ -288,7 +288,7 @@ export const DriverView = () => {
               </div>
               <Button
                 onClick={handleEnd}
-                className="w-full py-5 bg-red-500 text-white font-black text-lg shadow-xl shadow-red-100"
+                className="w-full py-5 bg-red-500 text-white font-semibold text-lg shadow-xl shadow-red-100"
                 isLoading={loading}
               >
                 <Square size={18} fill="currentColor" className="mr-2" />
@@ -298,9 +298,9 @@ export const DriverView = () => {
           ) : (
             // ПОД-ЭКРАН: ТРЕБУЕТСЯ ФОТО
             <div className="space-y-4">
-              <div className="p-6 bg-orange-50 border border-orange-100 rounded-2xl text-center">
+              <div className="p-6 bg-orange-50 border border-orange-100 rounded-lg text-center">
                 <Camera size={40} className="mx-auto mb-3 text-orange-500" />
-                <h3 className="font-black text-orange-800 uppercase tracking-tight">
+                <h3 className="font-semibold text-orange-800 uppercase tracking-tight">
                   Нужна фотография
                 </h3>
                 <p className="text-xs text-orange-600 mt-1 font-bold">
@@ -314,13 +314,13 @@ export const DriverView = () => {
               </div>
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-8 bg-orange-500 text-white text-2xl font-black animate-pulse shadow-2xl shadow-orange-200 flex flex-col items-center gap-1"
+                className="w-full py-8 bg-orange-500 text-white text-2xl font-semibold animate-pulse shadow-2xl shadow-orange-200 flex flex-col items-center gap-1"
                 isLoading={loading}
               >
                 <Camera size={32} />
                 ОТКРЫТЬ КАМЕРУ
               </Button>
-              <div className="flex items-start gap-2 p-4 text-slate-400 text-[10px] bg-white rounded-xl shadow-sm italic">
+              <div className="flex items-start gap-2 p-4 text-slate-400 text-[10px] bg-white rounded-lg shadow-sm italic">
                 <AlertCircle size={14} className="shrink-0 text-orange-400" />
                 Убедитесь, что все данные на фото видны четко. Плохое качество
                 фото может стать причиной отклонения смены.
