@@ -526,3 +526,27 @@ npm run type-check   # Run TypeScript compiler check
   - Added empty state: "Все водители заняты" when no idle drivers available
   - Submit button disabled during data loading
 - **Impact:** Manual shift modal now correctly displays idle drivers, with better UX for loading/error states
+
+## [2025-01-27] - Bugfix: Fix Icon Display Issues in Chrome
+- **File(s):** `src/components/Layout.tsx`
+- **Change:** Replaced emoji characters with Lucide React SVG icons for consistent cross-browser rendering
+- **Before:**
+  - Navigation sidebar used emoji characters as icons (🏠, ⏱️, 👥, 🚛, 🏗️, 📜, ⚙️)
+  - Icons displayed correctly in Firefox but appeared as empty placeholders in Chrome
+  - Emoji rendering is OS and browser-dependent
+  - Chrome has stricter emoji rendering rules than Firefox
+  - On Windows, Chrome may not render certain emojis properly (shows as empty boxes or tofu)
+- **After:**
+  - Added Lucide React icon imports: `Home`, `Clock`, `Users`, `Truck`, `Building`, `ScrollText`, `Settings`, `LucideIcon`
+  - Replaced emoji strings with Lucide icon component references in `mainItems` and `adminItems` arrays
+  - Updated `renderButton` function type definition to use `LucideIcon` type instead of `string`
+  - Changed icon rendering from `<span>{item.icon}</span>` to `<item.icon className="w-6 h-6" strokeWidth={2} />`
+  - Icons now render as inline SVG elements for consistent appearance across all browsers
+- **Benefits:**
+  - ✅ Consistent icon rendering across all browsers (Chrome, Firefox, Safari, Edge)
+  - ✅ Icons work on all operating systems (Windows, macOS, Linux)
+  - ✅ Better accessibility (SVG icons have better screen reader support)
+  - ✅ Already using Lucide React elsewhere in the app (consistency)
+  - ✅ Smoother animations and hover effects
+  - ✅ No external font dependencies (inline SVG)
+- **Impact:** Icons now render correctly in Chrome and all other browsers, providing consistent user experience

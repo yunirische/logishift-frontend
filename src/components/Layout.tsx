@@ -1,7 +1,18 @@
 import React, { useState } from "react";
 import api from "../services/api";
 import { UserRole } from "../types";
-import { Menu, X } from "lucide-react";
+import {
+  Menu,
+  X,
+  Home,
+  Clock,
+  Users,
+  Truck,
+  Building,
+  ScrollText,
+  Settings,
+  LucideIcon,
+} from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -23,26 +34,26 @@ const Layout: React.FC<LayoutProps> = ({
     {
       id: "dashboard",
       label: "Главная",
-      icon: "🏠",
+      icon: Home,
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
     },
     {
       id: "shifts",
       label: isAdmin ? "Реестр смен" : "Мои смены",
-      icon: "⏱️",
+      icon: Clock,
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
     },
     {
       id: "drivers",
       label: "Персонал",
-      icon: "👥",
+      icon: Users,
       roles: [UserRole.ADMIN, UserRole.FOREMAN],
     },
-    { id: "fleet", label: "Техника", icon: "🚛", roles: [UserRole.ADMIN] },
+    { id: "fleet", label: "Техника", icon: Truck, roles: [UserRole.ADMIN] },
     {
       id: "objects",
       label: "Объекты",
-      icon: "🏗️",
+      icon: Building,
       roles: [UserRole.ADMIN, UserRole.FOREMAN],
     },
   ];
@@ -51,10 +62,10 @@ const Layout: React.FC<LayoutProps> = ({
     {
       id: "audit",
       label: "Журнал событий",
-      icon: "📜",
+      icon: ScrollText,
       roles: [UserRole.ADMIN],
     },
-    { id: "settings", label: "Система", icon: "⚙️", roles: [UserRole.ADMIN] },
+    { id: "settings", label: "Система", icon: Settings, roles: [UserRole.ADMIN] },
   ];
 
   const handleLogout = () => {
@@ -72,7 +83,7 @@ const Layout: React.FC<LayoutProps> = ({
   const renderButton = (item: {
     id: string;
     label: string;
-    icon: string;
+    icon: LucideIcon;
     roles: string[];
   }) => {
     if (!user || !item.roles.includes(user.role)) return null;
@@ -99,14 +110,14 @@ const Layout: React.FC<LayoutProps> = ({
             : "text-slate-400 hover:text-white hover:bg-slate-800"
         }`}
       >
-        <span
-          className={`text-xl transition-transform group-hover:rotate-12 ${
+        <div
+          className={`transition-transform group-hover:rotate-12 ${
             activeTab === item.id ? "scale-110" : ""
           }`}
           aria-hidden="true"
         >
-          {item.icon}
-        </span>
+          <item.icon className="w-6 h-6" strokeWidth={2} />
+        </div>
         <span className="text-sm font-semibold">{item.label}</span>
       </button>
     );
