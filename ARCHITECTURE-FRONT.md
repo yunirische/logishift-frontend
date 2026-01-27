@@ -527,6 +527,70 @@ npm run type-check   # Run TypeScript compiler check
   - Submit button disabled during data loading
 - **Impact:** Manual shift modal now correctly displays idle drivers, with better UX for loading/error states
 
+## [2025-01-27] - Bugfix: Fix Icon Display Issues in Fleet Cards and Dashboard (Chrome)
+- **File(s):** `src/components/Fleet.tsx`, `src/components/Dashboard.tsx`
+- **Change:** Replaced emoji characters with Lucide React SVG icons for consistent cross-browser rendering
+- **Before:**
+  - **Fleet.tsx** (line 174): Used 🚛 emoji for truck icon in truck card header
+  - **Dashboard.tsx** used 16+ emoji icons:
+    - ⏱️ (line 257) - Active shifts statistic icon
+    - 🚛 (line 268) - Active drivers statistic icon
+    - ✋ (line 279) - Manual shift creation button icon
+    - ➕ (line 288) - Plus sign in "Создать смену вручную" text
+    - 🚚 (line 308) - Usage card icon for trucks
+    - 👷 (line 314) - Usage card icon for drivers
+    - 🏗️ (line 320) - Usage card icon for sites/objects
+    - 💤 (line 402) - Idle driver state - sleeping icon
+    - 🚀 (line 414) - Start shift button icon
+    - 🚜 (line 425) - "Выберите машину" heading prefix
+    - ➔ (line 454, 507) - Navigation arrows in truck/site selection
+    - 🏗️ (line 473) - "Выберите объект" heading prefix
+    - 📸 (line 528-531) - Photo odometer/invoice text prefix
+    - 📷 (line 537) - Camera icon in photo upload modal
+    - 🚛 (line 612) - "Машина" label prefix
+    - 🏗️ (line 620) - "Объект" label prefix
+    - 🏁 (line 636) - End shift button icon
+  - Icons displayed correctly in Firefox but appeared as empty placeholders in Chrome
+  - Emoji rendering is OS and browser-dependent
+  - Chrome has stricter emoji rendering rules than Firefox
+  - On Windows, Chrome may not render certain emojis properly (shows as empty boxes or tofu)
+  - Firefox handles font fallback for emojis more gracefully
+- **After:**
+  - **Fleet.tsx**:
+    - Added import: `Truck` from lucide-react
+    - Replaced emoji span with `<Truck size={40} className="text-indigo-600 drop-shadow-sm" />`
+  - **Dashboard.tsx**:
+    - Added imports from lucide-react: `Clock`, `Truck`, `Hand`, `Plus`, `User`, `Building2`, `Moon`, `Rocket`, `ArrowRight`, `Camera`, `Flag`
+    - Updated `UsageCard` component: changed `icon: string` prop to `icon: React.ReactNode` for accepting React components
+    - Replaced all emoji icons with Lucide icon components:
+      - `<Clock size={24} />` - Active shifts icon
+      - `<Truck size={24} />` - Active drivers icon
+      - `<Hand size={24} />` - Manual shift button icon
+      - `<Plus size={20} />` - Plus icon in button text
+      - `<Truck size={24} className="text-indigo-600" />` - Usage card truck icon
+      - `<User size={24} className="text-indigo-600" />` - Usage card driver icon
+      - `<Building2 size={24} className="text-indigo-600" />` - Usage card site icon
+      - `<Moon size={64} className="text-slate-300" />` - Idle driver state
+      - `<Rocket size={24} />` - Start shift button icon
+      - `<Truck size={20} className="text-indigo-600" />` - Truck selection heading
+      - `<Building2 size={20} className="text-indigo-600" />` - Site selection heading
+      - `<ArrowRight size={16} />` - Navigation arrows in selection screens
+      - `<Camera size={32} />` - Camera icon in modal
+      - `<Camera size={20} />` - Photo title prefix
+      - `<Truck size={16} className="text-slate-500" />` - Active shift truck label
+      - `<Building2 size={16} className="text-slate-500" />` - Active shift site label
+      - `<Flag size={24} />` - End shift button icon
+    - Adjusted styling: removed `text-*` size classes, kept color classes, added proper spacing with flexbox
+    - Updated icon placement in buttons with `flex items-center gap-2/3` for proper alignment
+- **Benefits:**
+  - ✅ Consistent icon rendering across all browsers (Chrome, Firefox, Safari, Edge)
+  - ✅ Icons work on all operating systems (Windows, macOS, Linux)
+  - ✅ Better accessibility (SVG icons have better screen reader support)
+  - ✅ Consistent with already-fixed navigation sidebar and audit logs
+  - ✅ Smoother animations and hover effects
+  - ✅ No external font dependencies (inline SVG)
+- **Impact:** Icons now render correctly in Chrome and all other browsers, providing consistent user experience across the entire application
+
 ## [2025-01-27] - Bugfix: Fix Icon Display Issues in Chrome
 - **File(s):** `src/components/Layout.tsx`
 - **Change:** Replaced emoji characters with Lucide React SVG icons for consistent cross-browser rendering

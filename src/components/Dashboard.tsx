@@ -3,6 +3,19 @@ import { API_ENDPOINTS } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { DriverState, Shift, UserRole, ManualShiftRequest } from "../types";
+import {
+  Clock,
+  Truck,
+  Hand,
+  Plus,
+  User,
+  Building2,
+  Moon,
+  Rocket,
+  ArrowRight,
+  Camera,
+  Flag,
+} from "lucide-react";
 
 // Dynamic import for manual shift modal
 const ManualShiftModal = React.lazy(() => import("./ManualShiftModal"));
@@ -19,7 +32,7 @@ const isValidPhotoUrl = (url: any): boolean => {
 // Bundle optimization: memo to prevent unnecessary re-renders (rerender-memo)
 const UsageCard: React.FC<{
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   current: number;
   limit: number;
 }> = React.memo(({ label, icon, current, limit }) => {
@@ -40,12 +53,12 @@ const UsageCard: React.FC<{
     isNearLimit = false;
   }
   const displayLimit = limit === -1 ? "∞" : limit;
-  
+
   return (
     <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm w-full">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{icon}</span>
+          {icon}
           <span className="text-xs font-bold text-slate-500 uppercase">{label}</span>
         </div>
         <span className={`text-sm font-semibold ${isNearLimit ? 'text-orange-500' : isUnlimited ? 'text-slate-600' : 'text-slate-800'}`}>
@@ -55,7 +68,7 @@ const UsageCard: React.FC<{
       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            isUnlimited ? 'bg-slate-300' : 
+            isUnlimited ? 'bg-slate-300' :
             isNearLimit ? 'bg-orange-500' : 'bg-indigo-500'
           }`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -253,8 +266,8 @@ const Dashboard: React.FC = () => {
         {/* Основная статистика */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl mb-4">
-              ⏱️
+            <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+              <Clock size={24} />
             </div>
             <p className="text-3xl font-semibold text-[#1B254B]">
               {stats.activeShifts}
@@ -264,8 +277,8 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
           <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl mb-4">
-              🚛
+            <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+              <Truck size={24} />
             </div>
             <p className="text-3xl font-semibold text-[#1B254B]">
               {stats.activeDrivers}
@@ -275,17 +288,18 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
           <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-4">
-              ✋
+            <div className="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+              <Hand size={24} />
             </div>
             <p className="text-3xl font-semibold text-[#1B254B]">
               +
             </p>
             <button
               onClick={() => setShowManualModal(true)}
-              className="mt-2 w-full py-2 bg-amber-500 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-amber-600 transition-all"
+              className="mt-2 w-full py-2 bg-amber-500 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-amber-600 transition-all flex items-center justify-center gap-2"
             >
-              ➕ Создать смену вручную
+              <Plus size={20} />
+              Создать смену вручную
             </button>
           </div>
         </div>
@@ -305,19 +319,19 @@ const Dashboard: React.FC = () => {
               <>
                 <UsageCard
                   label="Машины"
-                  icon="🚚"
+                  icon={<Truck size={24} className="text-indigo-600" />}
                   current={stats.usage.trucks?.current || 0}
                   limit={stats.usage.trucks?.limit || 0}
                 />
                 <UsageCard
                   label="Водители"
-                  icon="👷"
+                  icon={<User size={24} className="text-indigo-600" />}
                   current={stats.usage.drivers?.current || 0}
                   limit={stats.usage.drivers?.limit || 0}
                 />
                 <UsageCard
                   label="Объекты"
-                  icon="🏗️"
+                  icon={<Building2 size={24} className="text-indigo-600" />}
                   current={stats.usage.sites?.current || 0}
                   limit={stats.usage.sites?.limit || 0}
                 />
@@ -398,8 +412,8 @@ const Dashboard: React.FC = () => {
       if (step === "idle") {
         return (
           <div className="text-center py-10 animate-in zoom-in-95">
-            <div className="w-32 h-32 bg-slate-100 rounded-lg flex items-center justify-center text-5xl mx-auto mb-8 shadow-inner text-slate-300">
-              💤
+            <div className="w-32 h-32 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-8 shadow-inner">
+              <Moon size={64} className="text-slate-300" />
             </div>
             <h2 className="text-4xl font-semibold text-[#1B254B] mb-4">
               Вы отдыхаете
@@ -409,9 +423,10 @@ const Dashboard: React.FC = () => {
             </p>
             <button
               onClick={() => setStep("selecting_truck")}
-              className="w-full max-w-sm py-8 bg-indigo-600 text-white rounded-lg font-semibold uppercase tracking-widest shadow-2xl shadow-indigo-100 hover:scale-[1.02] active:scale-95 transition-all"
+              className="w-full max-w-sm py-8 bg-indigo-600 text-white rounded-lg font-semibold uppercase tracking-widest shadow-2xl shadow-indigo-100 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
             >
-              🚀 Начать смену
+              <Rocket size={24} />
+              Начать смену
             </button>
           </div>
         );
@@ -421,8 +436,9 @@ const Dashboard: React.FC = () => {
         return (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-2xl font-semibold text-[#1B254B]">
-                🚜 Выберите машину
+              <h2 className="text-2xl font-semibold text-[#1B254B] flex items-center gap-2">
+                <Truck size={20} className="text-indigo-600" />
+                Выберите машину
               </h2>
               <button
                 onClick={() => setStep("idle")}
@@ -451,7 +467,7 @@ const Dashboard: React.FC = () => {
                       </p>
                     </div>
                     <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                      ➔
+                      <ArrowRight size={16} />
                     </span>
                   </button>
                 ))
@@ -469,8 +485,9 @@ const Dashboard: React.FC = () => {
         return (
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-2xl font-semibold text-[#1B254B]">
-                🏗️ Выберите объект
+              <h2 className="text-2xl font-semibold text-[#1B254B] flex items-center gap-2">
+                <Building2 size={20} className="text-indigo-600" />
+                Выберите объект
               </h2>
               <button
                 onClick={() => setStep("selecting_truck")}
@@ -504,7 +521,7 @@ const Dashboard: React.FC = () => {
                     </p>
                   </div>
                   <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                    ➔
+                    <ArrowRight size={16} />
                   </span>
                 </button>
               ))}
@@ -525,18 +542,21 @@ const Dashboard: React.FC = () => {
       const isStart = state === DriverState.AWAITING_ODO_START;
       const isEnd = state === DriverState.AWAITING_ODO_END;
       const title = isStart
-        ? "📸 Фото одометра (СТАРТ)"
+        ? "Фото одометра (СТАРТ)"
         : isEnd
-        ? "📸 Фото одометра (ФИНИШ)"
-        : "📸 Фото накладной";
+        ? "Фото одометра (ФИНИШ)"
+        : "Фото накладной";
 
       return (
         <div className="text-center py-8 animate-in zoom-in-95">
           <div className="bg-white p-10 rounded-lg shadow-2xl border border-slate-100">
-            <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-3xl mx-auto mb-6">
-              📷
+            <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <Camera size={32} />
             </div>
-            <h3 className="text-xl font-semibold text-[#1B254B] mb-2">{title}</h3>
+            <h3 className="text-xl font-semibold text-[#1B254B] mb-2 flex items-center justify-center gap-2">
+              <Camera size={20} className="text-indigo-600" />
+              {title}
+            </h3>
             <p className="text-slate-400 text-sm mb-8">
               Сфотографируйте документ или панель приборов для продолжения.
             </p>
@@ -608,16 +628,18 @@ const Dashboard: React.FC = () => {
 
           <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm">
             <div className="flex justify-between items-center mb-4">
-              <span className="text-xs font-bold text-slate-400 uppercase">
-                🚛 Машина
+              <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                <Truck size={16} className="text-slate-500" />
+                Машина
               </span>
               <span className="text-sm font-semibold text-[#1B254B]">
                 {activeShift?.truck?.name || "—"}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400 uppercase">
-                🏗️ Объект
+              <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                <Building2 size={16} className="text-slate-500" />
+                Объект
               </span>
               <span className="text-sm font-semibold text-[#1B254B]">
                 {activeShift?.site?.name || "—"}
@@ -631,9 +653,10 @@ const Dashboard: React.FC = () => {
                 performAction(() => api.post(API_ENDPOINTS.END_SHIFT, {}));
             }}
             disabled={isActionLoading}
-            className="w-full py-8 bg-red-500 text-white rounded-lg font-semibold uppercase tracking-widest shadow-xl shadow-red-100 active:scale-95 transition-all"
+            className="w-full py-8 bg-red-500 text-white rounded-lg font-semibold uppercase tracking-widest shadow-xl shadow-red-100 active:scale-95 transition-all flex items-center justify-center gap-3"
           >
-            🏁 Завершить смену
+            <Flag size={24} />
+            Завершить смену
           </button>
         </div>
       );

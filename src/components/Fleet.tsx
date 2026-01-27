@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Pencil, Trash2, X, Power, Loader2 } from 'lucide-react';
+import { MapPin, Plus, Pencil, Trash2, X, Power, Loader2, Truck } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
 import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
@@ -171,7 +171,7 @@ const Fleet: React.FC = () => {
             </div>
 
             <div className="flex justify-between items-start pr-16">
-              <span className="text-4xl drop-shadow-sm">🚛</span>
+              <Truck size={40} className="text-indigo-600 drop-shadow-sm" />
               {/* Статус в карточке */}
               <div className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1.5 ${t.is_busy ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
                  <Power size={10} fill="currentColor" />
