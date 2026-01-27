@@ -76,14 +76,11 @@ export interface Driver {
 }
 
 export interface AuditLog {
-  id: string;
-  action: string;
-  action_display?: string;
-  entity_type?: string;
-  entity_id?: number;
+  id: number;
+  action_display: string;  // ← готовый текст с эмодзи
   performed_by: string;
   timestamp: string;
-  details: string;
+  details?: string;  // JSON строка
 }
 
 export interface ChatMessage {
