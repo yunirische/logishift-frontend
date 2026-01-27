@@ -69,3 +69,6 @@ Thumbs.db
 # Custom
 uploads/
 temp/
+claude_code_zai_env.sh
+ARCHITECTURE.md.backup
+package-lock.json
