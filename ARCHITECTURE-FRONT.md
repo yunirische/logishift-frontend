@@ -550,3 +550,23 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ Smoother animations and hover effects
   - ✅ No external font dependencies (inline SVG)
 - **Impact:** Icons now render correctly in Chrome and all other browsers, providing consistent user experience
+
+## [2025-01-27] - Bugfix: Fix Date Input Validation - Prevent Invalid Year Entry
+- **File(s):** `src/components/EditShiftModal.tsx`
+- **Change:** Added validation to prevent entering dates with invalid years (>4 digits or outside reasonable range)
+- **Before:**
+  - datetime-local inputs allowed any date format
+  - User could enter "26.01.202668" (year with 6 digits) or other invalid formats
+  - No validation on year range
+  - Could submit invalid dates to backend
+  - No visual feedback for invalid years
+- **After:**
+  - Added `isValidYear()` helper function to validate year is 4 digits and within 1900-2100 range
+  - Added `isStartTimeYearInvalid` and `isEndTimeYearInvalid` state variables
+  - Added `max="2100-12-31T23:59"` attribute to both datetime inputs
+  - Added `step="60"` to enforce minute-level precision
+  - Added visual error states (red border) for invalid years
+  - Added error message "Некорректный год (1900-2100)" below invalid inputs
+  - Submit button disabled when year validation fails
+  - Year validation regex: `/^(\d{4})-/` ensures exactly 4 digits
+- **Impact:** Prevents submission of invalid dates, provides clear visual feedback, improves data quality

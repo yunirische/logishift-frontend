@@ -144,6 +144,18 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     ? new Date(endTime) <= new Date(startTime)
     : false;
 
+  // Validate: check if year is valid (4 digits, reasonable range)
+  const isValidYear = (dateString: string) => {
+    if (!dateString) return true;
+    const match = dateString.match(/^(\d{4})-/);
+    if (!match) return false;
+    const year = parseInt(match[1], 10);
+    return year >= 1900 && year <= 2100;
+  };
+
+  const isStartTimeYearInvalid = !isValidYear(startTime);
+  const isEndTimeYearInvalid = !isValidYear(endTime);
+
   // Format comment time for display
   const formatCommentTime = (dateString: string) => {
     try {
@@ -224,12 +236,23 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   type="datetime-local"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm"
+                  max="2100-12-31T23:59"
+                  step="60"
+                  className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
+                    isStartTimeYearInvalid
+                      ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                      : "border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  }`}
                   required
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
                   Часовой пояс: {timezone}
                 </p>
+                {isStartTimeYearInvalid && (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    Некорректный год (1900-2100)
+                  </p>
+                )}
               </div>
 
               <div>
@@ -242,17 +265,23 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   type="datetime-local"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
+                  max="2100-12-31T23:59"
+                  step="60"
                   className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
-                    isEndTimeInvalid
+                    isEndTimeInvalid || isEndTimeYearInvalid
                       ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                       : "border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   }`}
                 />
-                {isEndTimeInvalid && (
+                {isEndTimeYearInvalid ? (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    Некорректный год (1900-2100)
+                  </p>
+                ) : isEndTimeInvalid ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Должно быть позже начала
                   </p>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -322,7 +351,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             <button
               type="submit"
               form="edit-shift-form"
-              disabled={loading || isEndTimeInvalid}
+              disabled={loading || isEndTimeInvalid || isStartTimeYearInvalid || isEndTimeYearInvalid}
               className="flex-1 px-6 py-3 rounded-lg bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
