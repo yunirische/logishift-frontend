@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
 import { UserRole } from "../types";
 import { Pencil, Copy, Plus, X, CheckCircle2 } from "lucide-react";
+import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
 
 interface Driver {
   id: number;
@@ -31,6 +32,14 @@ const Drivers: React.FC = () => {
   });
   const [saving, setSaving] = useState(false);
 
+  // Focus trap for invite modal
+  const inviteModalRef = useFocusTrap(inviteModalOpen);
+  useFocusRestore(inviteModalOpen);
+
+  // Focus trap for edit modal
+  const editModalRef = useFocusTrap(editModalOpen);
+  useFocusRestore(editModalOpen);
+
   useEffect(() => {
     fetchDrivers();
   }, []);
@@ -52,7 +61,7 @@ const Drivers: React.FC = () => {
       const result = await api.post(API_ENDPOINTS.INVITES, {});
       // Предполагаем, что ответ содержит поле `link` или `url` или `code`
       const link = result.link || result.url || result.invite_url || 
-                   (result.code ? `${window.location.origin}/invite/${result.code}` : '');
+                   (result.code ? `/invite/${result.code}` : '');
       setInviteLink(link);
       setInviteModalOpen(true);
     } catch (err: any) {
@@ -93,7 +102,7 @@ const Drivers: React.FC = () => {
 
   if (loading)
     return (
-      <div className="p-20 text-center animate-pulse text-indigo-600 font-black uppercase tracking-widest text-xs">
+      <div className="p-20 text-center animate-pulse text-indigo-600 font-semibold uppercase tracking-widest text-xs">
         Загрузка штата KONTROLSMEN...
       </div>
     );
@@ -102,13 +111,13 @@ const Drivers: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black text-[#1B254B]">Персонал</h2>
+          <h2 className="text-2xl font-semibold text-[#1B254B]">Персонал</h2>
           <p className="text-sm text-slate-400 font-medium">Управление сотрудниками</p>
         </div>
         <button
           onClick={handleInvite}
           disabled={inviteLoading}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-50"
         >
           <Plus size={20} />
           {inviteLoading ? "Создание..." : "Пригласить водителя"}
@@ -116,13 +125,13 @@ const Drivers: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-medium border border-red-100 flex items-center gap-2">
+        <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm font-medium border border-red-100 flex items-center gap-2">
           <span>🚨</span> {error}
         </div>
       )}
 
       {drivers.length === 0 && !error ? (
-        <div className="p-20 text-center bg-white rounded-[32px] text-slate-300 italic">
+        <div className="p-20 text-center bg-white rounded-lg text-slate-300 italic">
           Список водителей пуст
         </div>
       ) : (
@@ -130,14 +139,14 @@ const Drivers: React.FC = () => {
           {drivers.map((driver) => (
             <div
               key={driver.id}
-              className="bg-white p-6 rounded-[24px] border border-slate-50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group relative overflow-hidden"
+              className="bg-white p-6 rounded-lg border border-slate-50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span className="text-4xl">🚚</span>
               </div>
               <div className="flex items-center gap-4 mb-4 relative z-10">
                 <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shadow-inner ${
+                  className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg shadow-inner ${
                     driver.is_active
                       ? "bg-indigo-100 text-indigo-600"
                       : "bg-slate-100 text-slate-400"
@@ -156,7 +165,7 @@ const Drivers: React.FC = () => {
                 <button
                   onClick={() => openEditModal(driver)}
                   className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-600 transition-colors"
-                  title="Редактировать"
+                  aria-label={`Редактировать ${driver.full_name}`}
                 >
                   <Pencil size={16} />
                 </button>
@@ -188,11 +197,21 @@ const Drivers: React.FC = () => {
 
       {/* Модалка приглашения */}
       {inviteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
+        <div
+          ref={inviteModalRef}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="invite-modal-title"
+        >
+          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-[#1B254B]">Приглашение создано</h3>
-              <button onClick={() => setInviteModalOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200">
+              <h3 id="invite-modal-title" className="text-xl font-semibold text-[#1B254B]">Приглашение создано</h3>
+              <button
+                onClick={() => setInviteModalOpen(false)}
+                className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"
+                aria-label="Закрыть модальное окно"
+              >
                 <X size={20} className="text-slate-500" />
               </button>
             </div>
@@ -204,12 +223,13 @@ const Drivers: React.FC = () => {
                 type="text"
                 readOnly
                 value={inviteLink}
-                className="flex-1 p-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-mono"
+                className="flex-1 p-3 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
+                aria-label="Ссылка приглашения"
               />
               <button
                 onClick={copyToClipboard}
-                className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700"
-                title="Копировать"
+                className="p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                aria-label="Копировать ссылку приглашения"
               >
                 <Copy size={18} />
               </button>
@@ -217,13 +237,13 @@ const Drivers: React.FC = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setInviteModalOpen(false)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50"
+                className="flex-1 py-3 rounded-lg border border-slate-200 font-bold text-slate-500 hover:bg-slate-50"
               >
                 Закрыть
               </button>
               <button
                 onClick={copyToClipboard}
-                className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700"
+                className="flex-1 py-3 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700"
               >
                 Скопировать
               </button>
@@ -234,34 +254,49 @@ const Drivers: React.FC = () => {
 
       {/* Модалка редактирования */}
       {editModalOpen && currentDriver && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
+        <div
+          ref={editModalRef}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-modal-title"
+        >
+          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-[#1B254B]">Редактировать сотрудника</h3>
-              <button onClick={() => setEditModalOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200">
+              <h3 id="edit-modal-title" className="text-xl font-semibold text-[#1B254B]">Редактировать сотрудника</h3>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"
+                aria-label="Закрыть модальное окно"
+              >
                 <X size={20} className="text-slate-500" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="driver-name" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Имя
                 </label>
                 <input
+                  id="driver-name"
+                  name="driver-name"
                   type="text"
                   value={editForm.full_name}
                   onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  spellCheck={false}
+                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="driver-role" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Роль
                 </label>
                 <select
+                  id="driver-role"
+                  name="driver-role"
                   value={editForm.role}
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
                 >
                   <option value={UserRole.DRIVER}>Водитель</option>
                   <option value={UserRole.ADMIN}>Администратор</option>
@@ -269,28 +304,32 @@ const Drivers: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="driver-rate" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Ставка (₽/час)
                 </label>
                 <input
+                  id="driver-rate"
+                  name="driver-rate"
                   type="number"
+                  inputMode="numeric"
                   value={editForm.hourly_rate}
                   onChange={(e) => setEditForm({ ...editForm, hourly_rate: Number(e.target.value) })}
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  spellCheck={false}
+                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
                 />
               </div>
             </div>
             <div className="flex gap-3 pt-6">
               <button
                 onClick={() => setEditModalOpen(false)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50"
+                className="flex-1 py-3 rounded-lg border border-slate-200 font-bold text-slate-500 hover:bg-slate-50"
               >
                 Отмена
               </button>
               <button
                 onClick={saveEdit}
                 disabled={saving}
-                className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 disabled:opacity-50"
+                className="flex-1 py-3 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 disabled:opacity-50"
               >
                 {saving ? "Сохранение..." : "Сохранить"}
               </button>

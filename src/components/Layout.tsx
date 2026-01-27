@@ -84,16 +84,26 @@ const Layout: React.FC<LayoutProps> = ({
           setActiveTab(item.id);
           setSidebarOpen(false);
         }}
-        className={`w-full flex items-center gap-4 px-5 py-3 rounded-2xl transition-all duration-200 group ${
+        aria-label={item.label}
+        aria-current={activeTab === item.id ? "page" : undefined}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setActiveTab(item.id);
+            setSidebarOpen(false);
+          }
+        }}
+        className={`w-full flex items-center gap-4 px-5 py-3 rounded-lg transition-all duration-200 group ${
           activeTab === item.id
-            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 font-bold"
-            : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/50"
+            ? "bg-indigo-600 text-white font-semibold"
+            : "text-slate-400 hover:text-white hover:bg-slate-800"
         }`}
       >
         <span
           className={`text-xl transition-transform group-hover:rotate-12 ${
             activeTab === item.id ? "scale-110" : ""
           }`}
+          aria-hidden="true"
         >
           {item.icon}
         </span>
@@ -114,17 +124,19 @@ const Layout: React.FC<LayoutProps> = ({
 
       {/* Sidebar */}
       <aside
-        className={`w-72 bg-white border-r border-slate-100 flex-col sticky top-0 h-screen z-50 transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 lg:flex lg:static`}
+        id="sidebar-navigation"
+        className={`fixed lg:sticky w-72 bg-[#111827] border-r border-slate-800 flex flex-col top-0 h-screen z-50 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+        aria-label="Основная навигация"
       >
         <div className="p-8">
-          <h1 className="text-2xl font-black text-[#1B254B]">
-            <span className="text-indigo-600">LOGI</span>SHIFT
+          <h1 className="text-2xl font-semibold text-white">
+            <span className="text-indigo-400">LOGI</span>SHIFT
           </h1>
           <div className="flex items-center gap-2 mt-1">
             <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse"></div>
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
               KONTROLSMEN v2.4
             </p>
           </div>
@@ -132,7 +144,7 @@ const Layout: React.FC<LayoutProps> = ({
 
         <nav className="flex-1 px-6 space-y-8 overflow-y-auto">
           <div>
-            <p className="px-5 mb-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+            <p className="px-5 mb-4 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
               {isAdmin ? "Управление" : "Меню водителя"}
             </p>
             <div className="space-y-1">{mainItems.map(renderButton)}</div>
@@ -140,7 +152,7 @@ const Layout: React.FC<LayoutProps> = ({
 
           {isAdmin && user?.role === UserRole.ADMIN && (
             <div>
-              <p className="px-5 mb-4 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+              <p className="px-5 mb-4 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
                 Контроль
               </p>
               <div className="space-y-1">{adminItems.map(renderButton)}</div>
@@ -148,45 +160,50 @@ const Layout: React.FC<LayoutProps> = ({
           )}
         </nav>
 
-        <div className="p-6 border-t border-slate-50 mt-auto">
-          <div className="bg-slate-50 rounded-2xl p-4 mb-4">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+        <div className="p-6 border-t border-slate-800 mt-auto">
+          <div className="bg-slate-800 rounded-lg p-4 mb-4">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-tighter">
               Аккаунт
             </p>
-            <p className="text-xs font-black text-[#1B254B] truncate mt-0.5">
+            <p className="text-xs font-semibold text-white truncate mt-0.5">
               {user?.full_name}
             </p>
-            <p className="text-[9px] font-bold text-indigo-500 uppercase mt-1">
+            <p className="text-[9px] font-semibold text-indigo-400 uppercase mt-1">
               {user?.role}
             </p>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full py-4 px-4 rounded-xl text-[11px] font-bold text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center gap-2 border border-slate-100"
+            aria-label="Выйти из системы"
+            className="w-full py-4 px-4 rounded-lg text-[11px] font-semibold text-slate-400 hover:bg-slate-800 hover:text-red-400 transition-all flex items-center justify-center gap-2 border border-slate-700"
           >
-            🚪 Выход из системы
+            <span aria-hidden="true">🚪</span>
+            <span>Выход из системы</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 pl-0 lg:pl-0">
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-50 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button
               className="lg:hidden p-2"
               onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? "Закрыть меню" : "Открыть меню"}
+              aria-expanded={sidebarOpen}
+              aria-controls="sidebar-navigation"
             >
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
             <div>
-              <h2 className="text-xl font-black text-[#1B254B] capitalize tracking-tight">
+              <h2 className="text-xl font-semibold text-[#1B254B] capitalize tracking-tight">
                 {activeTab}
               </h2>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-xs border border-indigo-100/50">
+            <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-semibold text-xs border border-indigo-100/50">
               {user?.full_name?.charAt(0) || "U"}
             </div>
           </div>

@@ -2,21 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Camera, FileText, Plus, Pencil, Trash2, X } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
+import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
 
 const Objects: React.FC = () => {
   const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<any | null>(null);
-  
-  // Форма состояния
+
   const [formData, setFormData] = useState({
     name: '',
+    address: '',
     odometer_required: false,
     invoice_required: false,
     is_active: true
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  const modalRef = useFocusTrap(isModalOpen);
+  useFocusRestore(isModalOpen);
 
   // Функция загрузки объектов
   const fetchSites = async () => {
@@ -35,18 +39,17 @@ const Objects: React.FC = () => {
     fetchSites();
   }, []);
 
-  // Открытие модалки для создания
   const handleAddClick = () => {
     setEditingSite(null);
-    setFormData({ name: '', odometer_required: false, invoice_required: false, is_active: true });
+    setFormData({ name: '', address: '', odometer_required: false, invoice_required: false, is_active: true });
     setIsModalOpen(true);
   };
 
-  // Открытие модалки для редактирования
   const handleEditClick = (site: any) => {
     setEditingSite(site);
     setFormData({
       name: site.name,
+      address: site.address || '',
       odometer_required: site.odometer_required,
       invoice_required: site.invoice_required,
       is_active: site.is_active
@@ -120,7 +123,7 @@ const Objects: React.FC = () => {
       {/* Сетка объектов */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
         {sites.map((s) => (
-          <div key={s.id} className={`bg-white p-6 rounded-[24px] border shadow-sm relative group ${s.is_active ? 'border-slate-50' : 'border-slate-200 opacity-60'}`}>
+          <div key={s.id} className={`bg-white p-6 rounded-lg border shadow-sm relative group ${s.is_active ? 'border-slate-50' : 'border-slate-200 opacity-60'}`}>
             
             {/* Кнопки действий */}
             <div className="absolute top-4 right-4 flex gap-2">
@@ -142,10 +145,16 @@ const Objects: React.FC = () => {
 
             <div className="flex justify-between items-start pr-16">
               <span className="text-3xl">🏗️</span>
-              {!s.is_active && <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-500">Неактивен</span>}
+              {!s.is_active && <span className="px-3 py-1 rounded-full text-[10px] font-semibold uppercase bg-slate-100 text-slate-500">Неактивен</span>}
             </div>
             
             <h4 className="mt-4 font-bold text-[#1B254B] text-lg">{s.name}</h4>
+            {s.address && (
+              <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-400">
+                <MapPin size={12} />
+                <span className="truncate">{s.address}</span>
+              </div>
+            )}
             
             <div className="flex flex-wrap gap-2 mt-3">
               {s.odometer_required && (
@@ -167,15 +176,22 @@ const Objects: React.FC = () => {
 
       {/* Модальное окно (с исправленной логикой видимости) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
+        <div
+          ref={modalRef}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="site-modal-title"
+        >
+          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-[#1B254B]">
+              <h3 id="site-modal-title" className="text-xl font-semibold text-[#1B254B]">
                 {editingSite ? 'Редактировать объект' : 'Новый объект'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                aria-label="Закрыть модальное окно"
               >
                 <X size={20} className="text-slate-500" />
               </button>
@@ -183,16 +199,35 @@ const Objects: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                <label htmlFor="site-name" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Название
                 </label>
                 <input
+                  id="site-name"
+                  name="site-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-bold text-[#1B254B]"
                   placeholder="Например, Стройка №1"
+                  spellCheck={false}
                   autoFocus
+                />
+              </div>
+
+              <div>
+                <label htmlFor="site-address" className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                  Адрес
+                </label>
+                <input
+                  id="site-address"
+                  name="site-address"
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  inputMode="text"
+                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-600"
+                  placeholder="Например, ул. Строителей, 10"
                 />
               </div>
 
