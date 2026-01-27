@@ -21,6 +21,8 @@ import {
 
 // Helper function to format action type from backend action code
 const formatActionType = (action: string): string => {
+  if (!action) return "Неизвестное действие";
+
   const actionMap: Record<string, string> = {
     // Shift actions
     SHIFT_CREATED: "Создана смена",
@@ -59,6 +61,8 @@ const formatActionType = (action: string): string => {
 
 // Helper function to get icon for action type
 const getActionIcon = (action: string): React.ComponentType<{ className?: string }> => {
+  if (!action) return FileText;
+
   const actionUpper = action.toUpperCase();
 
   // Shift actions
@@ -138,6 +142,10 @@ const getActionIcon = (action: string): React.ComponentType<{ className?: string
 
 // Helper function to get color style for action type
 const getActionStyle = (action: string): string => {
+  if (!action) {
+    return "text-slate-600 bg-slate-50 border-slate-200";
+  }
+
   const actionUpper = action.toUpperCase();
 
   // Create/Add - green

@@ -711,3 +711,26 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ Ensures consistent visual representation of action types
   - ✅ Improves user understanding of audit log entries
   - ✅ Minimal change (single character fix)
+
+## [2026-01-27] - Critical Fix: AuditLogs TypeError - Null/Undefined Action Handling
+- **File(s):** `src/components/AuditLogs.tsx`
+- **Change:** Added null/undefined safety checks to all three helper functions that process audit log action fields
+- **Before:**
+  - `formatActionType()`, `getActionIcon()`, and `getActionStyle()` called methods on action parameter without null checks
+  - Line 62: `const actionUpper = action.toUpperCase();` - CRASHED if action was undefined/null
+  - Line 141: `const actionUpper = action.toUpperCase();` - CRASHED if action was undefined/null
+  - Line 57: `return actionMap[action] || action;` - Could cause issues with undefined action
+  - Page crashed completely when API returned audit logs with `action: null` or `action: undefined`
+- **After:**
+  - `formatActionType()`: Returns "Неизвестное действие" if action is undefined/null
+  - `getActionIcon()`: Returns FileText icon if action is undefined/null
+  - `getActionStyle()`: Returns gray style if action is undefined/null
+  - All three functions now safely handle missing action data
+- **Root Cause:** Backend can return audit logs with null/undefined action values due to database records, migration issues, or undefined audit types. Frontend had no defensive programming for this edge case.
+- **Benefits:**
+  - ✅ **CRITICAL FIX**: Restores functionality of completely broken Audit Logs page
+  - ✅ Prevents crash when API returns null/undefined action values
+  - ✅ Provides graceful fallback display for unknown actions ("Неизвестное действие")
+  - ✅ Defensive programming - handles edge cases robustly
+  - ✅ No breaking changes to existing functionality
+- **Impact:** Audit Logs page now loads successfully even with incomplete data from backend
