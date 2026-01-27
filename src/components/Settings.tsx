@@ -27,6 +27,12 @@ const Settings: React.FC = () => {
     try {
       setLoading(true);
       const data = await api.get(API_ENDPOINTS.TENANT_SETTINGS);
+
+      // Add null/undefined check
+      if (!data || typeof data !== 'object') {
+        throw new Error("Invalid data received from server");
+      }
+
       setSettings({
         name: data.name || "",
         timezone: data.timezone || "Europe/Moscow",

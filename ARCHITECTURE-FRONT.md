@@ -734,3 +734,29 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ Defensive programming - handles edge cases robustly
   - ✅ No breaking changes to existing functionality
 - **Impact:** Audit Logs page now loads successfully even with incomplete data from backend
+
+## [2026-01-27] - Fix: Settings Page Null Safety Check
+- **File(s):** `src/components/Settings.tsx`
+- **Change:** Added null/undefined validation for API response data in fetchSettings()
+- **Before:**
+  - Directly accessed properties on API response: `data.name`, `data.timezone`, `data.invoice_required`
+  - No validation that `data` is an object or exists
+  - Could crash with "Cannot read properties of undefined" if API returns null/undefined
+  - Line 29-34 accessed `data` properties without checking if data was valid
+- **After:**
+  - Added check: `if (!data || typeof data !== 'object')`
+  - Throws error with clear message if invalid data received
+  - Prevents crash when API service returns undefined (e.g., on 401 error)
+  - Catches non-object responses gracefully
+- **Root Cause:**
+  - API service returns `undefined` on 401 errors (line 71 in api.ts: `return;`)
+  - API service can return text instead of JSON (line 94 in api.ts)
+  - Settings component assumed response would always be a valid object
+  - First load race condition could cause undefined data access
+- **Benefits:**
+  - ✅ Prevents crash on Settings page when API returns invalid data
+  - ✅ Clear error message when data validation fails
+  - ✅ Handles edge cases: 401 errors, network issues, malformed responses
+  - ✅ Consistent with AuditLogs fix - defensive programming approach
+  - ✅ Works correctly on first load and subsequent refreshes
+- **Impact:** Settings page now loads reliably without "Cannot read properties of undefined" errors
