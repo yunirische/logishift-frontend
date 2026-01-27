@@ -509,3 +509,20 @@ npm run type-check   # Run TypeScript compiler check
   - Added visual feedback (red border + hint text) for invalid end_time
   - Refactored fetchShifts as a useCallback function for proper refresh after edit
 - **After:** Better UX with clear time ranges for finished shifts, proper site names, helpful error messages, and validation prevents invalid time ranges
+
+## [2025-01-27] - Bugfix: Fix Empty Driver List in Manual Shift Modal
+- **File(s):** `src/components/ManualShiftModal.tsx`
+- **Change:** Fixed case-sensitive filter bug and added loading/error states
+- **Before:**
+  - Driver filter used uppercase values: `d.role === "DRIVER" && d.current_state === "IDLE"`
+  - API returns lowercase values: `"driver"`, `"idle"`
+  - Result: Empty driver list in manual shift modal
+  - No loading state or error handling for data fetch
+- **After:**
+  - Fixed filter to use lowercase: `d.role === "driver" && d.current_state === "idle"`
+  - Added `isLoadingData` and `loadError` state variables
+  - Added loading indicator: "Загрузка водителей..."
+  - Added error state with red border and error message
+  - Added empty state: "Все водители заняты" when no idle drivers available
+  - Submit button disabled during data loading
+- **Impact:** Manual shift modal now correctly displays idle drivers, with better UX for loading/error states

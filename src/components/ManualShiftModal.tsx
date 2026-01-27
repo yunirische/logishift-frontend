@@ -20,6 +20,8 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
   const [driversList, setDriversList] = useState<any[]>([]);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [manualDriverId, setManualDriverId] = useState<number | null>(null);
   const [manualTruckId, setManualTruckId] = useState<number | null>(null);
@@ -30,6 +32,9 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       const loadData = async () => {
+        setIsLoadingData(true);
+        setLoadError(null);
+
         try {
           const [driversRes, trucksRes, sitesRes] = await Promise.all([
             api.get(API_ENDPOINTS.DRIVERS),
@@ -37,10 +42,10 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
             api.get(API_ENDPOINTS.SITES),
           ]);
 
-          // Водители только с ролью driver и idle
+          // Водители только с ролью driver и idle (НИЖНИЙ РЕГИСТР)
           const idleDrivers = Array.isArray(driversRes)
             ? driversRes.filter((d: any) =>
-                d.role === "DRIVER" && d.current_state === "IDLE"
+                d.role === "driver" && d.current_state === "idle"  // ✅ ИСПРАВЛЕНО
               )
             : [];
 
@@ -59,8 +64,11 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
             : [];
 
           setSites(activeSites);
-        } catch (error) {
+        } catch (error: any) {
           console.error("Ошибка загрузки данных для ручной смены:", error);
+          setLoadError(error.message || "Не удалось загрузить данные");
+        } finally {
+          setIsLoadingData(false);
         }
       };
       loadData();
@@ -129,19 +137,32 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
               Водитель (idle)
             </label>
-            <select
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
-              value={manualDriverId || ""}
-              onChange={(e) => setManualDriverId(Number(e.target.value) || null)}
-              disabled={manualLoading}
-            >
-              <option value="">Выберите водителя</option>
-              {driversList.map((driver) => (
-                <option key={driver.id} value={driver.id}>
-                  {driver.full_name} (ID: {driver.id})
+
+            {isLoadingData ? (
+              <div className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-400 text-sm">
+                Загрузка водителей...
+              </div>
+            ) : loadError ? (
+              <div className="w-full px-3 py-2.5 border border-red-200 rounded-lg bg-red-50 text-red-600 text-sm">
+                {loadError}
+              </div>
+            ) : (
+              <select
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+                value={manualDriverId || ""}
+                onChange={(e) => setManualDriverId(Number(e.target.value) || null)}
+                disabled={manualLoading}
+              >
+                <option value="">
+                  {driversList.length === 0 ? "Все водители заняты" : "Выберите водителя"}
                 </option>
-              ))}
-            </select>
+                {driversList.map((driver) => (
+                  <option key={driver.id} value={driver.id}>
+                    {driver.full_name} (ID: {driver.id})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Truck Selection */}
@@ -201,7 +222,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
           <button
             onClick={handleCreateShift}
             className="flex-1 px-4 py-2.5 bg-indigo-600 text-white font-semibold text-sm rounded-lg hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            disabled={manualLoading || !manualDriverId || !manualTruckId || !manualSiteId}
+            disabled={manualLoading || isLoadingData || !manualDriverId || !manualTruckId || !manualSiteId}
           >
             {manualLoading ? (
               <>
