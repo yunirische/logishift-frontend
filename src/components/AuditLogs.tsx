@@ -20,10 +20,57 @@ import {
 } from "lucide-react";
 
 // Helper function to format action type from backend action code
-const formatActionType = (action: string): string => {
-  if (!action) return "Неизвестное действие";
+const formatActionType = (log: AuditLog): string => {
+  const { action, entity_type } = log;
+  const actionUpper = action?.toUpperCase();
+  const entityType = entity_type?.toLowerCase();
 
-  const actionMap: Record<string, string> = {
+  // If we have both action and entity_type, combine them
+  if (entityType && actionUpper) {
+    const entityMap: Record<string, string> = {
+      shift: 'смена',
+      user: 'пользователь',
+      truck: 'машина',
+      site: 'объект',
+      photo: 'фото',
+      settings: 'настройки',
+    };
+
+    const actionMap: Record<string, string> = {
+      CREATE: 'Создана',
+      UPDATE: 'Обновлена',
+      DELETE: 'Удалена',
+      LOGIN: 'Вход в систему',
+      LOGOUT: 'Выход из системы',
+    };
+
+    const entityName = entityMap[entityType];
+    const actionName = actionMap[actionUpper];
+
+    if (entityName && actionName) {
+      // Adjust gender for some entities
+      if (entityType === 'user') {
+        if (actionUpper === 'CREATE') return 'Создан пользователь';
+        if (actionUpper === 'UPDATE') return 'Обновлен пользователь';
+        if (actionUpper === 'DELETE') return 'Удален пользователь';
+      }
+      if (entityType === 'truck') {
+        if (actionUpper === 'CREATE') return 'Добавлена машина';
+        if (actionUpper === 'UPDATE') return 'Обновлена машина';
+        if (actionUpper === 'DELETE') return 'Удалена машина';
+      }
+      if (entityType === 'site') {
+        if (actionUpper === 'CREATE') return 'Добавлен объект';
+        if (actionUpper === 'UPDATE') return 'Обновлен объект';
+        if (actionUpper === 'DELETE') return 'Удален объект';
+      }
+
+      return `${actionName} ${entityName}`;
+    }
+  }
+
+  // Fallback to old format for backward compatibility
+  const oldActionMap: Record<string, string> = {
     // Shift actions
     SHIFT_CREATED: "Создана смена",
     SHIFT_STARTED: "Начата смена",
@@ -56,84 +103,130 @@ const formatActionType = (action: string): string => {
     SYSTEM_ERROR: "Системная ошибка",
   };
 
-  return actionMap[action] || action;
+  return oldActionMap[action] || action || "Неизвестное действие";
 };
 
 // Helper function to get icon for action type
-const getActionIcon = (action: string): React.ComponentType<{ className?: string }> => {
-  if (!action) return FileText;
+const getActionIcon = (action: string, entity_type?: string): React.ComponentType<{ className?: string }> => {
+  if (!action && !entity_type) return FileText;
 
-  const actionUpper = action.toUpperCase();
+  const actionUpper = action?.toUpperCase();
+  const entityType = entity_type?.toLowerCase();
 
-  // Shift actions
-  if (actionUpper.includes("SHIFT") || actionUpper.includes("СМЕН")) {
-    if (actionUpper.includes("CREATED") || actionUpper.includes("СОЗДАН")) return Plus;
-    if (actionUpper.includes("STARTED") || actionUpper.includes("НАЧА")) return CheckCircle;
-    if (actionUpper.includes("FINISHED") || actionUpper.includes("ЗАВЕРШ")) return CheckCircle;
-    if (actionUpper.includes("CANCELLED") || actionUpper.includes("ОТМЕН")) return XCircle;
-    if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
-    return Clock;
+  // New format: use entity_type + action
+  if (entityType) {
+    // Determine icon based on entity and action combination
+    if (entityType === 'shift') {
+      if (actionUpper === 'CREATE') return CheckCircle;
+      if (actionUpper === 'UPDATE') return Edit3;
+      if (actionUpper === 'DELETE') return XCircle;
+      return Clock;
+    }
+
+    if (entityType === 'user') {
+      if (actionUpper === 'CREATE') return Plus;
+      if (actionUpper === 'UPDATE') return Edit3;
+      if (actionUpper === 'DELETE') return Trash2;
+      if (actionUpper === 'LOGIN') return LogIn;
+      if (actionUpper === 'LOGOUT') return LogOut;
+      return User;
+    }
+
+    if (entityType === 'truck') {
+      if (actionUpper === 'CREATE') return Plus;
+      if (actionUpper === 'UPDATE') return Edit3;
+      if (actionUpper === 'DELETE') return Trash2;
+      return Truck;
+    }
+
+    if (entityType === 'site') {
+      if (actionUpper === 'CREATE') return Plus;
+      if (actionUpper === 'UPDATE') return Edit3;
+      if (actionUpper === 'DELETE') return Trash2;
+      return Building;
+    }
+
+    if (entityType === 'photo') {
+      return Camera;
+    }
+
+    if (entityType === 'settings') {
+      return Settings;
+    }
   }
 
-  // User actions
-  if (actionUpper.includes("USER") || actionUpper.includes("ПОЛЬЗОВАТЕЛ")) {
-    if (actionUpper.includes("CREATED") || actionUpper.includes("СОЗДАН")) return Plus;
-    if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
-    if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;
-    if (actionUpper.includes("LOGIN") || actionUpper.includes("ВХОД")) return LogIn;
-    if (actionUpper.includes("LOGOUT") || actionUpper.includes("ВЫХОД")) return LogOut;
-    return User;
-  }
+  // Fallback to old format for backward compatibility
+  if (actionUpper) {
+    // Shift actions
+    if (actionUpper.includes("SHIFT") || actionUpper.includes("СМЕН")) {
+      if (actionUpper.includes("CREATED") || actionUpper.includes("СОЗДАН")) return Plus;
+      if (actionUpper.includes("STARTED") || actionUpper.includes("НАЧА")) return CheckCircle;
+      if (actionUpper.includes("FINISHED") || actionUpper.includes("ЗАВЕРШ")) return CheckCircle;
+      if (actionUpper.includes("CANCELLED") || actionUpper.includes("ОТМЕН")) return XCircle;
+      if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
+      return Clock;
+    }
 
-  // Truck actions
-  if (actionUpper.includes("TRUCK") || actionUpper.includes("МАШИН") || actionUpper.includes("ГРУЗОВИК")) {
-    if (actionUpper.includes("CREATED") || actionUpper.includes("ДОБАВЛ")) return Plus;
-    if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
-    if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;
-    return Truck;
-  }
+    // User actions
+    if (actionUpper.includes("USER") || actionUpper.includes("ПОЛЬЗОВАТЕЛ")) {
+      if (actionUpper.includes("CREATED") || actionUpper.includes("СОЗДАН")) return Plus;
+      if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
+      if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;
+      if (actionUpper.includes("LOGIN") || actionUpper.includes("ВХОД")) return LogIn;
+      if (actionUpper.includes("LOGOUT") || actionUpper.includes("ВЫХОД")) return LogOut;
+      return User;
+    }
 
-  // Site actions
-  if (actionUpper.includes("SITE") || actionUpper.includes("ОБЪЕКТ")) {
-    if (actionUpper.includes("CREATED") || actionUpper.includes("ДОБАВЛ")) return Plus;
-    if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
-    if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;
-    return Building;
-  }
+    // Truck actions
+    if (actionUpper.includes("TRUCK") || actionUpper.includes("МАШИН") || actionUpper.includes("ГРУЗОВИК")) {
+      if (actionUpper.includes("CREATED") || actionUpper.includes("ДОБАВЛ")) return Plus;
+      if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
+      if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;
+      return Truck;
+    }
 
-  // Photo actions
-  if (actionUpper.includes("PHOTO") || actionUpper.includes("ФОТО")) {
-    return Camera;
-  }
+    // Site actions
+    if (actionUpper.includes("SITE") || actionUpper.includes("ОБЪЕКТ")) {
+      if (actionUpper.includes("CREATED") || actionUpper.includes("ДОБАВЛ")) return Plus;
+      if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
+      if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;
+      return Building;
+    }
 
-  // Settings
-  if (actionUpper.includes("SETTINGS") || actionUpper.includes("НАСТРО")) {
-    return Settings;
-  }
+    // Photo actions
+    if (actionUpper.includes("PHOTO") || actionUpper.includes("ФОТО")) {
+      return Camera;
+    }
 
-  // Login
-  if (actionUpper.includes("LOGIN") || actionUpper.includes("ВХОД")) {
-    return LogIn;
-  }
+    // Settings
+    if (actionUpper.includes("SETTINGS") || actionUpper.includes("НАСТРО")) {
+      return Settings;
+    }
 
-  // Logout
-  if (actionUpper.includes("LOGOUT") || actionUpper.includes("ВЫХОД")) {
-    return LogOut;
-  }
+    // Login
+    if (actionUpper.includes("LOGIN") || actionUpper.includes("ВХОД")) {
+      return LogIn;
+    }
 
-  // Delete/Remove
-  if (actionUpper.includes("DELETE") || actionUpper.includes("REMOVE") || actionUpper.includes("УДАЛ")) {
-    return Trash2;
-  }
+    // Logout
+    if (actionUpper.includes("LOGOUT") || actionUpper.includes("ВЫХОД")) {
+      return LogOut;
+    }
 
-  // Edit/Update
-  if (actionUpper.includes("UPDATE") || actionUpper.includes("EDIT") || actionUpper.includes("ОБНОВЛ") || actionUpper.includes("РЕДАКТ")) {
-    return Edit3;
-  }
+    // Delete/Remove
+    if (actionUpper.includes("DELETE") || actionUpper.includes("REMOVE") || actionUpper.includes("УДАЛ")) {
+      return Trash2;
+    }
 
-  // Create/Add
-  if (actionUpper.includes("CREATE") || actionUpper.includes("ADD") || actionUpper.includes("СОЗДАН") || actionUpper.includes("ДОБАВЛ")) {
-    return Plus;
+    // Edit/Update
+    if (actionUpper.includes("UPDATE") || actionUpper.includes("EDIT") || actionUpper.includes("ОБНОВЛ") || actionUpper.includes("РЕДАКТ")) {
+      return Edit3;
+    }
+
+    // Create/Add
+    if (actionUpper.includes("CREATE") || actionUpper.includes("ADD") || actionUpper.includes("СОЗДАН") || actionUpper.includes("ДОБАВЛ")) {
+      return Plus;
+    }
   }
 
   // Default
@@ -141,52 +234,89 @@ const getActionIcon = (action: string): React.ComponentType<{ className?: string
 };
 
 // Helper function to get color style for action type
-const getActionStyle = (action: string): string => {
-  if (!action) {
+const getActionStyle = (action: string, entity_type?: string): string => {
+  if (!action && !entity_type) {
     return "text-slate-600 bg-slate-50 border-slate-200";
   }
 
-  const actionUpper = action.toUpperCase();
+  const actionUpper = action?.toUpperCase();
+  const entityType = entity_type?.toLowerCase();
 
-  // Create/Add - green
-  if (actionUpper.includes("CREATED") || actionUpper.includes("СОЗДАН") ||
-      actionUpper.includes("STARTED") || actionUpper.includes("НАЧАЛ") ||
-      actionUpper.includes("ADD") || actionUpper.includes("ДОБАВИЛ")) {
-    return "text-emerald-600 bg-emerald-50 border-emerald-200";
+  // New format: use action type for styling
+  if (actionUpper) {
+    // Create/Add - green
+    if (actionUpper === "CREATE") {
+      return "text-emerald-600 bg-emerald-50 border-emerald-200";
+    }
+
+    // Delete/Cancel - red
+    if (actionUpper === "DELETE" || actionUpper === "CANCEL") {
+      return "text-red-600 bg-red-50 border-red-200";
+    }
+
+    // Update/Edit - blue
+    if (actionUpper === "UPDATE" || actionUpper === "EDIT") {
+      return "text-blue-600 bg-blue-50 border-blue-200";
+    }
+
+    // Login - violet
+    if (actionUpper === "LOGIN") {
+      return "text-violet-600 bg-violet-50 border-violet-200";
+    }
+
+    // Logout - gray
+    if (actionUpper === "LOGOUT") {
+      return "text-slate-600 bg-slate-50 border-slate-200";
+    }
+
+    // Photo - amber
+    if (entityType === 'photo') {
+      return "text-amber-600 bg-amber-50 border-amber-200";
+    }
   }
 
-  // Delete/Cancel - red
-  if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛИЛ") ||
-      actionUpper.includes("CANCEL") || actionUpper.includes("ОТМЕН") ||
-      actionUpper.includes("REMOVE")) {
-    return "text-red-600 bg-red-50 border-red-200";
-  }
+  // Fallback to old format for backward compatibility
+  if (actionUpper) {
+    // Create/Add - green
+    if (actionUpper.includes("CREATED") || actionUpper.includes("СОЗДАН") ||
+        actionUpper.includes("STARTED") || actionUpper.includes("НАЧАЛ") ||
+        actionUpper.includes("ADD") || actionUpper.includes("ДОБАВИЛ")) {
+      return "text-emerald-600 bg-emerald-50 border-emerald-200";
+    }
 
-  // Update/Edit - blue
-  if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВИЛ") ||
-      actionUpper.includes("EDIT") || actionUpper.includes("РЕДАКТ") ||
-      actionUpper.includes("ИЗМЕН")) {
-    return "text-blue-600 bg-blue-50 border-blue-200";
-  }
+    // Delete/Cancel - red
+    if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛИЛ") ||
+        actionUpper.includes("CANCEL") || actionUpper.includes("ОТМЕН") ||
+        actionUpper.includes("REMOVE")) {
+      return "text-red-600 bg-red-50 border-red-200";
+    }
 
-  // Finished - teal
-  if (actionUpper.includes("FINISHED") || actionUpper.includes("ЗАВЕРШ")) {
-    return "text-teal-600 bg-teal-50 border-teal-200";
-  }
+    // Update/Edit - blue
+    if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВИЛ") ||
+        actionUpper.includes("EDIT") || actionUpper.includes("РЕДАКТ") ||
+        actionUpper.includes("ИЗМЕН")) {
+      return "text-blue-600 bg-blue-50 border-blue-200";
+    }
 
-  // Login - violet
-  if (actionUpper.includes("LOGIN") || actionUpper.includes("ВХОД")) {
-    return "text-violet-600 bg-violet-50 border-violet-200";
-  }
+    // Finished - teal
+    if (actionUpper.includes("FINISHED") || actionUpper.includes("ЗАВЕРШ")) {
+      return "text-teal-600 bg-teal-50 border-teal-200";
+    }
 
-  // Logout - gray
-  if (actionUpper.includes("LOGOUT") || actionUpper.includes("ВЫХОД")) {
-    return "text-slate-600 bg-slate-50 border-slate-200";
-  }
+    // Login - violet
+    if (actionUpper.includes("LOGIN") || actionUpper.includes("ВХОД")) {
+      return "text-violet-600 bg-violet-50 border-violet-200";
+    }
 
-  // Photo - amber
-  if (actionUpper.includes("PHOTO") || actionUpper.includes("ФОТО")) {
-    return "text-amber-600 bg-amber-50 border-amber-200";
+    // Logout - gray
+    if (actionUpper.includes("LOGOUT") || actionUpper.includes("ВЫХОД")) {
+      return "text-slate-600 bg-slate-50 border-slate-200";
+    }
+
+    // Photo - amber
+    if (actionUpper.includes("PHOTO") || actionUpper.includes("ФОТО")) {
+      return "text-amber-600 bg-amber-50 border-amber-200";
+    }
   }
 
   // Default - indigo
@@ -225,6 +355,121 @@ const groupLogsByDate = (logs: AuditLog[]): Record<string, AuditLog[]> => {
   });
 
   return grouped;
+};
+
+// Helper function to format log details into human-readable description
+const formatLogDescription = (log: AuditLog): string => {
+  // Debug logging
+  console.log('Raw audit log:', log);
+  console.log('Action:', log.action);
+  console.log('Details:', log.details);
+  console.log('Entity type:', log.entity_type);
+
+  const { action, details, entity_type } = log;
+  const actionUpper = action?.toUpperCase();
+  const entityType = entity_type?.toLowerCase();
+
+  // Parse details JSON safely
+  let detailsObj: Record<string, any> = {};
+  if (details) {
+    try {
+      detailsObj = typeof details === 'string' ? JSON.parse(details) : details;
+    } catch {
+      // If parsing fails, return details as-is
+      return details;
+    }
+  }
+
+  // Use entity_type to determine how to format (not action!)
+  if (entityType === 'shift') {
+    const shiftId = detailsObj.shift_id || detailsObj.id;
+
+    if (actionUpper === 'CREATE') {
+      const truckName = detailsObj.truck_name;
+      const siteName = detailsObj.site_name;
+      if (truckName && siteName) {
+        return `Смена #${shiftId} (${truckName} → ${siteName})`;
+      }
+      return `Смена #${shiftId || '?'}`;
+    }
+
+    if (actionUpper === 'UPDATE') {
+      const hours = detailsObj.hours || detailsObj.hours_elapsed;
+      if (hours) {
+        return `Смена #${shiftId} (отработано ${hours} ч)`;
+      }
+      return `Смена #${shiftId}`;
+    }
+
+    if (actionUpper === 'DELETE') {
+      return `Смена #${shiftId}`;
+    }
+
+    return `Смена #${shiftId || '?'}`;
+  }
+
+  // USER actions
+  if (entityType === 'user') {
+    const userName = detailsObj.full_name || detailsObj.name || detailsObj.email;
+
+    if (actionUpper === 'CREATE') {
+      return userName ? `Водитель: ${userName}` : `Новый водитель`;
+    }
+
+    if (actionUpper === 'UPDATE') {
+      return userName ? `Водитель: ${userName}` : `Профиль пользователя`;
+    }
+
+    if (actionUpper === 'DELETE') {
+      return userName ? `Водитель: ${userName}` : `Пользователь`;
+    }
+
+    return userName || 'Пользователь';
+  }
+
+  // TRUCK actions
+  if (entityType === 'truck') {
+    const truckName = detailsObj.name || detailsObj.truck_name;
+
+    if (truckName) {
+      return `Машина: ${truckName}`;
+    }
+
+    return 'Машина';
+  }
+
+  // SITE actions
+  if (entityType === 'site') {
+    const siteName = detailsObj.name || detailsObj.site_name;
+
+    if (siteName) {
+      return `Объект: ${siteName}`;
+    }
+
+    return 'Объект';
+  }
+
+  // PHOTO actions
+  if (entityType === 'photo' || actionUpper?.includes('PHOTO')) {
+    const photoType = detailsObj.photo_type;
+    if (photoType === 'odo_start') return 'Фото (спидометр до)';
+    if (photoType === 'odo_end') return 'Фото (спидометр после)';
+    if (photoType === 'invoice') return 'Фото (накладная)';
+    return 'Фото';
+  }
+
+  // SETTINGS actions
+  if (entityType === 'settings' || actionUpper?.includes('SETTINGS')) {
+    const setting = detailsObj.setting || detailsObj.key;
+    return setting ? `Настройка: ${setting}` : 'Настройки';
+  }
+
+  // If details exist but we couldn't format it, return as-is
+  if (typeof details === 'string' && details.length < 100) {
+    return details;
+  }
+
+  return '';
 };
 
 const AuditLogs: React.FC = () => {
@@ -284,9 +529,9 @@ const AuditLogs: React.FC = () => {
               {/* Logs for this date */}
               <div className="divide-y divide-slate-50">
                 {dateLogs.map((log) => {
-                  const actionDisplay = formatActionType(log.action);
-                  const IconComponent = getActionIcon(log.action);
-                  const style = getActionStyle(log.action);
+                  const actionDisplay = formatActionType(log);
+                  const IconComponent = getActionIcon(log.action, log.entity_type);
+                  const style = getActionStyle(log.action, log.entity_type);
 
                   return (
                     <div
@@ -313,11 +558,14 @@ const AuditLogs: React.FC = () => {
                             {actionDisplay}
                           </span>
                         </div>
-                        {log.details && (
-                          <p className="text-xs text-slate-500 leading-relaxed">
-                            {log.details}
-                          </p>
-                        )}
+                        {(() => {
+                          const description = formatLogDescription(log);
+                          return description && (
+                            <p className="text-xs text-slate-500 leading-relaxed">
+                              {description}
+                            </p>
+                          );
+                        })()}
                       </div>
                     </div>
                   );

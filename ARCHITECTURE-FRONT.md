@@ -760,3 +760,84 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ Consistent with AuditLogs fix - defensive programming approach
   - ✅ Works correctly on first load and subsequent refreshes
 - **Impact:** Settings page now loads reliably without "Cannot read properties of undefined" errors
+
+## [2026-01-27] - Feature: Human-Readable Audit Log Descriptions
+- **File(s):** `src/components/AuditLogs.tsx`
+- **Change:** Added `formatLogDescription()` function to convert raw JSON details into user-friendly Russian descriptions
+- **Before:**
+  - Audit log details displayed as raw JSON: `{"shift_id":44,"hours_elapsed":315}`
+  - Users had to parse JSON manually to understand what changed
+  - Not user-friendly for non-technical users
+  - Example display: `{"shift_id":44,"hours_elapsed":315}`
+- **After:**
+  - Details formatted as human-readable Russian text based on action type
+  - Context-aware formatting for different entity types (shifts, users, trucks, sites, photos)
+  - Graceful fallback for missing or malformed data
+  - Examples:
+    - `Смена #52 (МАЗ-533 → Стройплощадка №1)` for shift creation
+    - `Смена #44 (отработано 4.5 ч)` for shift completion
+    - `Водитель: Иван Петров` for user actions
+    - `Машина: МАЗ-533` for truck actions
+    - `Объект: Стройплощадка №1` for site actions
+    - `Фото (спидометр до)` for photo uploads
+- **Implementation Details:**
+  - New helper function `formatLogDescription()` added at line 229
+  - Safely parses JSON with try-catch error handling
+  - Routes to different formatting logic based on action type:
+    - SHIFT: extracts `shift_id`, `truck_name`, `site_name`, `hours`
+    - USER: extracts `full_name`, `name`, `email`
+    - TRUCK: extracts `name`, `truck_name`
+    - SITE: extracts `name`, `site_name`
+    - PHOTO: extracts `photo_type` with Russian labels
+    - SETTINGS: extracts `setting` or `key`
+  - Returns empty string if details can't be formatted (no details shown)
+  - Updated rendering logic (line 316-323) to use new function
+- **Root Cause:** Original implementation displayed raw data from backend without formatting for human readability
+- **Benefits:**
+  - ✅ **MAJOR UX IMPROVEMENT**: Audit logs now show human-readable descriptions instead of raw JSON
+  - ✅ Russian localization for better user experience
+  - ✅ Context-aware formatting adapts to action type
+  - ✅ Graceful error handling prevents crashes from malformed JSON
+  - ✅ Fallback text for incomplete data
+  - ✅ No breaking changes - works with existing data structure
+
+## [2026-01-27] - Fix: AuditLogs Entity-Based Action Formatting
+- **File(s):** `src/types.ts`, `src/components/AuditLogs.tsx`
+- **Change:** Refactored audit log formatting to use `entity_type` + `action` instead of compound action strings
+- **Before:**
+  - Expected compound action strings like `SHIFT_CREATED`, `USER_UPDATED`, `TRUCK_DELETED`
+  - `formatActionType()`, `getActionIcon()`, `getActionStyle()`, and `formatLogDescription()` all parsed action string for entity type
+  - Line 62-76: Pattern matching on action with `actionUpper.includes("SHIFT")`
+  - Line 230-280: `formatLogDescription()` used action type to determine entity
+  - Backend structure mismatch: actual data uses separate `action` and `entity_type` fields
+  - Format: `action: 'CREATE' | 'UPDATE' | 'DELETE'` + `entity_type: 'shift' | 'user' | 'truck' | 'site'`
+  - Wrong assumptions caused raw JSON to display instead of formatted descriptions
+- **After:**
+  - Updated `AuditLog` type to include `entity_type?: string` and `entity_id?: number`
+  - `formatActionType()`: Now takes full log object, combines `action` + `entity_type` for display
+  - `getActionIcon()`: Takes `action` + `entity_type` parameters, prioritizes new format
+  - `getActionStyle()`: Takes `action` + `entity_type` parameters, prioritizes new format
+  - `formatLogDescription()`: Rewritten to use `entity_type` for routing, `action` for verbs
+    - Line 216-228: New logic checks `entityType === 'shift'` instead of `actionUpper.includes('SHIFT')`
+    - Handles `action === 'CREATE'` instead of `actionUpper.includes('CREATED')`
+  - Added debug console.log statements to diagnose backend data format
+  - Maintains backward compatibility with old compound action format
+- **Root Cause:**
+  - Frontend assumed compound action strings (e.g., "SHIFT_CREATED")
+  - Backend actually sends separate fields: `action: "CREATE"`, `entity_type: "shift"`
+  - Pattern matching on action string alone couldn't distinguish entity types
+  - This caused formatLogDescription to return empty string, displaying raw JSON
+- **Benefits:**
+  - ✅ **CRITICAL FIX**: Audit logs now display formatted descriptions instead of raw JSON
+  - ✅ Correctly handles backend data structure with separate action + entity_type fields
+  - ✅ Added debug logging to help diagnose any remaining data format issues
+  - ✅ Backward compatible with old compound action format (if still exists in DB)
+  - ✅ More maintainable - entity type explicitly provided, not parsed from string
+  - ✅ Properly matches database schema: `action`, `entity_type`, `entity_id`
+  - ✅ Fixes Russian localization for all action types
+- **Debug Logging Added:**
+  - Logs raw audit log object, action, details, and entity_type
+  - Helps identify any remaining data format mismatches
+  - Can be removed once backend format is confirmed stable
+- **Impact:** Audit logs now show human-readable descriptions instead of raw JSON data
+- **Impact:** Audit logs are now significantly more readable and useful for admin users tracking system activity

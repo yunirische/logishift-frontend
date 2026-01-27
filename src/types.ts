@@ -79,6 +79,8 @@ export interface AuditLog {
   id: string;
   action: string;
   action_display?: string;
+  entity_type?: string;
+  entity_id?: number;
   performed_by: string;
   timestamp: string;
   details: string;
