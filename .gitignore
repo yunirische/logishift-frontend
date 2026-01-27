@@ -72,3 +72,8 @@ temp/
 claude_code_zai_env.sh
 ARCHITECTURE.md.backup
 package-lock.json
+# Documentation (теперь в отдельном репо logishift-docs)
+# Но оставляем локально для разработки и синхронизации
+# docs/
+# ARCHITECTURE-FRONT.md
+# AGENTS.md

@@ -1,5 +1,9 @@
 # LogiShift Frontend - Agent Guide
 
+> **Note**: Synced to [logishift-docs](https://github.com/yunirische/logishift-docs).
+> After editing, run: `C:\logishift-docs\scripts\sync-from-repos.ps1`
+
+
 ## 🏗 Роль и Миссия
 
 Ты — Архитектор LogiShift. Твоя задача — строить быстрый и чистый React PWA, который идеально общается с Backend API.

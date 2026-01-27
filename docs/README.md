@@ -14,7 +14,9 @@ Welcome to the LogiShift documentation. This documentation covers the architectu
 ## Quick Navigation
 
 ### 📋 Architecture
+
 High-level system architecture and design patterns.
+
 - [Overview](./architecture/overview.md) - System architecture and components
 - [Design Patterns](./architecture/design-patterns.md) - Patterns used in the system
 - [Data Flow](./architecture/data-flow.md) - How data flows through the system
@@ -24,25 +26,33 @@ High-level system architecture and design patterns.
 - [Scalability](./architecture/scalability.md) - Performance and scaling considerations
 
 ### 🔧 Backend
+
 Backend API, database, and server-side documentation.
+
 - [Database Schema](./backend/database-schema.md) - Complete database schema definition
 - [Database Operations](./backend/database-operations.md) - Migrations, CRUD, transactions, and constraints
 - [API Reference](./backend/api-reference.md) - Complete REST API documentation
 
 ### 🤖 Telegram Bot
+
 Telegram Bot integration and workflow.
+
 - [Gateway API](./telegram-bot/gateway-api.md) - Gateway API specification and commands
 - [State Machine](./telegram-bot/state-machine.md) - User workflow and state transitions
 - [Integration](./telegram-bot/integration.md) - n8n gateway architecture
 
 ### 📱 Workflows
+
 User workflow documentation for different interfaces.
+
 - [Telegram Bot Flow](./workflows/telegram-bot-flow.md) - Complete bot workflow
 - [PWA Flow](./workflows/pwa-flow.md) - Web application workflow
 - [Shift Lifecycle](./workflows/shift-lifecycle.md) - Detailed shift process from start to finish
 
 ### 📝 Decisions
+
 Architecture and design decision records.
+
 - [Architecture Decisions](./decisions/architecture-decisions.md) - Major architectural decisions and rationale
 - [Data Sync Decisions](./decisions/data-sync-decisions.md) - Synchronization and data handling decisions
 
@@ -134,10 +144,13 @@ docs/
 ## Core Concepts
 
 ### Multi-Tenancy
+
 All data is isolated by `tenant_id`. Every query automatically filters by tenant to ensure complete data separation between organizations.
 
 ### State Machine
+
 Users progress through states during shift operations:
+
 ```
 idle → pending_truck → pending_site → awaiting_odo_start → active
   ↑                                                         │
@@ -147,7 +160,9 @@ idle → pending_truck → pending_site → awaiting_odo_start → active
 ```
 
 ### Service Layer
+
 Business logic is encapsulated in services:
+
 - **ShiftService** - Shift lifecycle management
 - **MediaService** - File upload/download
 - **OnboardingService** - New tenant registration
@@ -157,11 +172,13 @@ Business logic is encapsulated in services:
 ## API Endpoints Summary
 
 ### Public Endpoints
+
 - `GET /health` - Health check
 - `POST /auth/login` - User authentication
 - `POST /auth/onboard` - Self-registration
 
 ### Protected Endpoints (JWT Required)
+
 - `GET /dashboard/stats` - Dashboard statistics
 - `GET|POST /shifts/*` - Shift management
 - `GET|POST|PATCH /trucks` - Truck management
@@ -172,11 +189,13 @@ Business logic is encapsulated in services:
 - `GET|PATCH /tenant/settings` - Tenant settings
 
 ### Gateway Endpoint
+
 - `POST /gateway` - Telegram Bot webhook (via n8n)
 
 ## Common Tasks
 
 ### Starting a Shift (Bot)
+
 1. User clicks "✅ Начать смену"
 2. Select truck from list
 3. Select site from list
@@ -184,12 +203,14 @@ Business logic is encapsulated in services:
 5. Shift becomes active
 
 ### Starting a Shift (PWA)
+
 1. User selects truck and site in UI
 2. Clicks "Start Shift"
 3. Uploads odometer photo (if required)
 4. Shift becomes active
 
 ### Ending a Shift
+
 1. User clicks "🏁 Завершить смену"
 2. Upload odometer end photo (if required)
 3. Upload invoice photo (if required)
@@ -201,16 +222,19 @@ Business logic is encapsulated in services:
 ### Common Issues
 
 **Truck stuck in busy state:**
+
 - Check GET `/trucks` - shows active shifts per truck
 - If `is_busy: true` but `shifts: []`, flag is stuck
 - Use PATCH `/trucks/:id` with `is_busy: false` to force reset
 
 **User cannot start shift:**
+
 - Check for existing active shift
 - Verify truck availability
 - Check plan limits
 
 **Telegram bot not responding:**
+
 - Verify n8n gateway is running
 - Check backend `/health` endpoint
 - Verify tenant API key
@@ -218,6 +242,7 @@ Business logic is encapsulated in services:
 ## Contributing to Documentation
 
 When adding new features or making changes:
+
 1. Update relevant documentation sections
 2. Add ADR (Architecture Decision Record) for significant changes
 3. Update API reference for new endpoints
@@ -233,6 +258,7 @@ When adding new features or making changes:
 ## Support
 
 For questions or issues:
+
 1. Check relevant documentation section
 2. Review architecture decisions for context
 3. Check API reference for endpoint details
@@ -242,3 +268,41 @@ For questions or issues:
 
 **Last Updated:** 2025-01-27
 **Documentation Version:** 1.0.0
+
+## 📚 Документация
+
+Документация проекта находится в отдельном репозитории:
+
+- [logishift-docs](https://github.com/yunirische/logishift-docs)
+
+### Синхронизация документации
+
+После обновления документации в этом репо, синхронизируйте с docs:
+
+```powershell
+# Перейдите в репо документации:
+cd C:\logishift-docs
+
+# Запустите синхронизацию:
+.\scripts\sync-from-repos.ps1
+
+# Закоммитьте изменения:
+git add .
+git commit -m "docs: sync from frontend"
+git push
+
+Documentation Files
+ARCHITECTURE-FRONT.md - Frontend architecture overview
+
+AGENTS.md - AI agent instructions
+
+docs/backend/ - API reference
+
+docs/decisions/ - Architecture decisions
+
+docs/telegram-bot/ - Telegram bot integration
+
+docs/workflows/ - Development workflows
+
+
+```
