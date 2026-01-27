@@ -1,134 +1,222 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { API_ENDPOINTS } from "../constants";
 import { apiRequest } from "../services/api";
 import { AuditLog } from "../types";
+import {
+  Plus,
+  Edit3,
+  Trash2,
+  CheckCircle,
+  Clock,
+  User,
+  Truck,
+  Building,
+  Settings,
+  FileText,
+  LogOut,
+  LogIn,
+  Camera,
+  XCircle,
+} from "lucide-react";
 
-// Helper functions moved outside component to prevent re-creation on every render
-const getActionEmoji = (actionDisplay: string): string => {
-  const text = actionDisplay.toLowerCase();
+// Helper function to format action type from backend action code
+const formatActionType = (action: string): string => {
+  const actionMap: Record<string, string> = {
+    // Shift actions
+    SHIFT_CREATED: "Создана смена",
+    SHIFT_STARTED: "Начата смена",
+    SHIFT_FINISHED: "Завершена смена",
+    SHIFT_CANCELLED: "Отменена смена",
+    SHIFT_UPDATED: "Обновлена смена",
+    PHOTO_UPLOADED: "Загружено фото",
 
-  // Смены
-  if (text.includes("смен") || text.includes("shift")) {
-    if (text.includes("начал") || text.includes("start")) return "🚀";
-    if (text.includes("заверш") || text.includes("finish") || text.includes("end")) return "🏁";
-    if (text.includes("отмен") || text.includes("cancel")) return "❌";
-    if (text.includes("создал") || text.includes("создан")) return "➕";
-    return "⏱️";
-  }
+    // User actions
+    USER_CREATED: "Создан пользователь",
+    USER_UPDATED: "Обновлен пользователь",
+    USER_DELETED: "Удален пользователь",
+    USER_ACTIVATED: "Активирован пользователь",
+    USER_DEACTIVATED: "Деактивирован пользователь",
+    USER_LOGIN: "Вход в систему",
+    USER_LOGOUT: "Выход из системы",
 
-  // Пользователи
-  if (text.includes("пользователь") || text.includes("водитель") || text.includes("user")) {
-    if (text.includes("создал") || text.includes("добавил")) return "👤➕";
-    if (text.includes("обновил") || text.includes("измен")) return "👤✏️";
-    if (text.includes("удалил")) return "👤❌";
-    if (text.includes("активировал")) return "✅";
-    if (text.includes("деактивировал")) return "🔒";
-    return "👤";
-  }
+    // Truck actions
+    TRUCK_CREATED: "Добавлена машина",
+    TRUCK_UPDATED: "Обновлена машина",
+    TRUCK_DELETED: "Удалена машина",
 
-  // Техника
-  if (text.includes("машин") || text.includes("техник") || text.includes("грузовик") || text.includes("truck")) {
-    if (text.includes("создал") || text.includes("добавил")) return "🚛➕";
-    if (text.includes("обновил") || text.includes("измен")) return "🚛✏️";
-    if (text.includes("удалил")) return "🚛❌";
-    return "🚛";
-  }
+    // Site actions
+    SITE_CREATED: "Добавлен объект",
+    SITE_UPDATED: "Обновлен объект",
+    SITE_DELETED: "Удален объект",
 
-  // Объекты
-  if (text.includes("объект") || text.includes("site")) {
-    if (text.includes("создал") || text.includes("добавил")) return "🏗️➕";
-    if (text.includes("обновил") || text.includes("измен")) return "🏗️✏️";
-    if (text.includes("удалил")) return "🏗️❌";
-    return "🏗️";
-  }
+    // System actions
+    SETTINGS_UPDATED: "Обновлены настройки",
+    SYSTEM_ERROR: "Системная ошибка",
+  };
 
-  // Настройки
-  if (text.includes("настрой") || text.includes("параметр") || text.includes("setting")) {
-    return "⚙️";
-  }
-
-  // Удаление
-  if (text.includes("удал") || text.includes("delete") || text.includes("remove")) {
-    return "🗑️";
-  }
-
-  // Редактирование
-  if (text.includes("редактир") || text.includes("измен") || text.includes("update") || text.includes("edit")) {
-    return "✏️";
-  }
-
-  // Создание
-  if (text.includes("создал") || text.includes("добавил") || text.includes("create") || text.includes("add")) {
-    return "➕";
-  }
-
-  // Логин/выход
-  if (text.includes("вход") || text.includes("логин") || text.includes("login")) {
-    return "🔐";
-  }
-  if (text.includes("выход") || text.includes("logout")) {
-    return "👋";
-  }
-
-  // Фотографии
-  if (text.includes("фото") || text.includes("изображен") || text.includes("photo")) {
-    return "📷";
-  }
-
-  // Документы
-  if (text.includes("накладн") || text.includes("документ") || text.includes("invoice")) {
-    return "📄";
-  }
-
-  // Система
-  if (text.includes("систем") || text.includes("system")) {
-    return "🖥️";
-  }
-
-  // Дефолт
-  return "📋";
+  return actionMap[action] || action;
 };
 
-const getActionStyle = (actionDisplay: string): string => {
-  const text = actionDisplay.toLowerCase();
+// Helper function to get icon for action type
+const getActionIcon = (action: string): React.ComponentType<{ className?: string }> => {
+  const actionUpper = action.toUpperCase();
 
-  // Создание - зеленый
-  if (text.includes("создал") || text.includes("добавил") || text.includes("начал")) {
-    return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+  // Shift actions
+  if (actionUpper.includes("SHIFT") || actionUpper.includes("СМЕН")) {
+    if (actionUpper.includes("CREATED") || actionUpper.includes("СОЗДАН")) return Plus;
+    if (actionUpper.includes("STARTED") || actionUpper.includes("НАЧА")) return CheckCircle;
+    if (actionUpper.includes("FINISHED") || actionUpper.includes("ЗАВЕРШ")) return CheckCircle;
+    if (actionUpper.includes("CANCELLED") || actionUpper.includes("ОТМЕН")) return XCircle;
+    if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
+    return Clock;
   }
 
-  // Удаление/отмена - красный
-  if (text.includes("удалил") || text.includes("отмен")) {
-    return "bg-red-50 text-red-700 border border-red-200";
+  // User actions
+  if (actionUpper.includes("USER") || actionUpper.includes("ПОЛЬЗОВАТЕЛ")) {
+    if (actionUpper.includes("CREATED") || actionUpper.includes("СОЗДАН")) return Plus;
+    if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
+    if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;
+    if (actionUpper.includes("LOGIN") || actionUpper.includes("ВХОД")) return LogIn;
+    if (actionUpper.includes("LOGOUT") || actionUpper.includes("ВЫХОД")) return LogOut;
+    return User;
   }
 
-  // Редактирование - синий
-  if (text.includes("редактир") || text.includes("измен") || text.includes("обнов")) {
-    return "bg-blue-50 text-blue-700 border border-blue-200";
+  // Truck actions
+  if (actionUpper.includes("TRUCK") || actionUpper.includes("МАШИН") || actionUpper.includes("ГРУЗОВИК")) {
+    if (actionUpper.includes("CREATED") || actionUpper.includes("ДОБАВЛ")) return Plus;
+    if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
+    if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;
+    return Truck;
   }
 
-  // Завершение - серо-зеленый
-  if (text.includes("заверш")) {
-    return "bg-teal-50 text-teal-700 border border-teal-200";
+  // Site actions
+  if (actionUpper.includes("SITE") || actionUpper.includes(" ОБЪЕКT")) {
+    if (actionUpper.includes("CREATED") || actionUpper.includes("ДОБАВЛ")) return Plus;
+    if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
+    if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;
+    return Building;
   }
 
-  // Логин - фиолетовый
-  if (text.includes("вход") || text.includes("логин")) {
-    return "bg-violet-50 text-violet-700 border border-violet-200";
+  // Photo actions
+  if (actionUpper.includes("PHOTO") || actionUpper.includes("ФОТО")) {
+    return Camera;
   }
 
-  // Выход - серый
-  if (text.includes("выход")) {
-    return "bg-slate-50 text-slate-600 border border-slate-200";
+  // Settings
+  if (actionUpper.includes("SETTINGS") || actionUpper.includes("НАСТРО")) {
+    return Settings;
   }
 
-  // Смена - индиго
-  if (text.includes("смен") || text.includes("shift")) {
-    return "bg-indigo-50 text-indigo-700 border border-indigo-200";
+  // Login
+  if (actionUpper.includes("LOGIN") || actionUpper.includes("ВХОД")) {
+    return LogIn;
   }
 
-  // Дефолт - серый
-  return "bg-slate-50 text-slate-600 border border-slate-200";
+  // Logout
+  if (actionUpper.includes("LOGOUT") || actionUpper.includes("ВЫХОД")) {
+    return LogOut;
+  }
+
+  // Delete/Remove
+  if (actionUpper.includes("DELETE") || actionUpper.includes("REMOVE") || actionUpper.includes("УДАЛ")) {
+    return Trash2;
+  }
+
+  // Edit/Update
+  if (actionUpper.includes("UPDATE") || actionUpper.includes("EDIT") || actionUpper.includes("ОБНОВЛ") || actionUpper.includes("РЕДАКТ")) {
+    return Edit3;
+  }
+
+  // Create/Add
+  if (actionUpper.includes("CREATE") || actionUpper.includes("ADD") || actionUpper.includes("СОЗДАН") || actionUpper.includes("ДОБАВЛ")) {
+    return Plus;
+  }
+
+  // Default
+  return FileText;
+};
+
+// Helper function to get color style for action type
+const getActionStyle = (action: string): string => {
+  const actionUpper = action.toUpperCase();
+
+  // Create/Add - green
+  if (actionUpper.includes("CREATED") || actionUpper.includes("СОЗДАН") ||
+      actionUpper.includes("STARTED") || actionUpper.includes("НАЧАЛ") ||
+      actionUpper.includes("ADD") || actionUpper.includes("ДОБАВИЛ")) {
+    return "text-emerald-600 bg-emerald-50 border-emerald-200";
+  }
+
+  // Delete/Cancel - red
+  if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛИЛ") ||
+      actionUpper.includes("CANCEL") || actionUpper.includes("ОТМЕН") ||
+      actionUpper.includes("REMOVE")) {
+    return "text-red-600 bg-red-50 border-red-200";
+  }
+
+  // Update/Edit - blue
+  if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВИЛ") ||
+      actionUpper.includes("EDIT") || actionUpper.includes("РЕДАКТ") ||
+      actionUpper.includes("ИЗМЕН")) {
+    return "text-blue-600 bg-blue-50 border-blue-200";
+  }
+
+  // Finished - teal
+  if (actionUpper.includes("FINISHED") || actionUpper.includes("ЗАВЕРШ")) {
+    return "text-teal-600 bg-teal-50 border-teal-200";
+  }
+
+  // Login - violet
+  if (actionUpper.includes("LOGIN") || actionUpper.includes("ВХОД")) {
+    return "text-violet-600 bg-violet-50 border-violet-200";
+  }
+
+  // Logout - gray
+  if (actionUpper.includes("LOGOUT") || actionUpper.includes("ВЫХОД")) {
+    return "text-slate-600 bg-slate-50 border-slate-200";
+  }
+
+  // Photo - amber
+  if (actionUpper.includes("PHOTO") || actionUpper.includes("ФОТО")) {
+    return "text-amber-600 bg-amber-50 border-amber-200";
+  }
+
+  // Default - indigo
+  return "text-indigo-600 bg-indigo-50 border-indigo-200";
+};
+
+// Format date to "27 января 2026"
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+};
+
+// Format time to "13:22"
+const formatTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Group logs by date
+const groupLogsByDate = (logs: AuditLog[]): Record<string, AuditLog[]> => {
+  const grouped: Record<string, AuditLog[]> = {};
+
+  logs.forEach((log) => {
+    const dateKey = formatDate(log.timestamp);
+    if (!grouped[dateKey]) {
+      grouped[dateKey] = [];
+    }
+    grouped[dateKey].push(log);
+  });
+
+  return grouped;
 };
 
 const AuditLogs: React.FC = () => {
@@ -151,6 +239,9 @@ const AuditLogs: React.FC = () => {
     fetchLogs();
   }, []);
 
+  // Group logs by date
+  const groupedLogs = useMemo(() => groupLogsByDate(logs), [logs]);
+
   if (loading)
     return (
       <div className="flex justify-center p-10 text-slate-400 animate-pulse">
@@ -166,51 +257,66 @@ const AuditLogs: React.FC = () => {
           Экспорт CSV
         </button>
       </div>
-      <div className="divide-y divide-slate-50">
+
+      <div className="divide-y divide-slate-100">
         {!logs || logs.length === 0 ? (
           <div className="p-12 text-center text-slate-400">
             История действий пуста
           </div>
         ) : (
-          logs.map((log) => {
-            const actionDisplay = log.action_display || log.action;
-            const emoji = getActionEmoji(actionDisplay);
-            const style = getActionStyle(actionDisplay);
-
-            return (
-              <div
-                key={log.id}
-                className="p-4 hover:bg-slate-50/50 transition-colors flex gap-4"
-              >
-                <div className="text-slate-400 font-mono text-[10px] pt-0.5 w-28 shrink-0">
-                  {new Date(log.timestamp).toLocaleString('ru-RU', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-sm" aria-hidden="true">{emoji}</span>
-                    <span className="font-semibold text-[#1B254B] text-xs">
-                      {log.performed_by}
-                    </span>
-                    <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${style}`}
-                    >
-                      {actionDisplay}
-                    </span>
-                  </div>
-                  {log.details && (
-                    <p className="text-xs text-slate-500 leading-relaxed ml-5">
-                      {log.details}
-                    </p>
-                  )}
-                </div>
+          Object.entries(groupedLogs).map(([date, dateLogs]) => (
+            <div key={date} className="border-b border-slate-100 last:border-b-0">
+              {/* Date header */}
+              <div className="px-6 py-2 bg-slate-50 border-b border-slate-200">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {date}
+                </span>
               </div>
-            );
-          })
+
+              {/* Logs for this date */}
+              <div className="divide-y divide-slate-50">
+                {dateLogs.map((log) => {
+                  const actionDisplay = formatActionType(log.action);
+                  const IconComponent = getActionIcon(log.action);
+                  const style = getActionStyle(log.action);
+
+                  return (
+                    <div
+                      key={log.id}
+                      className="p-4 hover:bg-slate-50/50 transition-colors flex gap-4"
+                    >
+                      {/* Time */}
+                      <div className="text-slate-400 font-mono text-xs pt-0.5 w-16 shrink-0">
+                        {formatTime(log.timestamp)}
+                      </div>
+
+                      {/* Icon */}
+                      <div className={`p-2 rounded-lg border ${style} shrink-0`}>
+                        <IconComponent className="w-4 h-4" strokeWidth={2} />
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                          <span className="font-semibold text-[#1B254B] text-sm">
+                            {log.performed_by}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${style}`}>
+                            {actionDisplay}
+                          </span>
+                        </div>
+                        {log.details && (
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            {log.details}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>

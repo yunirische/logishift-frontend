@@ -570,3 +570,60 @@ npm run type-check   # Run TypeScript compiler check
   - Submit button disabled when year validation fails
   - Year validation regex: `/^(\d{4})-/` ensures exactly 4 digits
 - **Impact:** Prevents submission of invalid dates, provides clear visual feedback, improves data quality
+
+## [2025-01-27] - Feature: Add Human-Readable Audit Log Formatting
+- **File(s):** `src/components/AuditLogs.tsx`
+- **Change:** Complete rewrite of audit log display with human-readable formatting, date grouping, and Lucide icons
+- **Before:**
+  - Used emoji characters for action icons (🚀, 🏁, ❌, etc.)
+  - Technical action codes displayed directly (e.g., "SHIFT_FINISHED", "USER_CREATED")
+  - ISO timestamps in format "DD.MM.YYYY, HH:MM"
+  - No date grouping
+  - Simple color coding
+  - Example display: "Иван Петров | SHIFT_FINISHED | 27.01.2026, 13:22"
+- **After:**
+  - Replaced emoji with Lucide React SVG icons for consistency
+    - Plus (➕) for creation
+    - Edit3 (✏️) for updates
+    - Trash2 (🗑️) for deletion
+    - CheckCircle (✓) for completion
+    - User, Truck, Building for entities
+    - Camera for photos
+    - LogIn/LogOut for authentication
+  - Created `formatActionType()` helper to translate action codes to Russian:
+    - "SHIFT_FINISHED" → "Завершена смена"
+    - "USER_CREATED" → "Создан пользователь"
+    - "TRUCK_UPDATED" → "Обновлена машина"
+    - Supports 20+ action types
+  - Created `getActionIcon()` helper with intelligent icon selection based on action keywords
+  - Created `getActionStyle()` helper with enhanced color coding:
+    - Emerald/green for creation (CREATED, STARTED, ADD)
+    - Red for deletion (DELETED, CANCEL, REMOVE)
+    - Blue for updates (UPDATED, EDIT, ИЗМЕН)
+    - Teal for completion (FINISHED, ЗАВЕРШ)
+    - Violet for login (LOGIN, ВХОД)
+    - Gray for logout (LOGOUT, ВЫХОД)
+    - Amber for photo uploads (PHOTO, ФОТО)
+    - Indigo for other actions
+  - Created `groupLogsByDate()` helper to group logs by date
+  - Created `formatDate()` helper: "27 января 2026"
+  - Created `formatTime()` helper: "13:22"
+  - Date grouping with collapsible date headers in uppercase
+  - Icon displayed in rounded badge with matching colors
+  - Improved layout: time | icon badge | user + action badge + details
+  - Added `useMemo` optimization for grouped logs
+- **Example display:**
+  ```
+  ┌─ 27 января 2026 ──────────────────────┐
+  │ 13:22 [✓] Иван Петров [Завершена смена] │
+  │       Завершена рабочая смена #52      │
+  └─────────────────────────────────────────┘
+  ```
+- **Benefits:**
+  - ✅ Human-readable Russian action names
+  - ✅ Consistent Lucide icons (cross-browser compatible)
+  - ✅ Clear date grouping for better navigation
+  - ✅ Enhanced color coding for quick scanning
+  - ✅ Better visual hierarchy with icon badges
+  - ✅ Responsive layout with proper spacing
+- **Impact:** Audit logs are now much more readable and user-friendly, easier to understand system events at a glance
