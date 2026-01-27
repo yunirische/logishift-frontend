@@ -193,27 +193,41 @@ const Shifts: React.FC = () => {
   const formatShiftTime = (s: Shift) => {
     const status = (s.status || "").toLowerCase();
 
-    // For finished shifts, show start and end time range
+    // For finished shifts, show start and end time range with date
     if (status === "finished" || status === "completed") {
       if (isValidDate(s.start_time) && isValidDate(s.end_time)) {
+        const startDate = formatForDisplay(s.start_time!, timezone, "DD.MM.YYYY");
         const startTime = formatForDisplay(s.start_time!, timezone, "HH:mm");
+        const endDate = formatForDisplay(s.end_time!, timezone, "DD.MM.YYYY");
         const endTime = formatForDisplay(s.end_time!, timezone, "HH:mm");
-        return `${startTime} - ${endTime}`;
+
+        // Check if start and end are on the same day
+        if (startDate === endDate) {
+          // Same day: show date once on the left
+          return `${startDate} ${startTime} - ${endTime}`;
+        } else {
+          // Different days: show both dates
+          return `${startDate} ${startTime} - ${endDate} ${endTime}`;
+        }
       }
     }
 
-    // For active shifts, show start time only
+    // For active shifts, show start time with date
     if (status === "active" && isValidDate(s.start_time)) {
+      const startDate = formatForDisplay(s.start_time!, timezone, "DD.MM.YYYY");
       const startTime = formatForDisplay(s.start_time!, timezone, "HH:mm");
-      return `${startTime} —`;
+      return `${startDate} ${startTime} —`;
     }
 
-    // For other shifts, show created_at time
+    // For other shifts, show created_at time with date
     if (isValidDate(s.created_at)) {
-      return new Date(s.created_at!).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      const date = new Date(s.created_at!);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${day}.${month}.${year} ${hours}:${minutes}`;
     }
 
     return "—";

@@ -840,4 +840,38 @@ npm run type-check   # Run TypeScript compiler check
   - Helps identify any remaining data format mismatches
   - Can be removed once backend format is confirmed stable
 - **Impact:** Audit logs now show human-readable descriptions instead of raw JSON data
+
+## [2026-01-27] - Feature: Add Date to Shift Time Display in Shifts Table
+- **File(s):** `src/components/Shifts.tsx`
+- **Change:** Enhanced `formatShiftTime()` function to display date alongside time in the "Время" column
+- **Before:**
+  - Only showed time range: `17:54 - 17:55`
+  - No date information in time column
+  - Difficult to determine which day a shift occurred
+  - Line 192-220: Time-only formatting using `HH:mm` format
+  - Example display: `17:54 - 17:55` for finished shifts
+- **After:**
+  - Shows date in DD.MM.YYYY format alongside time
+  - Smart date handling for single-day vs multi-day shifts:
+    - Same day: `09.01.2026 17:54 - 17:55` (date shown once on left)
+    - Different days: `09.01.2026 23:50 - 10.01.2026 01:20` (both dates shown)
+  - Active shifts: `09.01.2026 17:54 —` (start time with date)
+  - Other shifts: `09.01.2026 17:54` (created_at with date)
+  - Uses tenant timezone via `formatForDisplay()` from dateUtils
+  - Line 192-239: Enhanced logic to compare start/end dates and format accordingly
+- **Implementation Details:**
+  - Extracts both date and time separately: `DD.MM.YYYY` and `HH:mm`
+  - Compares startDate vs endDate to determine if same day
+  - Conditional rendering based on date comparison
+  - Maintains timezone-aware formatting
+  - Compact format to avoid table column width issues
+- **Benefits:**
+  - ✅ **UX IMPROVEMENT**: Users can now see which day a shift occurred
+  - ✅ Handles multi-day shifts correctly (shifts across midnight)
+  - ✅ Compact display - date shown only once when possible
+  - ✅ Timezone-aware - respects tenant timezone settings
+  - ✅ Consistent with Russian date format (DD.MM.YYYY)
+  - ✅ No breaking changes - existing logic preserved
+  - ✅ Helps differentiate shifts with same time on different days
+- **Impact:** Shift registry table now shows complete datetime information, making it easier to identify and track shifts
 - **Impact:** Audit logs are now significantly more readable and useful for admin users tracking system activity
