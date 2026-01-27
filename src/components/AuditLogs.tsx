@@ -90,7 +90,7 @@ const getActionIcon = (action: string): React.ComponentType<{ className?: string
   }
 
   // Site actions
-  if (actionUpper.includes("SITE") || actionUpper.includes(" ОБЪЕКT")) {
+  if (actionUpper.includes("SITE") || actionUpper.includes("ОБЪЕКТ")) {
     if (actionUpper.includes("CREATED") || actionUpper.includes("ДОБАВЛ")) return Plus;
     if (actionUpper.includes("UPDATED") || actionUpper.includes("ОБНОВЛ")) return Edit3;
     if (actionUpper.includes("DELETED") || actionUpper.includes("УДАЛ")) return Trash2;

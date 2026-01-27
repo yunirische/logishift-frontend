@@ -691,3 +691,23 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ Better visual hierarchy with icon badges
   - ✅ Responsive layout with proper spacing
 - **Impact:** Audit logs are now much more readable and user-friendly, easier to understand system events at a glance
+
+## [2026-01-27] - Fix: Audit Logs Icon Detection Bug
+- **File(s):** `src/components/AuditLogs.tsx`
+- **Change:** Fixed typo in site/object detection pattern in `getActionIcon()` helper function
+- **Before:**
+  - Line 93: `actionUpper.includes(" ОБЪЕКT")`
+  - Extra space before "ОБЪЕКT" prevented matching "СОЗДАНИЕ ОБЪЕКТА"
+  - Latin "T" instead of Cyrillic "Т" in "ОБЪЕКT"
+  - Site/object actions fell through to default FileText icon
+- **After:**
+  - Line 93: `actionUpper.includes("ОБЪЕКТ")`
+  - Removed extra space and corrected Cyrillic character encoding
+  - Site/object actions now correctly show Building icon
+  - Actions like "Создан объект", "Обновлен объект" display Building icon
+- **Root Cause:** Typo introduced during previous icon migration prevented proper detection of Russian site/object action keywords
+- **Benefits:**
+  - ✅ Fixes incorrect icon display for site/object actions
+  - ✅ Ensures consistent visual representation of action types
+  - ✅ Improves user understanding of audit log entries
+  - ✅ Minimal change (single character fix)
