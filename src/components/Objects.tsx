@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Camera, FileText, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { MapPin, Camera, FileText, Plus, Pencil, Trash2, X, Building } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
 import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
@@ -144,7 +144,9 @@ const Objects: React.FC = () => {
             </div>
 
             <div className="flex justify-between items-start pr-16">
-              <span className="text-3xl">🏗️</span>
+              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                <Building size={28} strokeWidth={2} />
+              </div>
               {!s.is_active && <span className="px-3 py-1 rounded-full text-[10px] font-semibold uppercase bg-slate-100 text-slate-500">Неактивен</span>}
             </div>
             
