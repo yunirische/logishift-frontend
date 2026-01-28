@@ -77,3 +77,4 @@ package-lock.json
 # docs/
 # ARCHITECTURE-FRONT.md
 # AGENTS.md
+.planning/config.json
