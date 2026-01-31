@@ -931,3 +931,59 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ Clear guidance on handling 403 subscription errors
   - ✅ Integration checklist ensures complete implementation
 - **Impact:** Frontend documentation is now synchronized with backend v2.5, enabling agents to leverage new analytics and subscription features without needing to reference external documentation
+
+## [2026-01-31] - Feature: Error handling and loading states for Analytics dashboard
+
+- **File(s):** `src/services/api.ts`, `src/components/analytics/ErrorBoundary.tsx` (NEW), `src/components/Analytics.tsx`, `src/components/analytics/TrendsChart.tsx`
+- **Change:** Added comprehensive error handling with typed errors, subscription-expired handling, React ErrorBoundary, and global refresh functionality
+- **Implementation Details:**
+  - **API Service (`src/services/api.ts`):**
+    - Added `ApiErrorType` enum: NETWORK, TIMEOUT, AUTHENTICATION, SUBSCRIPTION_EXPIRED, SERVER, UNKNOWN
+    - Added `ApiError` interface extending Error with `type` and `status` properties
+    - Added `createApiError()` factory function for typed error creation
+    - Modified `apiRequest()` to throw typed errors:
+      - 403 → SUBSCRIPTION_EXPIRED (does NOT clear auth or reload - analytics becomes read-only)
+      - 401 → AUTHENTICATION (existing behavior: clearAuth + reload preserved)
+      - AbortError → TIMEOUT
+      - Failed to fetch → NETWORK
+      - Other 4xx/5xx → SERVER with status code
+  - **ErrorBoundary Component (`src/components/analytics/ErrorBoundary.tsx`):**
+    - NEW React class component for catching React rendering errors
+    - Displays user-friendly error message with AlertCircle icon
+    - Retry button with RefreshCw icon and optional onReset callback
+    - Logs errors to console for debugging
+  - **Analytics Component (`src/components/Analytics.tsx`):**
+    - Added state: `subscriptionExpired`, `globalError`, `isRetryingAll`
+    - Added `handleApiError()` centralized error handler that checks error.type
+    - Added `handleRetryAll()` function to retry all 4 data sources in parallel
+    - Added subscription-expired banner (amber warning styling) at top of analytics
+    - Added global refresh button next to Export button with spinning animation
+    - Wrapped main content grid with ErrorBoundary for React error catching
+    - Updated all fetch functions (fetchUsage, fetchTrends, fetchDrivers, fetchInsights) to use handleApiError
+  - **TrendsChart Component (`src/components/analytics/TrendsChart.tsx`):**
+    - Added `error?: string | null` and `onRetry?: () => void` props
+    - Added error UI with AlertCircle icon and retry button
+    - Imported AlertCircle and RefreshCw icons from lucide-react
+    - Error state displays after loading skeleton, before empty state
+- **Before:**
+  - API service threw generic Error objects without type information
+  - 403 errors would clear auth and reload (same as 401)
+  - No React ErrorBoundary for catching rendering errors
+  - Each component handled its own errors with inconsistent patterns
+  - No global refresh functionality
+  - TrendsChart showed empty state on error without retry option
+- **After:**
+  - API service throws typed errors with type and status for precise error handling
+  - 403 errors show subscription-expired banner without logging user out
+  - React ErrorBoundary catches rendering errors and provides recovery UI
+  - Consistent error UI pattern across all analytics components (AlertCircle + retry button)
+  - Global refresh button retries all data sources in parallel
+  - TrendsChart accepts error/onRetry props for parent-controlled error state
+- **Benefits:**
+  - ✅ **SUBSCRIPTION EXPIRED:** Users see read-only message instead of being logged out (403 ≠ 401)
+  - ✅ **ERROR RECOVERY:** Users can retry failed requests without page reload
+  - ✅ **REACT ERROR SAFETY:** ErrorBoundary prevents white screen of death from rendering errors
+  - ✅ **CONSISTENT UX:** All error states use same visual pattern (red error icon + retry button)
+  - ✅ **GLOBAL REFRESH:** One button refreshes all analytics data sources
+  - ✅ **BETTER DEBUGGING:** Typed errors with status codes for easier troubleshooting
+- **Impact:** Analytics dashboard now gracefully handles all error scenarios with clear user feedback and recovery options, subscription-expired state is read-only instead of forcing logout
