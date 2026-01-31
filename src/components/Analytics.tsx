@@ -336,22 +336,13 @@ const Analytics: React.FC = () => {
 
           {/* Row 2: Trends chart (full width) */}
           <div className="lg:col-span-2 xl:col-span-3">
-            {trendsLoading ? (
-              // TrendsChart handles its own loading state
-              <TrendsChart data={[]} days={selectedDays} isLoading={true} />
-            ) : trendsError ? (
-              <div className="bg-white rounded-3xl shadow-lg p-6">
-                <p className="text-red-600 text-center">{trendsError}</p>
-                <button
-                  onClick={fetchTrends}
-                  className="mx-auto mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                >
-                  Попробовать снова
-                </button>
-              </div>
-            ) : (
-              <TrendsChart data={trendsData} days={selectedDays} />
-            )}
+            <TrendsChart
+              data={trendsData}
+              days={selectedDays}
+              isLoading={trendsLoading}
+              error={trendsError}
+              onRetry={fetchTrends}
+            />
           </div>
 
           {/* Row 3: Driver rankings (full width) */}

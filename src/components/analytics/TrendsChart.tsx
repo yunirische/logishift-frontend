@@ -10,12 +10,14 @@ import {
   Cell,
 } from "recharts";
 import { AnalyticsTrend, TrendMetric } from "../../types";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, AlertCircle, RefreshCw } from "lucide-react";
 
 interface TrendsChartProps {
   data: AnalyticsTrend[];
   days: number;
   isLoading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 // Metric configuration with labels and units
@@ -93,7 +95,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading = false }) => {
+export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading = false, error, onRetry }) => {
   const [selectedMetric, setSelectedMetric] = useState<TrendMetric>("shifts");
 
   // Transform data for selected metric
@@ -117,6 +119,32 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
           <div className="h-6 bg-slate-200 rounded w-32 animate-pulse"></div>
         </div>
         <div className="h-64 bg-slate-100 rounded-2xl animate-pulse"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-3xl shadow-lg p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-indigo-50 rounded-xl">
+            <TrendingUp className="w-5 h-5 text-indigo-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800">Динамика</h3>
+        </div>
+        <div className="flex flex-col items-center justify-center py-8">
+          <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
+          <p className="text-red-600 text-center mb-4">{error}</p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Попробовать снова
+            </button>
+          )}
+        </div>
       </div>
     );
   }
