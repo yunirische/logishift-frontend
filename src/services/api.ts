@@ -143,6 +143,10 @@ export const getAnalyticsUsage = async () => {
   return get(API_ENDPOINTS.ANALYTICS_USAGE);
 };
 
+export const getAnalyticsTrends = async (days: number = 30) => {
+  return get(`${API_ENDPOINTS.ANALYTICS_TRENDS}?days=${days}`);
+};
+
 export const getPhotoUrl = (path?: string | null): string | null => {
   if (!path) return null;
   if (path.startsWith('http')) return path;

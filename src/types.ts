@@ -107,3 +107,18 @@ export interface AnalyticsUsage {
   drivers: ResourceUsage;
   sites: ResourceUsage;
 }
+
+// Trends types
+export type TrendMetric = "shifts" | "hours" | "salary";
+
+export interface AnalyticsTrend {
+  date: string;
+  shifts_count: number;
+  hours_worked: number;
+  salary_paid: number;
+}
+
+export interface TrendsData {
+  data: AnalyticsTrend[];
+  metric: TrendMetric;
+}
