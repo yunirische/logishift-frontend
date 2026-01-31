@@ -12,6 +12,7 @@ const Shifts = lazy(() => import("./components/Shifts"));
 const Fleet = lazy(() => import("./components/Fleet"));
 const Objects = lazy(() => import("./components/Objects"));
 const Settings = lazy(() => import("./components/Settings"));
+const Analytics = lazy(() => import("./components/Analytics"));
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -63,6 +64,12 @@ const AppContent: React.FC = () => {
     switch (activeTab) {
       case "dashboard":
         return <Dashboard />;
+      case "analytics":
+        return (
+          <Suspense fallback={loadingFallback}>
+            <Analytics />
+          </Suspense>
+        );
       case "shifts":
         return (
           <Suspense fallback={loadingFallback}>

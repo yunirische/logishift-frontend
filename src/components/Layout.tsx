@@ -11,6 +11,7 @@ import {
   Building,
   ScrollText,
   Settings,
+  BarChart,
   LucideIcon,
 } from "lucide-react";
 
@@ -36,6 +37,12 @@ const Layout: React.FC<LayoutProps> = ({
       label: "Главная",
       icon: Home,
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
+    },
+    {
+      id: "analytics",
+      label: "Аналитика",
+      icon: BarChart,
+      roles: [UserRole.ADMIN, UserRole.FOREMAN],
     },
     {
       id: "shifts",
