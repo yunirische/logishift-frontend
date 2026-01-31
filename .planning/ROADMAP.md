@@ -26,13 +26,10 @@ The v1.5 Analytics Dashboard milestone transforms LogiShift from operational shi
   3. User can click "Export Report" button to download CSV file of analytics data
   4. Dashboard displays in single-column layout on mobile devices and multi-column card layout on desktop
   5. All interactive elements (time range selector, export button) are touch-friendly and accessible on mobile
-**Plans**: TBD
+**Plans**: 1 plan in 1 wave
 
 Plans:
-- [ ] 01-01: Create analytics page component with responsive layout structure
-- [ ] 01-02: Implement time range selector with 7/30/90 day presets
-- [ ] 01-03: Add export report button with CSV download functionality
-- [ ] 01-04: Connect time range state to all analytics components
+- [ ] 01-01: Analytics page with navigation entry, responsive layout, time range controls, and CSV export
 
 #### Phase 2: Usage Overview Cards
 **Goal**: Users can view resource utilization metrics for trucks, drivers, and sites
@@ -150,8 +147,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Dashboard Layout & Controls | v1.5 | 0/TBD | Not started | - |
-| 2. Usage Overview Cards | v1.5 | 0/TBD | Not started | - |
+| 1. Dashboard Layout & Controls | v1.5 | 0/1 | Ready to execute | - |
+| 2. Usage Overview Cards | v1.5 | 0/4 | Not started | - |
 | 3. Trends Visualization | v1.5 | 0/TBD | Not started | - |
 | 4. Driver Performance | v1.5 | 0/TBD | Not started | - |
 | 5. Insights Panel | v1.5 | 0/TBD | Not started | - |
