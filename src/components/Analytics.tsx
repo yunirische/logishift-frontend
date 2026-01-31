@@ -1,6 +1,9 @@
-import React, { useState } from "react";
-import { Calendar, Download } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Calendar, Download, Truck, Users, Building2 } from "lucide-react";
 import { API_ENDPOINTS } from "../constants";
+import { getAnalyticsUsage } from "../services/api";
+import { AnalyticsUsage } from "../types";
+import { UsageCard } from "./analytics/UsageCard";
 
 type TimeRangePreset = 7 | 30 | 90;
 
@@ -9,12 +12,36 @@ const Analytics: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRangeLoading, setIsRangeLoading] = useState(false);
 
+  // Usage data state
+  const [usageData, setUsageData] = useState<AnalyticsUsage | null>(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [usageError, setUsageError] = useState<string | null>(null);
+
+  const fetchUsage = async () => {
+    setUsageLoading(true);
+    setUsageError(null);
+    try {
+      const data = await getAnalyticsUsage();
+      setUsageData(data);
+    } catch (error) {
+      console.error("Failed to fetch usage data:", error);
+      setUsageError(error instanceof Error ? error.message : "Ошибка загрузки данных");
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsage();
+  }, [selectedDays]); // Re-fetch when time range changes
+
   const handleRangeChange = async (days: TimeRangePreset) => {
     if (days === selectedDays) return;
     setIsRangeLoading(true);
     setSelectedDays(days);
-    // Simulate data fetch delay - will be real API call in later phases
-    setTimeout(() => setIsRangeLoading(false), 500);
+    // fetchUsage will be called by useEffect when selectedDays changes
+    await fetchUsage();
+    setIsRangeLoading(false);
   };
 
   const handleExport = async () => {
@@ -128,15 +155,55 @@ const Analytics: React.FC = () => {
           </div>
         )}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
-            <p className="text-slate-400">Карточки аналитики будут здесь</p>
-          </div>
-          <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
-            <p className="text-slate-400">Графики будут здесь</p>
-          </div>
-          <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
-            <p className="text-slate-400">Статистика будет здесь</p>
-          </div>
+          {usageLoading ? (
+            // Loading skeleton
+            <>
+              <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[180px] animate-pulse">
+                <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+              </div>
+              <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[180px] animate-pulse">
+                <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+              </div>
+              <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[180px] animate-pulse">
+                <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+              </div>
+            </>
+          ) : usageError ? (
+            // Error state
+            <div className="col-span-full bg-white rounded-3xl shadow-lg p-6">
+              <p className="text-red-600 text-center">{usageError}</p>
+              <button
+                onClick={fetchUsage}
+                className="mx-auto mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Попробовать снова
+              </button>
+            </div>
+          ) : usageData && (
+            <>
+              <UsageCard
+                title="Грузовики"
+                icon={Truck}
+                usage={usageData.trucks}
+              />
+              <UsageCard
+                title="Водители"
+                icon={Users}
+                usage={usageData.drivers}
+              />
+              <UsageCard
+                title="Объекты"
+                icon={Building2}
+                usage={usageData.sites}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>
