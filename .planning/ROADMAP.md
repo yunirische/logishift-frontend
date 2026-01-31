@@ -98,7 +98,9 @@ Plans:
 **Plans**: 1 plan in 1 wave
 
 Plans:
-- [ ] 05-01: Insights panel with underutilized resources, near-limit warnings, cost per shift, and recommended actions
+- [x] 05-01: Insights panel with underutilized resources, near-limit warnings, cost per shift, and recommended actions
+
+**Completed:** 2026-02-01
 
 #### Phase 6: Error Handling & Loading
 **Goal**: Analytics dashboard handles errors gracefully and provides clear loading states
@@ -145,6 +147,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Usage Overview Cards | v1.5 | 1/1 | Complete | 2026-01-31 |
 | 3. Trends Visualization | v1.5 | 1/1 | Complete | 2026-01-31 |
 | 4. Driver Performance | v1.5 | 1/1 | Complete | 2026-01-31 |
-| 5. Insights Panel | v1.5 | 0/1 | Ready | - |
+| 5. Insights Panel | v1.5 | 1/1 | ✓ Complete | 2026-02-01 |
 | 6. Error Handling & Loading | v1.5 | 0/TBD | Not started | - |
 | 7. Styling & Theming | v1.5 | 0/TBD | Not started | - |

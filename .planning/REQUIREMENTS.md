@@ -41,12 +41,12 @@ Requirements for Analytics Dashboard milestone. Each maps to roadmap phases.
 
 ### Insights Panel
 
-- [ ] **ANAL-21**: User can view plan optimization insights and recommendations
-- [ ] **ANAL-22**: Insights panel displays underutilized resources list (trucks, sites)
-- [ ] **ANAL-23**: Insights panel displays near-limit resources with current/limit/percent
-- [ ] **ANAL-24**: Insights panel displays cost per shift metric
-- [ ] **ANAL-25**: Insights panel displays recommended actions list
-- [ ] **ANAL-26**: System uses alert styling (warnings, info) for insights visualization
+- [x] **ANAL-21**: User can view plan optimization insights and recommendations
+- [x] **ANAL-22**: Insights panel displays underutilized resources list (trucks, sites)
+- [x] **ANAL-23**: Insights panel displays near-limit resources with current/limit/percent
+- [x] **ANAL-24**: Insights panel displays cost per shift metric
+- [x] **ANAL-25**: Insights panel displays recommended actions list
+- [x] **ANAL-26**: System uses alert styling (warnings, info) for insights visualization
 
 ### Error Handling & Loading
 
@@ -119,12 +119,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANAL-18 | Phase 4 | Complete |
 | ANAL-19 | Phase 4 | Complete |
 | ANAL-20 | Phase 4 | Complete |
-| ANAL-21 | Phase 5 | Pending |
-| ANAL-22 | Phase 5 | Pending |
-| ANAL-23 | Phase 5 | Pending |
-| ANAL-24 | Phase 5 | Pending |
-| ANAL-25 | Phase 5 | Pending |
-| ANAL-26 | Phase 5 | Pending |
+| ANAL-21 | Phase 5 | Complete |
+| ANAL-22 | Phase 5 | Complete |
+| ANAL-23 | Phase 5 | Complete |
+| ANAL-24 | Phase 5 | Complete |
+| ANAL-25 | Phase 5 | Complete |
+| ANAL-26 | Phase 5 | Complete |
 | ANAL-27 | Phase 6 | Pending |
 | ANAL-28 | Phase 6 | Pending |
 | ANAL-29 | Phase 6 | Pending |
