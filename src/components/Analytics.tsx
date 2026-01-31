@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, Download, Truck, Users, Building2 } from "lucide-react";
 import { API_ENDPOINTS } from "../constants";
-import { getAnalyticsUsage } from "../services/api";
-import { AnalyticsUsage } from "../types";
+import { getAnalyticsUsage, getAnalyticsTrends } from "../services/api";
+import { AnalyticsUsage, AnalyticsTrend } from "../types";
 import { UsageCard } from "./analytics/UsageCard";
+import { TrendsChart } from "./analytics/TrendsChart";
 
 type TimeRangePreset = 7 | 30 | 90;
 
@@ -16,6 +17,11 @@ const Analytics: React.FC = () => {
   const [usageData, setUsageData] = useState<AnalyticsUsage | null>(null);
   const [usageLoading, setUsageLoading] = useState(true);
   const [usageError, setUsageError] = useState<string | null>(null);
+
+  // Trends data state
+  const [trendsData, setTrendsData] = useState<AnalyticsTrend[]>([]);
+  const [trendsLoading, setTrendsLoading] = useState(true);
+  const [trendsError, setTrendsError] = useState<string | null>(null);
 
   const fetchUsage = async () => {
     setUsageLoading(true);
@@ -31,16 +37,31 @@ const Analytics: React.FC = () => {
     }
   };
 
+  const fetchTrends = async () => {
+    setTrendsLoading(true);
+    setTrendsError(null);
+    try {
+      const data = await getAnalyticsTrends(selectedDays);
+      setTrendsData(data);
+    } catch (error) {
+      console.error("Failed to fetch trends data:", error);
+      setTrendsError(error instanceof Error ? error.message : "Ошибка загрузки данных");
+    } finally {
+      setTrendsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsage();
-  }, [selectedDays]); // Re-fetch when time range changes
+    fetchTrends();
+  }, [selectedDays]); // Re-fetch both when time range changes
 
   const handleRangeChange = async (days: TimeRangePreset) => {
     if (days === selectedDays) return;
     setIsRangeLoading(true);
     setSelectedDays(days);
-    // fetchUsage will be called by useEffect when selectedDays changes
-    await fetchUsage();
+    // Both fetchUsage and fetchTrends will be called by useEffect
+    await Promise.all([fetchUsage(), fetchTrends()]);
     setIsRangeLoading(false);
   };
 
@@ -155,8 +176,9 @@ const Analytics: React.FC = () => {
           </div>
         )}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {/* Row 1: Usage cards (3 columns) */}
           {usageLoading ? (
-            // Loading skeleton
+            // Loading skeletons for usage cards
             <>
               <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[180px] animate-pulse">
                 <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
@@ -175,8 +197,7 @@ const Analytics: React.FC = () => {
               </div>
             </>
           ) : usageError ? (
-            // Error state
-            <div className="col-span-full bg-white rounded-3xl shadow-lg p-6">
+            <div className="col-span-full lg:col-span-3 bg-white rounded-3xl shadow-lg p-6">
               <p className="text-red-600 text-center">{usageError}</p>
               <button
                 onClick={fetchUsage}
@@ -204,6 +225,26 @@ const Analytics: React.FC = () => {
               />
             </>
           )}
+
+          {/* Row 2: Trends chart (full width) */}
+          <div className="lg:col-span-2 xl:col-span-3">
+            {trendsLoading ? (
+              // TrendsChart handles its own loading state
+              <TrendsChart data={[]} days={selectedDays} isLoading={true} />
+            ) : trendsError ? (
+              <div className="bg-white rounded-3xl shadow-lg p-6">
+                <p className="text-red-600 text-center">{trendsError}</p>
+                <button
+                  onClick={fetchTrends}
+                  className="mx-auto mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
+                  Попробовать снова
+                </button>
+              </div>
+            ) : (
+              <TrendsChart data={trendsData} days={selectedDays} />
+            )}
+          </div>
         </div>
       </div>
     </div>
