@@ -29,7 +29,9 @@ The v1.5 Analytics Dashboard milestone transforms LogiShift from operational shi
 **Plans**: 1 plan in 1 wave
 
 Plans:
-- [ ] 01-01: Analytics page with navigation entry, responsive layout, time range controls, and CSV export
+- [x] 01-01: Analytics page with navigation entry, responsive layout, time range controls, and CSV export
+
+**Completed:** 2026-01-31
 
 #### Phase 2: Usage Overview Cards
 **Goal**: Users can view resource utilization metrics for trucks, drivers, and sites
@@ -147,7 +149,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Dashboard Layout & Controls | v1.5 | 0/1 | Ready to execute | - |
+| 1. Dashboard Layout & Controls | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
 | 2. Usage Overview Cards | v1.5 | 0/4 | Not started | - |
 | 3. Trends Visualization | v1.5 | 0/TBD | Not started | - |
 | 4. Driver Performance | v1.5 | 0/TBD | Not started | - |

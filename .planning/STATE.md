@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Drivers can start, track, and complete shifts with photo documentation, while admins/foremen have real-time visibility into fleet operations, resource utilization, and business insights.
-**Current focus:** Phase 1 - Dashboard Layout & Controls
+**Current focus:** Phase 2 - Usage Overview Cards
 
 ## Current Position
 
-Phase: 1 of 7 (Dashboard Layout & Controls)
-Plan: 1 of 2 (Dashboard Navigation & Layout Skeleton)
-Status: In progress
-Last activity: 2026-01-31 — Completed 01-01: Dashboard Navigation & Layout Skeleton
+Phase: 2 of 7 (Usage Overview Cards)
+Plan: TBD (not started)
+Status: Ready to plan
+Last activity: 2026-01-31 — Phase 1 complete: Analytics dashboard with navigation, time range controls, and CSV export
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 14% (1/7 phases complete)
 
 ## Performance Metrics
 
@@ -27,7 +27,7 @@ Progress: [██░░░░░░░░] 20%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-dashboard-layout | 1 of 2 | 15 min | 15 min |
+| 01-dashboard-layout | 1/1 | 15 min | 15 min |
 | - | - | - | - |
 
 **Recent Trend:**
@@ -48,12 +48,13 @@ Recent decisions affecting current work:
 - [Project Level]: Usage cards first, then charts (progressive enhancement, core metrics before visualization)
 - [Project Level]: Cache analytics data 5-15 min (reduce API load, analytics not real-time critical)
 
-**Phase 01-01 Decisions:**
+**Phase 1 Decisions:**
 - [01-01]: Analytics positioned as second tab after Dashboard for high visibility
 - [01-01]: Time range presets (7/30/90 days) with immediate state change on selection
 - [01-01]: CSV export filename includes preset and date for easy identification
 - [01-01]: Loading overlay with backdrop blur during time range changes
 - [01-01]: Touch-manipulation CSS class for mobile optimization
+- [01-01]: Role-based access: ADMIN and FOREMAN only, DRIVER excluded
 
 ### Pending Todos
 
@@ -65,7 +66,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-31 (completed plan 01-01)
-Stopped at: Completed Dashboard Navigation & Layout Skeleton (01-01)
+Last session: 2026-01-31 (Phase 1 complete)
+Stopped at: Phase 1 verified successfully, all 6 must-haves achieved
 Resume file: None
-Next: Plan 01-02 (Time Range Data Fetching) or continue to phase 02
+Next: Plan Phase 2 (Usage Overview Cards)
