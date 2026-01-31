@@ -17,11 +17,11 @@ Requirements for Analytics Dashboard milestone. Each maps to roadmap phases.
 
 ### Usage Overview Cards
 
-- [ ] **ANAL-06**: User can view resource usage cards for trucks, drivers, and sites
-- [ ] **ANAL-07**: Usage cards display current count vs limit (e.g., "8 / 10")
-- [ ] **ANAL-08**: Usage cards show progress bar for utilization percent
-- [ ] **ANAL-09**: System displays "∞" for unlimited resources (limit: -1, percent: null)
-- [ ] **ANAL-10**: Usage cards color-code based on utilization (green < 70%, yellow 70-90%, red > 90%)
+- [x] **ANAL-06**: User can view resource usage cards for trucks, drivers, and sites
+- [x] **ANAL-07**: Usage cards display current count vs limit (e.g., "8 / 10")
+- [x] **ANAL-08**: Usage cards show progress bar for utilization percent
+- [x] **ANAL-09**: System displays "∞" for unlimited resources (limit: -1, percent: null)
+- [x] **ANAL-10**: Usage cards color-code based on utilization (green < 70%, yellow 70-90%, red > 90%)
 
 ### Trends Visualization
 
@@ -99,16 +99,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ANAL-01 | Phase 1 | Pending |
-| ANAL-02 | Phase 1 | Pending |
-| ANAL-03 | Phase 1 | Pending |
-| ANAL-04 | Phase 1 | Pending |
-| ANAL-05 | Phase 1 | Pending |
-| ANAL-06 | Phase 2 | Pending |
-| ANAL-07 | Phase 2 | Pending |
-| ANAL-08 | Phase 2 | Pending |
-| ANAL-09 | Phase 2 | Pending |
-| ANAL-10 | Phase 2 | Pending |
+| ANAL-01 | Phase 1 | Complete |
+| ANAL-02 | Phase 1 | Complete |
+| ANAL-03 | Phase 1 | Complete |
+| ANAL-04 | Phase 1 | Complete |
+| ANAL-05 | Phase 1 | Complete |
+| ANAL-06 | Phase 2 | Complete |
+| ANAL-07 | Phase 2 | Complete |
+| ANAL-08 | Phase 2 | Complete |
+| ANAL-09 | Phase 2 | Complete |
+| ANAL-10 | Phase 2 | Complete |
 | ANAL-11 | Phase 3 | Pending |
 | ANAL-12 | Phase 3 | Pending |
 | ANAL-13 | Phase 3 | Pending |

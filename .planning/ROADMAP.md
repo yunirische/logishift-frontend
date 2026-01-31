@@ -46,7 +46,9 @@ Plans:
 **Plans**: 1 plan in 1 wave
 
 Plans:
-- [ ] 02-01: Usage cards with progress bars, color coding, and unlimited resource display
+- [x] 02-01: Usage cards with progress bars, color coding, and unlimited resource display
+
+**Completed:** 2026-01-31
 
 #### Phase 3: Trends Visualization
 **Goal**: Users can view time-series charts showing shifts, hours worked, and salary paid over time
@@ -147,7 +149,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1. Dashboard Layout & Controls | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
-| 2. Usage Overview Cards | v1.5 | 0/1 | Ready to execute | - |
+| 2. Usage Overview Cards | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
 | 3. Trends Visualization | v1.5 | 0/TBD | Not started | - |
 | 4. Driver Performance | v1.5 | 0/TBD | Not started | - |
 | 5. Insights Panel | v1.5 | 0/TBD | Not started | - |
