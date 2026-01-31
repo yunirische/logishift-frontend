@@ -1,66 +1,82 @@
-# LogiShift Frontend - Milestone History
+# Project Milestones: LogiShift Frontend
 
-## v1.5 - Analytics Dashboard (CURRENT)
+## v1.5 Analytics Dashboard (Shipped: 2026-02-01)
 
-**Started:** 2026-01-31
-**Status:** In Progress - Defining Requirements
+**Delivered:** Comprehensive analytics dashboard with resource utilization tracking, time-series trends visualization, driver performance rankings, and optimization insights
 
-**Goal:** Build comprehensive analytics dashboard with usage visualization, trends, driver performance ranking, and optimization insights.
+**Phases completed:** 1-7 (7 plans total)
 
-**Planned Features:**
-- Usage overview cards (resource utilization vs plan limits)
-- Trends visualization (time-series charts for shifts, hours, salary)
-- Driver performance ranking (top drivers by hours worked)
-- Plan optimization insights panel (recommendations and warnings)
-- Date range filtering
-- Subscription-expired error handling
+**Key accomplishments:**
 
-**Phases:** TBD (will continue from previous numbering if any)
+- Responsive analytics layout with time range filtering (7/30/90 days) and CSV export
+- Usage overview cards for trucks/drivers/sites with color-coded progress bars and unlimited resource handling
+- Interactive trends chart with Recharts showing shifts/hours/salary over time with metric toggle
+- Driver performance rankings table with top 10 drivers, medal icons (🥇🥈🥉), and sortable columns
+- Insights panel with optimization recommendations, resource warnings, and cost per shift metric
+- Comprehensive error handling with typed API errors, React ErrorBoundary, 403 subscription-expired handling, and global refresh
+- Professional styling with JetBrains Mono typography, indigo color palette, and consistent rounded-3xl cards
 
----
+**Stats:**
 
-## v1.4 - Audit Trail Enhancements
+- 20 files created/modified
+- 6,473 lines of TypeScript
+- 7 phases, 7 plans, 21 tasks
+- 1 day from v1.4 completion to v1.5 ship
 
-**Completed:** 2026-01-27
+**Git range:** `feat(01-01)` → `docs(07-01)`
 
-**Shipped Features:**
-- Audit log viewing with formatted descriptions
-- Action and entity_type handling
-- Date grouping and icons
-- Null safety improvements
-
-**Impact:** Admins can now track all system changes with human-readable audit logs
-
-**Git Commits:**
-- `ce26288` - fix: rewrite audit log formatting to use entity_type + action fields
-- `fc50a8a` - feat: add human-readable audit log formatting with date grouping and icons
+**What's next:** v1.6 features or production deployment
 
 ---
 
-## v1.0 - Core Functionality
+## v1.4 Audit Trail (Shipped: 2026-01-27)
 
-**Completed:** 2025 (prior to GSD tracking)
+**Delivered:** Audit trail for tracking all system changes with user attribution and filtered views
 
-**Shipped Features:**
-- Driver shift workflow (state machine with 5 states)
-- Photo uploads (odometer start/end, invoice)
-- Admin dashboard (active shifts, fleet status)
-- Fleet management (CRUD for trucks)
-- Site management (CRUD for work sites)
-- User management (CRUD for drivers)
-- Manual shift creation by admin
+**Phases completed:** 1-3 (3 plans total)
+
+**Key accomplishments:**
+
+- Audit log component with filtering (by user, action type, entity)
+- Detailed descriptions with icons for different action types
+- Responsive table layout with mobile optimization
+- Role-based access control (ADMIN/FOREMAN only)
+
+**Stats:**
+
+- 15 files created/modified
+- 6,400+ lines of TypeScript
+- 3 phases, 3 plans, 9 tasks
+- Timeline from v1.0 to v1.4
+
+**Git range:** v1.0 → v1.4
+
+**What's next:** v1.5 Analytics Dashboard
+
+---
+
+## v1.0 Core Functionality (Shipped: 2025)
+
+**Delivered:** Complete driver shift management PWA with state machine workflow and admin fleet management
+
+**Phases completed:** (prior to GSD tracking)
+
+**Key accomplishments:**
+
+- Driver state machine workflow (idle → awaiting_odo_start → active → awaiting_odo_end → awaiting_invoice)
+- Photo upload system (odometer before/after, invoice)
+- Admin fleet management (trucks, sites, drivers)
+- Real-time dashboard with active shifts
+- Manual shift creation for admins
 - JWT authentication with role-based access control
-- PWA configuration (service worker, manifest)
-- Mobile-first responsive design
+- PWA with offline support
 
-**Impact:** Full production-ready shift management system with driver and admin interfaces
+**Stats:**
 
----
+- 50+ files created
+- 6,000+ lines of TypeScript/React
+- Full MVP functionality
 
-## Versioning Convention
+**Git range:** Initial development → v1.0
 
-- **Major (X.0):** Significant new features, major architecture changes
-- **Minor (x.X):** Feature additions, enhancements (current milestone type)
-- **Patch (x.x.X):** Bug fixes, small improvements
-
-**Next Milestone:** TBD after v1.5 completion
+**What's next:** v1.4 Audit Trail

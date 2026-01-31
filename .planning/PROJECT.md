@@ -8,15 +8,27 @@ LogiShift is a Progressive Web App (PWA) for logistics/driver shift management. 
 
 Drivers can start, track, and complete shifts with photo documentation, while admins/foremen have real-time visibility into fleet operations, resource utilization, and business insights.
 
-## Current Milestone: v1.5 Analytics Dashboard
+## Current State: v1.5 Analytics Dashboard (Shipped 2026-02-01)
 
-**Goal:** Build comprehensive analytics dashboard with usage visualization, trends, driver performance ranking, and optimization insights.
+**Latest Release:** Comprehensive analytics dashboard with 34 requirements delivered
 
-**Target features:**
-- Usage overview cards (resource utilization vs plan limits)
-- Trends visualization (time-series charts for shifts, hours, salary)
-- Driver performance ranking (top drivers by hours worked)
-- Plan optimization insights panel (recommendations and warnings)
+**Shipped Features:**
+- Responsive analytics layout with time range filtering (7/30/90 days) and CSV export
+- Usage overview cards for trucks/drivers/sites with color-coded progress bars
+- Interactive trends chart with Recharts (shifts/hours/salary with metric toggle)
+- Driver performance rankings table with sortable columns and medal icons (🥇🥈🥉)
+- Insights panel with optimization recommendations and resource warnings
+- Comprehensive error handling with typed API errors and React ErrorBoundary
+- Professional styling with JetBrains Mono typography and indigo color palette
+
+## Next Milestone Goals
+
+**Status:** Planning phase - requirements TBD
+
+Potential directions:
+- v1.6: Additional analytics features (custom date ranges, period comparison)
+- v1.6: Performance optimizations and technical debt cleanup
+- v1.6: Production deployment and monitoring setup
 
 ## Requirements
 
@@ -38,17 +50,46 @@ Drivers can start, track, and complete shifts with photo documentation, while ad
 - ✓ **SHIFT-06**: Admin can manually create shifts — v1.0
 - ✓ **AUDIT-01**: Admin can view audit log entries — v1.4
 - ✓ **AUDIT-02**: Audit logs display formatted descriptions with icons — v1.4
+- ✓ **ANAL-01**: User can select time range preset (7/30/90 days) via global filter — v1.5
+- ✓ **ANAL-02**: Dashboard applies selected time range to all components — v1.5
+- ✓ **ANAL-03**: User can click Export Report button to download CSV — v1.5
+- ✓ **ANAL-04**: Dashboard displays in responsive layout (mobile single-column, desktop multi-column) — v1.5
+- ✓ **ANAL-05**: Charts are touch-friendly with 44px minimum targets — v1.5
+- ✓ **ANAL-06**: User can view resource usage cards for trucks, drivers, sites — v1.5
+- ✓ **ANAL-07**: Usage cards display current count vs limit — v1.5
+- ✓ **ANAL-08**: Usage cards show progress bar for utilization percent — v1.5
+- ✓ **ANAL-09**: System displays "∞" for unlimited resources — v1.5
+- ✓ **ANAL-10**: Usage cards color-code based on utilization (green/yellow/red) — v1.5
+- ✓ **ANAL-11**: User can view time-series chart showing shifts, hours, salary — v1.5
+- ✓ **ANAL-12**: Chart uses bar visualization via Recharts library — v1.5
+- ✓ **ANAL-13**: Chart displays daily data from /api/v1/analytics/trends — v1.5
+- ✓ **ANAL-14**: Chart updates to reflect selected time range — v1.5
+- ✓ **ANAL-15**: Chart displays date on x-axis with metric toggle — v1.5
+- ✓ **ANAL-16**: User can view ranked list of top drivers by hours worked — v1.5
+- ✓ **ANAL-17**: Driver list displays name, shifts, hours, salary — v1.5
+- ✓ **ANAL-18**: List is sorted by hours worked (highest first) — v1.5
+- ✓ **ANAL-19**: List uses configurable limit (default: top 10) — v1.5
+- ✓ **ANAL-20**: List updates to reflect selected time range — v1.5
+- ✓ **ANAL-21**: User can view plan optimization insights and recommendations — v1.5
+- ✓ **ANAL-22**: Insights panel displays underutilized resources — v1.5
+- ✓ **ANAL-23**: Insights panel displays near-limit resources — v1.5
+- ✓ **ANAL-24**: Insights panel displays cost per shift metric — v1.5
+- ✓ **ANAL-25**: Insights panel displays recommended actions — v1.5
+- ✓ **ANAL-26**: System uses alert styling for insights — v1.5
+- ✓ **ANAL-27**: Dashboard displays loading skeletons while fetching — v1.5
+- ✓ **ANAL-28**: Dashboard handles subscription-expired errors (403) gracefully — v1.5
+- ✓ **ANAL-29**: Dashboard displays error message if endpoints fail — v1.5
+- ✓ **ANAL-30**: System implements retry logic and refresh button — v1.5
+- ✓ **ANAL-31**: All chart labels, axes, tooltips use JetBrains Mono — v1.5
+- ✓ **ANAL-32**: Chart bars use Navy/Indigo color palette — v1.5
+- ✓ **ANAL-33**: Dashboard maintains consistent spacing with rounded-3xl cards — v1.5
+- ✓ **ANAL-34**: Dashboard uses Lucide React icons throughout — v1.5
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] **ANAL-01**: User can view resource usage vs plan limits (trucks, drivers, sites)
-- [ ] **ANAL-02**: User can view trends chart (shifts count, hours worked, salary paid over time)
-- [ ] **ANAL-03**: User can view top drivers ranking by hours worked
-- [ ] **ANAL-04**: User can view plan optimization insights and recommendations
-- [ ] **ANAL-05**: User can filter analytics by date range (days parameter)
-- [ ] **ANAL-06**: Dashboard handles subscription-expired errors gracefully
+None - next milestone requirements TBD after v1.5 completion
 
 ### Out of Scope
 
@@ -82,9 +123,9 @@ Drivers can start, track, and complete shifts with photo documentation, while ad
 - CSV export available via backend, UTF-8 BOM for Excel compatibility
 
 **Known Issues:**
-- No current analytics visualization
-- Subscription-expired error handling needs implementation for analytics
-- Date range filtering needs UI component
+- Minor: Double API fetching on time range changes (optimization opportunity, not blocking)
+- Medium: DriverRankings empty state time range shortcuts not wired (CustomEvents)
+- Minor: Unused globalError state (cleanup needed)
 
 ## Constraints
 
@@ -100,10 +141,13 @@ Drivers can start, track, and complete shifts with photo documentation, while ad
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Recharts for visualizations | Already used in ecosystem, declarative API, good docs, supports time-series | ✓ Good |
-| Separate Analytics page/tab | Keep analytics accessible but not clutter main dashboard | — Pending |
-| Usage cards first, then charts | Progressive enhancement, core metrics before visualization | — Pending |
-| Cache analytics data 5-15 min | Reduce API load, analytics not real-time critical | — Pending |
+| Recharts for visualizations | Already used in ecosystem, declarative API, good docs, supports time-series | ✓ Good - v1.5 |
+| Separate Analytics page/tab | Keep analytics accessible but not clutter main dashboard | ✓ Good - v1.5 |
+| Usage cards first, then charts | Progressive enhancement, core metrics before visualization | ✓ Good - v1.5 |
+| Analytics as second tab after Dashboard | High visibility for admins/foremen | ✓ Good - v1.5 |
+| Time range presets (7/30/90 days) | Simple UI covers core use cases | ✓ Good - v1.5 |
+| JetBrains Mono for chart typography | Matches industrial aesthetic, numeric clarity | ✓ Good - v1.5 |
+| 403 without auth clear | Read-only analytics for expired subscriptions | ✓ Good - v1.5 |
 
 ---
-*Last updated: 2026-01-31 after Milestone v1.5 kickoff*
+*Last updated: 2026-02-01 after v1.5 Analytics Dashboard milestone completion*
