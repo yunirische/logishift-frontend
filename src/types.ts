@@ -94,3 +94,16 @@ export interface ManualShiftRequest {
   truck_id: number;
   site_id: number;
 }
+
+// Analytics types
+export interface ResourceUsage {
+  current: number;
+  limit: number;
+  utilization_percent: number | null;
+}
+
+export interface AnalyticsUsage {
+  trucks: ResourceUsage;
+  drivers: ResourceUsage;
+  sites: ResourceUsage;
+}

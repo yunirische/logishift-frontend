@@ -139,6 +139,10 @@ export const del = (url: string) => {
   });
 };
 
+export const getAnalyticsUsage = async () => {
+  return get(API_ENDPOINTS.ANALYTICS_USAGE);
+};
+
 export const getPhotoUrl = (path?: string | null): string | null => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
