@@ -28,3 +28,21 @@ textarea:focus-visible,
 select:focus-visible {
     @apply outline-none ring-2 ring-indigo-500 ring-offset-2 rounded-lg;
 }
+
+/* Recharts typography - JetBrains Mono for all chart elements */
+@layer components {
+    /* Axis tick values (x-axis dates, y-axis metrics) */
+    .recharts-cartesian-axis-tick-value {
+        @apply font-mono;
+    }
+
+    /* Tooltip content text */
+    .recharts-tooltip-content {
+        @apply font-mono;
+    }
+
+    /* Legend text */
+    .recharts-legend-item-text {
+        @apply font-mono;
+    }
+}

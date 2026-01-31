@@ -88,7 +88,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return (
     <div className="bg-white rounded-xl shadow-lg border border-slate-100 px-4 py-3">
       <p className="text-sm text-slate-500 mb-1">{formatTooltipDate(label)}</p>
-      <p className="text-lg font-semibold text-slate-800">
+      <p className="text-lg font-semibold text-slate-800 font-mono">
         {displayValue}{config.unit}
       </p>
     </div>
