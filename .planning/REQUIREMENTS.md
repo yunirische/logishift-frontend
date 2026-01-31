@@ -9,11 +9,11 @@ Requirements for Analytics Dashboard milestone. Each maps to roadmap phases.
 
 ### Dashboard Layout & Controls
 
-- [ ] **ANAL-01**: User can select time range preset (7, 30, 90 days) via global filter at top of dashboard
-- [ ] **ANAL-02**: Dashboard applies selected time range to all analytics components via days query parameter
-- [ ] **ANAL-03**: User can click "Export Report" button to download CSV from `/api/v1/analytics/export`
-- [ ] **ANAL-04**: Dashboard displays in single-column layout on mobile, multi-column cards on desktop
-- [ ] **ANAL-05**: Charts are touch-friendly (zoomable, pannable, or sized for mobile interaction)
+- [x] **ANAL-01**: User can select time range preset (7, 30, 90 days) via global filter at top of dashboard
+- [x] **ANAL-02**: Dashboard applies selected time range to all analytics components via days query parameter
+- [x] **ANAL-03**: User can click "Export Report" button to download CSV from `/api/v1/analytics/export`
+- [x] **ANAL-04**: Dashboard displays in single-column layout on mobile, multi-column cards on desktop
+- [x] **ANAL-05**: Charts are touch-friendly (zoomable, pannable, or sized for mobile interaction)
 
 ### Usage Overview Cards
 
@@ -57,10 +57,10 @@ Requirements for Analytics Dashboard milestone. Each maps to roadmap phases.
 
 ### Styling & Theming
 
-- [ ] **ANAL-31**: All chart labels, axes, and tooltips use JetBrains Mono font family
-- [ ] **ANAL-32**: Chart lines and bars use Navy/Indigo color palette (matching Tailwind indigo-600 to indigo-900)
-- [ ] **ANAL-33**: Dashboard maintains consistent spacing with rounded-3xl cards (existing design system)
-- [ ] **ANAL-34**: Dashboard uses Lucide React icons for controls and indicators (matching existing patterns)
+- [x] **ANAL-31**: All chart labels, axes, and tooltips use JetBrains Mono font family
+- [x] **ANAL-32**: Chart lines and bars use Navy/Indigo color palette (matching Tailwind indigo-600 to indigo-900)
+- [x] **ANAL-33**: Dashboard maintains consistent spacing with rounded-3xl cards (existing design system)
+- [x] **ANAL-34**: Dashboard uses Lucide React icons for controls and indicators (matching existing patterns)
 
 ## v2 Requirements
 
@@ -129,16 +129,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANAL-28 | Phase 6 | Complete |
 | ANAL-29 | Phase 6 | Complete |
 | ANAL-30 | Phase 6 | Complete |
-| ANAL-31 | Phase 7 | Pending |
-| ANAL-32 | Phase 7 | Pending |
-| ANAL-33 | Phase 7 | Pending |
-| ANAL-34 | Phase 7 | Pending |
+| ANAL-31 | Phase 7 | Complete |
+| ANAL-32 | Phase 7 | Complete |
+| ANAL-33 | Phase 7 | Complete |
+| ANAL-34 | Phase 7 | Complete |
 
 **Coverage:**
 - v1.5 requirements: 34 total
+- Complete: 34 (100%) ✓
 - Mapped to phases: 34
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 after Phase 3 completion*
+*Last updated: 2026-02-01 after Phase 7 completion (v1.5 milestone complete)*
