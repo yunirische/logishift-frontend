@@ -43,13 +43,10 @@ Plans:
   3. System displays "∞" symbol for unlimited resources (when limit is -1 or percent is null)
   4. Usage cards show color-coded indicators (green < 70%, yellow 70-90%, red > 90%)
   5. Usage card data updates when user changes time range filter
-**Plans**: TBD
+**Plans**: 1 plan in 1 wave
 
 Plans:
-- [ ] 02-01: Create usage overview card component with progress bars
-- [ ] 02-02: Fetch usage data from /api/v1/analytics/usage endpoint
-- [ ] 02-03: Implement color-coding logic based on utilization thresholds
-- [ ] 02-04: Handle unlimited resources display (∞ symbol)
+- [ ] 02-01: Usage cards with progress bars, color coding, and unlimited resource display
 
 #### Phase 3: Trends Visualization
 **Goal**: Users can view time-series charts showing shifts, hours worked, and salary paid over time
@@ -150,7 +147,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1. Dashboard Layout & Controls | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
-| 2. Usage Overview Cards | v1.5 | 0/4 | Not started | - |
+| 2. Usage Overview Cards | v1.5 | 0/1 | Ready to execute | - |
 | 3. Trends Visualization | v1.5 | 0/TBD | Not started | - |
 | 4. Driver Performance | v1.5 | 0/TBD | Not started | - |
 | 5. Insights Panel | v1.5 | 0/TBD | Not started | - |
