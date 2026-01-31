@@ -122,3 +122,14 @@ export interface TrendsData {
   data: AnalyticsTrend[];
   metric: TrendMetric;
 }
+
+export interface AnalyticsDriver {
+  driver_id: number;
+  driver_name: string;
+  shifts_count: number;
+  hours_worked: number;
+  salary_paid: number;
+}
+
+export type DriverSortField = 'hours_worked' | 'shifts_count' | 'salary_paid';
+export type SortDirection = 'asc' | 'desc';

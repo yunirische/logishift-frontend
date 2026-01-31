@@ -57,4 +57,5 @@ export const API_ENDPOINTS = {
   ANALYTICS_EXPORT: `${API_BASE_URL}/analytics/export`,
   ANALYTICS_USAGE: `${API_BASE_URL}/analytics/usage`,
   ANALYTICS_TRENDS: `${API_BASE_URL}/analytics/trends`,
+  ANALYTICS_DRIVERS: `${API_BASE_URL}/analytics/drivers`,
 };
