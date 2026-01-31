@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, Download, Truck, Users, Building2 } from "lucide-react";
 import { API_ENDPOINTS } from "../constants";
-import { getAnalyticsUsage, getAnalyticsTrends, getAnalyticsDrivers } from "../services/api";
-import { AnalyticsUsage, AnalyticsTrend, AnalyticsDriver } from "../types";
+import { getAnalyticsUsage, getAnalyticsTrends, getAnalyticsDrivers, getAnalyticsInsights } from "../services/api";
+import { AnalyticsUsage, AnalyticsTrend, AnalyticsDriver, AnalyticsInsights } from "../types";
 import { UsageCard } from "./analytics/UsageCard";
 import { TrendsChart } from "./analytics/TrendsChart";
 import { DriverRankings } from "./analytics/DriverRankings";
+import { InsightsPanel } from "./analytics/InsightsPanel";
 
 type TimeRangePreset = 7 | 30 | 90;
 
@@ -28,6 +29,11 @@ const Analytics: React.FC = () => {
   const [driversData, setDriversData] = useState<AnalyticsDriver[]>([]);
   const [driversLoading, setDriversLoading] = useState(true);
   const [driversError, setDriversError] = useState<string | null>(null);
+
+  // Insights data state
+  const [insightsData, setInsightsData] = useState<AnalyticsInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(true);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   const fetchUsage = async () => {
     setUsageLoading(true);
@@ -71,10 +77,25 @@ const Analytics: React.FC = () => {
     }
   };
 
+  const fetchInsights = async () => {
+    setInsightsLoading(true);
+    setInsightsError(null);
+    try {
+      const data = await getAnalyticsInsights(selectedDays);
+      setInsightsData(data);
+    } catch (error) {
+      console.error("Failed to fetch insights data:", error);
+      setInsightsError(error instanceof Error ? error.message : "Ошибка загрузки данных");
+    } finally {
+      setInsightsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsage();
     fetchTrends();
     fetchDrivers();
+    fetchInsights();
   }, [selectedDays]); // Re-fetch all when time range changes
 
   const handleRangeChange = async (days: TimeRangePreset) => {
@@ -82,7 +103,7 @@ const Analytics: React.FC = () => {
     setIsRangeLoading(true);
     setSelectedDays(days);
     // All fetch functions will be called by useEffect
-    await Promise.all([fetchUsage(), fetchTrends(), fetchDrivers()]);
+    await Promise.all([fetchUsage(), fetchTrends(), fetchDrivers(), fetchInsights()]);
     setIsRangeLoading(false);
   };
 
@@ -270,6 +291,11 @@ const Analytics: React.FC = () => {
           {/* Row 3: Driver rankings (full width) */}
           <div className="lg:col-span-2 xl:col-span-3">
             <DriverRankings days={selectedDays} />
+          </div>
+
+          {/* Row 4: Insights panel (full width) */}
+          <div className="lg:col-span-2 xl:col-span-3">
+            <InsightsPanel days={selectedDays} />
           </div>
         </div>
       </div>
