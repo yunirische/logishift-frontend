@@ -95,14 +95,10 @@ Plans:
   4. Panel displays recommended actions list (e.g., "Reduce truck count", "Upgrade plan")
   5. Insights use alert styling (warnings in yellow/orange, info in blue)
   6. Insights data updates when user changes time range filter
-**Plans**: TBD
+**Plans**: 1 plan in 1 wave
 
 Plans:
-- [ ] 05-01: Create insights panel component with alert styling
-- [ ] 05-02: Fetch insights data from /api/v1/analytics/insights endpoint
-- [ ] 05-03: Implement underutilized resources display
-- [ ] 05-04: Implement near-limit resources warnings
-- [ ] 05-05: Add cost per shift metric and recommended actions
+- [ ] 05-01: Insights panel with underutilized resources, near-limit warnings, cost per shift, and recommended actions
 
 #### Phase 6: Error Handling & Loading
 **Goal**: Analytics dashboard handles errors gracefully and provides clear loading states
@@ -145,10 +141,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Dashboard Layout & Controls | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
-| 2. Usage Overview Cards | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
-| 3. Trends Visualization | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
-| 4. Driver Performance | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
-| 5. Insights Panel | v1.5 | 0/TBD | Not started | - |
+| 1. Dashboard Layout & Controls | v1.5 | 1/1 | Complete | 2026-01-31 |
+| 2. Usage Overview Cards | v1.5 | 1/1 | Complete | 2026-01-31 |
+| 3. Trends Visualization | v1.5 | 1/1 | Complete | 2026-01-31 |
+| 4. Driver Performance | v1.5 | 1/1 | Complete | 2026-01-31 |
+| 5. Insights Panel | v1.5 | 0/1 | Ready | - |
 | 6. Error Handling & Loading | v1.5 | 0/TBD | Not started | - |
 | 7. Styling & Theming | v1.5 | 0/TBD | Not started | - |
