@@ -3,7 +3,7 @@ phase: 04-driver-performance
 plan: 01
 type: execute
 wave: 1
-depends_on: []
+depends_on: ["03"]
 files_modified:
   - src/types.ts
   - src/constants.ts
