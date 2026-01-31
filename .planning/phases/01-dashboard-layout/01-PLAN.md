@@ -114,17 +114,16 @@ Output: Working analytics page with navigation access, time range filtering, and
 </task>
 
 <task type="auto">
-  <name>Create Analytics Component with Responsive Layout</name>
+  <name>Create Analytics Component Skeleton with Type Definitions</name>
   <files>
     src/components/Analytics.tsx
   </files>
   <action>
-    Create `src/components/Analytics.tsx` with responsive layout structure:
+    Create `src/components/Analytics.tsx` with basic component structure and type definitions:
 
-    Component structure:
+    Component skeleton:
     ```tsx
     import React, { useState } from "react";
-    import { Download, Calendar } from "lucide-react";
 
     type TimeRangePreset = 7 | 30 | 90;
 
@@ -132,19 +131,10 @@ Output: Working analytics page with navigation access, time range filtering, and
       const [selectedDays, setSelectedDays] = useState<TimeRangePreset>(30);
       const [isLoading, setIsLoading] = useState(false);
 
-      // Calculate date range display
-      const getDateRangeDisplay = (days: TimeRangePreset): string => {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - days);
-        const formatDate = (d: Date) => d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
-        return `${formatDate(start)} - ${formatDate(end)}`;
-      };
-
       const handleExport = async () => {
         setIsLoading(true);
         try {
-          // Export logic (next task)
+          // Export logic (later task)
         } finally {
           setIsLoading(false);
         }
@@ -152,53 +142,21 @@ Output: Working analytics page with navigation access, time range filtering, and
 
       return (
         <div className="analytics-dashboard">
-          {/* Top Controls Bar */}
+          {/* Top Controls Bar - will be implemented in next task */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            {/* Time Range Selector - Left */}
-            <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-indigo-600" />
-              <div className="flex bg-slate-100 rounded-lg p-1">
-                {[7, 30, 90] as TimeRangePreset[].map((days) => (
-                  <button
-                    key={days}
-                    onClick={() => setSelectedDays(days)}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                      selectedDays === days
-                        ? "bg-white text-indigo-600 shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    {days} д
-                  </button>
-                ))}
-              </div>
-              <span className="text-sm text-slate-500 hidden sm:inline">
-                {getDateRangeDisplay(selectedDays)}
-              </span>
-            </div>
+            {/* Time Range Selector - next task */}
+            <div>Time range selector placeholder</div>
 
-            {/* Export Button - Right */}
-            <button
-              onClick={handleExport}
-              disabled={isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
-            >
-              <Download className="w-4 h-4" />
-              <span>{isLoading ? "Загрузка..." : "Экспорт"}</span>
+            {/* Export Button - next task */}
+            <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
+              Экспорт
             </button>
           </div>
 
-          {/* Content Grid - Responsive */}
+          {/* Content Grid - will be implemented in later task */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {/* Placeholder cards for now - will be filled in later phases */}
-            <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
-              <p className="text-slate-400">Карточки аналитики будут здесь</p>
-            </div>
-            <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
-              <p className="text-slate-400">Графики будут здесь</p>
-            </div>
-            <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
-              <p className="text-slate-400">Статистика будет здесь</p>
+            <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px]">
+              <p className="text-slate-400">Placeholder</p>
             </div>
           </div>
         </div>
@@ -208,26 +166,143 @@ Output: Working analytics page with navigation access, time range filtering, and
     export default Analytics;
     ```
 
+    This creates the foundation with:
+    - TimeRangePreset type definition (7 | 30 | 90)
+    - Basic state: selectedDays, isLoading
+    - Empty handleExport function (implementation in later task)
+    - Container div with analytics-dashboard class
+    - Minimal structure to verify component renders
+  </action>
+  <verify>
+    1. Check `src/components/Analytics.tsx` file exists
+    2. Check TypeScript compiles without errors: `npx tsc --noEmit`
+    3. Run `npm run dev` and verify Analytics page loads without errors
+  </verify>
+  <done>
+    Analytics component file exists with TimeRangePreset type, basic state management, and renders without errors.
+  </done>
+</task>
+
+<task type="auto">
+  <name>Implement Time Range Selector with Date Display</name>
+  <files>
+    src/components/Analytics.tsx
+  </files>
+  <action>
+    Add time range selector UI to Analytics component:
+
+    1. Add date range display function:
+    ```tsx
+    const getDateRangeDisplay = (days: TimeRangePreset): string => {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - days);
+      const formatDate = (d: Date) => d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+      return `${formatDate(start)} - ${formatDate(end)}`;
+    };
+    ```
+
+    2. Import Calendar icon: `import { Calendar } from "lucide-react";`
+
+    3. Replace the time range placeholder with:
+    ```tsx
+    <div className="flex items-center gap-3">
+      <Calendar className="w-5 h-5 text-indigo-600" />
+      <div className="flex bg-slate-100 rounded-lg p-1">
+        {[7, 30, 90] as TimeRangePreset[].map((days) => (
+          <button
+            key={days}
+            onClick={() => setSelectedDays(days)}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              selectedDays === days
+                ? "bg-white text-indigo-600 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {days} д
+          </button>
+        ))}
+      </div>
+      <span className="text-sm text-slate-500 hidden sm:inline">
+        {getDateRangeDisplay(selectedDays)}
+      </span>
+    </div>
+    ```
+
+    Styling requirements:
+    - Button group: slate-100 background, rounded-lg, p-1 padding
+    - Active state: white background, indigo-600 text, shadow-sm
+    - Inactive: slate-600 text, darkens on hover
+    - Date range hidden on mobile (hidden sm:inline)
+    - All buttons have touch-friendly padding (px-4 py-2)
+  </action>
+  <verify>
+    1. Run `npm run dev` and verify:
+       - Calendar icon displays next to time range buttons
+       - Three buttons visible: "7 д", "30 д", "90 д"
+       - Clicking a button updates selected state (white bg, indigo text)
+       - Date range displays in Russian format (e.g., "24 янв - 31 янв")
+       - Date range is hidden on mobile, visible on desktop
+  </verify>
+  <done>
+    Time range selector renders with Calendar icon, three preset buttons (7/30/90), active state styling, and date range display in Russian format.
+  </done>
+</task>
+
+<task type="auto">
+  <name>Implement Export Button and Responsive Content Grid</name>
+  <files>
+    src/components/Analytics.tsx
+  </files>
+  <action>
+    Complete the Analytics component layout:
+
+    1. Add Download icon import: `import { Download } from "lucide-react";`
+
+    2. Replace the export button placeholder with:
+    ```tsx
+    <button
+      onClick={handleExport}
+      disabled={isLoading}
+      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
+    >
+      <Download className="w-4 h-4" />
+      <span>{isLoading ? "Загрузка..." : "Экспорт"}</span>
+    </button>
+    ```
+
+    3. Replace content grid with full placeholder cards:
+    ```tsx
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
+        <p className="text-slate-400">Карточки аналитики будут здесь</p>
+      </div>
+      <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
+        <p className="text-slate-400">Графики будут здесь</p>
+      </div>
+      <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
+        <p className="text-slate-400">Статистика будет здесь</p>
+      </div>
+    </div>
+    ```
+
     Layout requirements:
-    - Top controls bar: flexbox, column on mobile, row on desktop (sm breakpoint)
-    - Time range selector: left side, button group with active state styling
-    - Export button: right side, icon + text, min-height 44px for touch
+    - Top controls bar: flexbox, column on mobile (flex-col), row on desktop (sm:flex-row)
+    - Export button: min-height 44px, touch-manipulation class for mobile
     - Content grid: 1 column mobile, 2 columns lg (1024px+), 3 columns xl (1280px+)
     - Card styling: rounded-3xl, shadow-lg, white background, consistent with design system
   </action>
   <verify>
-    1. Check `src/components/Analytics.tsx` file exists
-    2. Run `npm run dev` and verify:
-       - Analytics page loads without errors
-       - Top controls bar displays correctly on desktop (row layout)
-       - Top controls bar stacks vertically on mobile (column layout)
-       - Time range buttons are clickable and show active state
-       - Export button is present with Download icon
-       - Content grid shows 1 column on mobile, 2-3 columns on desktop
+    1. Run `npm run dev` and verify:
+       - Export button displays Download icon and "Экспорт" text
+       - Export button shows "Загрузка..." when isLoading is true
+       - Top controls bar displays in row on desktop, column on mobile
+       - Content grid shows 1 column on mobile, 2 columns on lg, 3 columns on xl
        - All buttons have min-height 44px for touch-friendly interaction
+       - Cards use rounded-3xl and shadow-lg styling
   </verify>
   <done>
-    Analytics component renders with responsive layout: controls bar on top (time range left, export right), content grid below with responsive columns (1/2/3 based on screen width). Placeholder cards show layout structure.
+    Export button with Download icon renders correctly. Content grid displays placeholder cards with responsive layout (1/2/3 columns). All controls stack properly on mobile.
   </done>
 </task>
 

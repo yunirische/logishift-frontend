@@ -141,16 +141,18 @@ Output: Three usage cards (trucks, drivers, sites) in the analytics dashboard sh
       usage: ResourceUsage;
     }
 
-    const getUtilizationColor = (percent: number | null, limit: number): string => {
+    // Helper to determine progress bar color with optional pulse animation
+    const getUtilizationColor = (percent: number | null, limit: number): { bg: string; pulse: boolean } => {
       // Unlimited resources
       if (limit === -1 || percent === null) {
-        return "bg-slate-200";
+        return { bg: "bg-slate-200", pulse: false };
       }
 
       // Color coding: green < 70%, yellow 70-90%, red > 90%
-      if (percent < 70) return "bg-emerald-500";
-      if (percent < 90) return "bg-amber-500";
-      return "bg-red-500";
+      // Pulse animation for red (>90%) as per context decision
+      if (percent < 70) return { bg: "bg-emerald-500", pulse: false };
+      if (percent < 90) return { bg: "bg-amber-500", pulse: false };
+      return { bg: "bg-red-500", pulse: true };
     };
 
     const getTextColor = (percent: number | null, limit: number): string => {
@@ -163,6 +165,7 @@ Output: Three usage cards (trucks, drivers, sites) in the analytics dashboard sh
     export const UsageCard: React.FC<UsageCardProps> = ({ title, icon: Icon, usage }) => {
       const { current, limit, utilization_percent: percent } = usage;
       const isUnlimited = limit === -1;
+      const { bg: colorClass, pulse: shouldPulse } = getUtilizationColor(percent, limit);
 
       return (
         <div className="bg-white rounded-3xl shadow-lg p-6">
@@ -181,7 +184,8 @@ Output: Three usage cards (trucks, drivers, sites) in the analytics dashboard sh
               <span className="text-slate-400">/</span>
               <span className="text-xl font-medium text-slate-600">
                 {isUnlimited ? (
-                  <span className="text-2xl">&infin;</span>
+                  // Infinity symbol with 60% opacity per context decision
+                  <span className="text-2xl opacity-60">&infin;</span>
                 ) : (
                   limit
                 )}
@@ -200,7 +204,9 @@ Output: Three usage cards (trucks, drivers, sites) in the analytics dashboard sh
           {!isUnlimited && percent !== null && (
             <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-500 ease-out ${getUtilizationColor(percent, limit)}`}
+                className={`h-full rounded-full transition-all duration-500 ease-out ${colorClass} ${
+                  shouldPulse ? "animate-pulse" : ""
+                }`}
                 style={{ width: `${Math.min(percent, 100)}%` }}
                 role="progressbar"
                 aria-valuenow={percent}
@@ -221,9 +227,10 @@ Output: Three usage cards (trucks, drivers, sites) in the analytics dashboard sh
 
     Component features:
     - Icon display with indigo accent background
-    - Large current count, slash separator, limit (or infinity symbol)
+    - Large current count, slash separator, limit (or infinity symbol with 60% opacity)
     - Color-coded percentage text (emerald/amber/red)
-    - Animated progress bar with rounded caps
+    - Animated progress bar with rounded caps and 500ms ease-out transition
+    - Subtle pulse animation on red progress bars (>90% utilization) for emphasis
     - Gray bar for unlimited resources
     - Accessible with ARIA attributes
   </action>
@@ -407,7 +414,12 @@ Overall phase verification:
 5. **Color Coding:**
    - Percent < 70%: emerald-500 (green)
    - Percent 70-89%: amber-500 (yellow)
-   - Percent >= 90%: red-500
+   - Percent >= 90%: red-500 with subtle pulse animation
+
+6. **Visual Details:**
+   - Infinity symbol displays with 60% opacity for unlimited resources
+   - Progress bar transition: 500ms ease-out
+   - Pulse animation only on red (>90%) utilization bars
 </verification>
 
 <success_criteria>
@@ -415,9 +427,10 @@ Phase 2 is complete when:
 
 1. Three usage cards display (trucks, drivers, sites) with current count vs limit
 2. Visual progress bar shows utilization percentage
-3. Infinity symbol displays for unlimited resources (limit === -1 or percent === null)
+3. Infinity symbol displays for unlimited resources (limit === -1 or percent === null) with 60% opacity
 4. Color-coded indicators work (green < 70%, yellow 70-90%, red > 90%)
-5. Usage data refreshes when time range filter changes
+5. Red progress bars (>90%) have subtle pulse animation
+6. Usage data refreshes when time range filter changes
 </success_criteria>
 
 <output>
