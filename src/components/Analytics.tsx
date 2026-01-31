@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Calendar } from "lucide-react";
+import { Calendar, Download } from "lucide-react";
 
 type TimeRangePreset = 7 | 30 | 90;
 
@@ -57,15 +57,26 @@ const Analytics: React.FC = () => {
         </div>
 
         {/* Export Button - next task */}
-        <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
-          Экспорт
+        <button
+          onClick={handleExport}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
+        >
+          <Download className="w-4 h-4" />
+          <span>{isLoading ? "Загрузка..." : "Экспорт"}</span>
         </button>
       </div>
 
       {/* Content Grid - will be implemented in later task */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px]">
-          <p className="text-slate-400">Placeholder</p>
+        <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
+          <p className="text-slate-400">Карточки аналитики будут здесь</p>
+        </div>
+        <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
+          <p className="text-slate-400">Графики будут здесь</p>
+        </div>
+        <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
+          <p className="text-slate-400">Статистика будет здесь</p>
         </div>
       </div>
     </div>
