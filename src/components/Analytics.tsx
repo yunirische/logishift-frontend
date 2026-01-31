@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, Download, Truck, Users, Building2 } from "lucide-react";
 import { API_ENDPOINTS } from "../constants";
-import { getAnalyticsUsage, getAnalyticsTrends } from "../services/api";
-import { AnalyticsUsage, AnalyticsTrend } from "../types";
+import { getAnalyticsUsage, getAnalyticsTrends, getAnalyticsDrivers } from "../services/api";
+import { AnalyticsUsage, AnalyticsTrend, AnalyticsDriver } from "../types";
 import { UsageCard } from "./analytics/UsageCard";
 import { TrendsChart } from "./analytics/TrendsChart";
+import { DriverRankings } from "./analytics/DriverRankings";
 
 type TimeRangePreset = 7 | 30 | 90;
 
@@ -22,6 +23,11 @@ const Analytics: React.FC = () => {
   const [trendsData, setTrendsData] = useState<AnalyticsTrend[]>([]);
   const [trendsLoading, setTrendsLoading] = useState(true);
   const [trendsError, setTrendsError] = useState<string | null>(null);
+
+  // Driver rankings data state
+  const [driversData, setDriversData] = useState<AnalyticsDriver[]>([]);
+  const [driversLoading, setDriversLoading] = useState(true);
+  const [driversError, setDriversError] = useState<string | null>(null);
 
   const fetchUsage = async () => {
     setUsageLoading(true);
@@ -51,17 +57,32 @@ const Analytics: React.FC = () => {
     }
   };
 
+  const fetchDrivers = async () => {
+    setDriversLoading(true);
+    setDriversError(null);
+    try {
+      const data = await getAnalyticsDrivers(selectedDays, 10);
+      setDriversData(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch drivers data:", error);
+      setDriversError(error instanceof Error ? error.message : "Ошибка загрузки данных");
+    } finally {
+      setDriversLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsage();
     fetchTrends();
-  }, [selectedDays]); // Re-fetch both when time range changes
+    fetchDrivers();
+  }, [selectedDays]); // Re-fetch all when time range changes
 
   const handleRangeChange = async (days: TimeRangePreset) => {
     if (days === selectedDays) return;
     setIsRangeLoading(true);
     setSelectedDays(days);
-    // Both fetchUsage and fetchTrends will be called by useEffect
-    await Promise.all([fetchUsage(), fetchTrends()]);
+    // All fetch functions will be called by useEffect
+    await Promise.all([fetchUsage(), fetchTrends(), fetchDrivers()]);
     setIsRangeLoading(false);
   };
 
@@ -244,6 +265,11 @@ const Analytics: React.FC = () => {
             ) : (
               <TrendsChart data={trendsData} days={selectedDays} />
             )}
+          </div>
+
+          {/* Row 3: Driver rankings (full width) */}
+          <div className="lg:col-span-2 xl:col-span-3">
+            <DriverRankings days={selectedDays} />
           </div>
         </div>
       </div>
