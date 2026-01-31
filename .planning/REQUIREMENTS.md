@@ -25,11 +25,11 @@ Requirements for Analytics Dashboard milestone. Each maps to roadmap phases.
 
 ### Trends Visualization
 
-- [ ] **ANAL-11**: User can view time-series chart showing shifts count, hours worked, and salary paid over time
-- [ ] **ANAL-12**: Chart uses line or bar visualization via Recharts library
-- [ ] **ANAL-13**: Chart displays daily aggregated data from `/api/v1/analytics/trends` endpoint
-- [ ] **ANAL-14**: Chart updates to reflect selected time range filter (7/30/90 days)
-- [ ] **ANAL-15**: Chart displays date on x-axis, with toggle for metrics (shifts/hours/salary)
+- [x] **ANAL-11**: User can view time-series chart showing shifts count, hours worked, and salary paid over time
+- [x] **ANAL-12**: Chart uses line or bar visualization via Recharts library
+- [x] **ANAL-13**: Chart displays daily aggregated data from `/api/v1/analytics/trends` endpoint
+- [x] **ANAL-14**: Chart updates to reflect selected time range filter (7/30/90 days)
+- [x] **ANAL-15**: Chart displays date on x-axis, with toggle for metrics (shifts/hours/salary)
 
 ### Driver Performance
 
@@ -109,11 +109,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANAL-08 | Phase 2 | Complete |
 | ANAL-09 | Phase 2 | Complete |
 | ANAL-10 | Phase 2 | Complete |
-| ANAL-11 | Phase 3 | Pending |
-| ANAL-12 | Phase 3 | Pending |
-| ANAL-13 | Phase 3 | Pending |
-| ANAL-14 | Phase 3 | Pending |
-| ANAL-15 | Phase 3 | Pending |
+| ANAL-11 | Phase 3 | Complete |
+| ANAL-12 | Phase 3 | Complete |
+| ANAL-13 | Phase 3 | Complete |
+| ANAL-14 | Phase 3 | Complete |
+| ANAL-15 | Phase 3 | Complete |
 | ANAL-16 | Phase 4 | Pending |
 | ANAL-17 | Phase 4 | Pending |
 | ANAL-18 | Phase 4 | Pending |
@@ -141,4 +141,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 after initial definition*
+*Last updated: 2026-01-31 after Phase 3 completion*
