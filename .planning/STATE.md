@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Drivers can start, track, and complete shifts with photo documentation, while admins/foremen have real-time visibility into fleet operations, resource utilization, and business insights.
-**Current focus:** Phase 4 - Driver Performance Rankings
+**Current focus:** Phase 5 - Insights Panel
 
 ## Current Position
 
-Phase: 4 of 7 (Driver Performance Rankings)
+Phase: 5 of 7 (Insights Panel)
 Plan: 1 of 1 (complete)
 Status: Phase complete
-Last activity: 2026-01-31 — Completed Driver Performance Rankings: table view with sortable columns, medal icons for top 3, tie handling, and empty/error states
+Last activity: 2026-01-31 — Completed Insights Panel: cost per shift metric, underutilized resources, near-limit warnings, and optimization recommendations with alert-based styling
 
-Progress: [██████████] 57% (4/7 phases complete)
+Progress: [██████████] 71% (5/7 phases complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 5.8 min
-- Total execution time: 0.39 hours
+- Total plans completed: 5
+- Average duration: 5.2 min
+- Total execution time: 0.43 hours
 
 **By Phase:**
 
@@ -31,11 +31,12 @@ Progress: [██████████] 57% (4/7 phases complete)
 | 02-usage-cards | 1/1 | 2 min | 2 min |
 | 03-trends-visualization | 1/1 | 5 min | 5 min |
 | 04-driver-performance | 1/1 | 2 min | 2 min |
+| 05-insights-panel | 1/1 | 2 min | 2 min |
 | - | - | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (2 min), 03-01 (5 min), 02-01 (2 min), 01-01 (15 min)
-- Trend: Consistent velocity, driver rankings implemented quickly
+- Last 5 plans: 05-01 (2 min), 04-01 (2 min), 03-01 (5 min), 02-01 (2 min), 01-01 (15 min)
+- Trend: Consistent velocity maintained across analytics phases
 
 *Updated after each plan completion*
 
@@ -87,6 +88,14 @@ Recent decisions affecting current work:
 - [04-01]: Sticky table header for mobile scrolling (min-width 500px)
 - [04-01]: Custom event pattern (timeRangeChange) for parent-child communication
 
+**Phase 5 Decisions:**
+- [05-01]: Cost per shift card always visible (key metric, relevant even when no optimization opportunities)
+- [05-01]: Alert-based color coding: amber (underutilized), orange (near-limit), blue (recommendations), indigo (cost metric)
+- [05-01]: Russian locale currency formatting (RUB, no decimals) for cost display
+- [05-01]: Responsive grid: 1 column mobile, 2 columns desktop for optimal space usage
+- [05-01]: Progressive enhancement: show partial data if some insight categories are empty
+- [05-01]: Loading skeleton matches actual component structure for better perceived performance
+
 ### Pending Todos
 
 None yet.
@@ -97,7 +106,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-31T18:36:00Z
-Stopped at: Completed Phase 4 Plan 1 - Driver Performance Rankings
+Last session: 2026-01-31T19:10:23Z
+Stopped at: Completed Phase 5 Plan 1 - Insights Panel
 Resume file: None
-Next: Plan Phase 5 (if any) or project completion
+Next: Plan Phase 6 (CSV Export) or project completion
