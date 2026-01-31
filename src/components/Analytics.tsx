@@ -6,6 +6,15 @@ type TimeRangePreset = 7 | 30 | 90;
 const Analytics: React.FC = () => {
   const [selectedDays, setSelectedDays] = useState<TimeRangePreset>(30);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRangeLoading, setIsRangeLoading] = useState(false);
+
+  const handleRangeChange = async (days: TimeRangePreset) => {
+    if (days === selectedDays) return;
+    setIsRangeLoading(true);
+    setSelectedDays(days);
+    // Simulate data fetch delay - will be real API call in later phases
+    setTimeout(() => setIsRangeLoading(false), 500);
+  };
 
   const handleExport = async () => {
     setIsLoading(true);
@@ -39,7 +48,7 @@ const Analytics: React.FC = () => {
               return (
                 <button
                   key={days}
-                  onClick={() => setSelectedDays(days)}
+                  onClick={() => handleRangeChange(days)}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                     isActive
                       ? "bg-white text-indigo-600 shadow-sm"
@@ -68,15 +77,25 @@ const Analytics: React.FC = () => {
       </div>
 
       {/* Content Grid - will be implemented in later task */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
-          <p className="text-slate-400">Карточки аналитики будут здесь</p>
-        </div>
-        <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
-          <p className="text-slate-400">Графики будут здесь</p>
-        </div>
-        <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
-          <p className="text-slate-400">Статистика будет здесь</p>
+      <div className="relative">
+        {isRangeLoading && (
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-3xl flex items-center justify-center z-10">
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-2 text-sm text-slate-600">Загрузка данных...</p>
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
+            <p className="text-slate-400">Карточки аналитики будут здесь</p>
+          </div>
+          <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
+            <p className="text-slate-400">Графики будут здесь</p>
+          </div>
+          <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[200px] flex items-center justify-center">
+            <p className="text-slate-400">Статистика будет здесь</p>
+          </div>
         </div>
       </div>
     </div>
