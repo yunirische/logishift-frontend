@@ -875,3 +875,59 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ Helps differentiate shifts with same time on different days
 - **Impact:** Shift registry table now shows complete datetime information, making it easier to identify and track shifts
 - **Impact:** Audit logs are now significantly more readable and useful for admin users tracking system activity
+
+## [2026-01-31] - Docs: Sync Frontend Documentation with Backend v2.5
+- **File(s):** `AGENTS.md`, `docs/api/analytics.md`
+- **Change:** Added comprehensive documentation for backend v2.5 Phase 1 (subscription/audit) and Phase 4 (analytics) APIs
+- **Before:**
+  - AGENTS.md contained only basic frontend development guidelines
+  - No documentation about new backend v2.5 APIs
+  - No reference to subscription middleware, audit endpoints, or analytics module
+  - Frontend agents unaware of checkSubscription behavior
+  - No integration examples for analytics endpoints
+- **After:**
+  - AGENTS.md updated with "## 🌐 Backend API Context (v2.5)" section
+  - Phase 1 documentation:
+    - checkSubscription middleware behavior (allows GET, blocks write ops on expired)
+    - Audit trail endpoints (`GET /api/v1/audit`)
+    - Audit action types (SHIFT_STARTED, SHIFT_FINISHED, COMMENT_ADDED, ADMIN_PHOTO_UPLOAD)
+    - Database changes (subscription_expires_at, audit_logs)
+  - Phase 4 documentation:
+    - All 8 analytics endpoints documented with request/response examples
+    - `/analytics/usage` - Resource usage vs plan limits
+    - `/analytics/trends` - Time-series data with daily aggregation
+    - `/analytics/drivers` - Top drivers ranking by hours worked
+    - `/analytics/summary` - Comprehensive resource status
+    - `/analytics/insights` - Plan optimization recommendations
+    - `/analytics/shifts` - Shift statistics (avg/min/max/median duration)
+    - `/analytics/sites` - Site utilization metrics
+    - `/analytics/export` - JSON/CSV export with UTF-8 BOM for Excel
+  - New file: `docs/api/analytics.md` with complete integration guide:
+    - Frontend integration examples (constants.ts updates)
+    - API service functions (TypeScript)
+    - React component example (AnalyticsDashboard)
+    - UsageCard component implementation
+    - Complete endpoint reference with examples
+    - Error handling (subscription expired, validation errors)
+    - TypeScript type definitions for all analytics responses
+    - Best practices (caching, error boundaries, progressive enhancement)
+    - Integration checklist
+- **Implementation Details:**
+  - AGENTS.md section written in Russian to match existing document style
+  - Analytics documentation in English for technical clarity
+  - Includes practical code examples for immediate use
+  - Covers subscription middleware behavior critical for frontend error handling
+  - Documents all query parameters (days: 1-365, limit: 1-100, format: json/csv)
+  - Explains multi-tenant isolation via tenant_id from JWT
+  - CSV export handling with blob download for browser compatibility
+- **Benefits:**
+  - ✅ **KNOWLEDGE TRANSFER**: Frontend Claude agents now aware of v2.5 backend capabilities
+  - ✅ Can implement analytics dashboard using documented endpoints
+  - ✅ Understands subscription check behavior for proper error handling
+  - ✅ Ready-to-use code examples accelerate development
+  - ✅ TypeScript types ensure type-safe integration
+  - ✅ Comprehensive endpoint reference reduces API guesswork
+  - ✅ Documented admin features (proxy photo upload)
+  - ✅ Clear guidance on handling 403 subscription errors
+  - ✅ Integration checklist ensures complete implementation
+- **Impact:** Frontend documentation is now synchronized with backend v2.5, enabling agents to leverage new analytics and subscription features without needing to reference external documentation
