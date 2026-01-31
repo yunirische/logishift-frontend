@@ -77,13 +77,10 @@ Plans:
   3. List shows configurable number of top drivers (default: 10)
   4. List updates when user changes time range filter
   5. List is scrollable on mobile with sticky header for column labels
-**Plans**: TBD
+**Plans**: 1 plan in 1 wave
 
 Plans:
-- [ ] 04-01: Create driver performance list component with sortable columns
-- [ ] 04-02: Fetch driver performance data from /api/v1/analytics/drivers endpoint
-- [ ] 04-03: Implement sorting logic by hours worked
-- [ ] 04-04: Add configurable limit for number of drivers displayed
+- [x] 04-01: Driver rankings table with sortable columns, medal icons, and API integration
 
 #### Phase 5: Insights Panel
 **Goal**: Users can view optimization recommendations and resource warnings
@@ -149,7 +146,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Dashboard Layout & Controls | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
 | 2. Usage Overview Cards | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
 | 3. Trends Visualization | v1.5 | 1/1 | ✓ Complete | 2026-01-31 |
-| 4. Driver Performance | v1.5 | 0/TBD | Not started | - |
+| 4. Driver Performance | v1.5 | 0/1 | Pending | - |
 | 5. Insights Panel | v1.5 | 0/TBD | Not started | - |
 | 6. Error Handling & Loading | v1.5 | 0/TBD | Not started | - |
 | 7. Styling & Theming | v1.5 | 0/TBD | Not started | - |
