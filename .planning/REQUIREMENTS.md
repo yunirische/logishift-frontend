@@ -50,10 +50,10 @@ Requirements for Analytics Dashboard milestone. Each maps to roadmap phases.
 
 ### Error Handling & Loading
 
-- [ ] **ANAL-27**: Dashboard displays loading state/skeleton while fetching analytics data
-- [ ] **ANAL-28**: Dashboard handles subscription-expired errors (403) gracefully with read-only message
-- [ ] **ANAL-29**: Dashboard displays error message if analytics endpoints fail
-- [ ] **ANAL-30**: System implements retry logic or refresh button for failed requests
+- [x] **ANAL-27**: Dashboard displays loading state/skeleton while fetching analytics data
+- [x] **ANAL-28**: Dashboard handles subscription-expired errors (403) gracefully with read-only message
+- [x] **ANAL-29**: Dashboard displays error message if analytics endpoints fail
+- [x] **ANAL-30**: System implements retry logic or refresh button for failed requests
 
 ### Styling & Theming
 
@@ -125,10 +125,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANAL-24 | Phase 5 | Complete |
 | ANAL-25 | Phase 5 | Complete |
 | ANAL-26 | Phase 5 | Complete |
-| ANAL-27 | Phase 6 | Pending |
-| ANAL-28 | Phase 6 | Pending |
-| ANAL-29 | Phase 6 | Pending |
-| ANAL-30 | Phase 6 | Pending |
+| ANAL-27 | Phase 6 | Complete |
+| ANAL-28 | Phase 6 | Complete |
+| ANAL-29 | Phase 6 | Complete |
+| ANAL-30 | Phase 6 | Complete |
 | ANAL-31 | Phase 7 | Pending |
 | ANAL-32 | Phase 7 | Pending |
 | ANAL-33 | Phase 7 | Pending |

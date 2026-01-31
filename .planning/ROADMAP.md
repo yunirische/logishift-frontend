@@ -114,7 +114,9 @@ Plans:
 **Plans**: 1 plan in 1 wave
 
 Plans:
-- [ ] 06-01: Error boundary, 403 subscription-expired handling, typed API errors, and global refresh button
+- [x] 06-01: Error boundary, 403 subscription-expired handling, typed API errors, and global refresh button
+
+**Completed:** 2026-02-01
 
 #### Phase 7: Styling & Theming
 **Goal**: Analytics dashboard matches existing LogiShift design system with industrial aesthetic
@@ -145,5 +147,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 3. Trends Visualization | v1.5 | 1/1 | Complete | 2026-01-31 |
 | 4. Driver Performance | v1.5 | 1/1 | Complete | 2026-01-31 |
 | 5. Insights Panel | v1.5 | 1/1 | Complete | 2026-02-01 |
-| 6. Error Handling & Loading | v1.5 | 0/1 | Not started | - |
+| 6. Error Handling & Loading | v1.5 | 1/1 | ✓ Complete | 2026-02-01 |
 | 7. Styling & Theming | v1.5 | 0/TBD | Not started | - |
