@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Calendar, Download, Truck, Users, Building2 } from "lucide-react";
+import { Calendar, Download, Truck, Users, Building2, AlertCircle, RefreshCw } from "lucide-react";
 import { API_ENDPOINTS } from "../constants";
-import { getAnalyticsUsage, getAnalyticsTrends, getAnalyticsDrivers, getAnalyticsInsights } from "../services/api";
+import { getAnalyticsUsage, getAnalyticsTrends, getAnalyticsDrivers, getAnalyticsInsights, ApiErrorType } from "../services/api";
 import { AnalyticsUsage, AnalyticsTrend, AnalyticsDriver, AnalyticsInsights } from "../types";
 import { UsageCard } from "./analytics/UsageCard";
 import { TrendsChart } from "./analytics/TrendsChart";
 import { DriverRankings } from "./analytics/DriverRankings";
 import { InsightsPanel } from "./analytics/InsightsPanel";
+import { ErrorBoundary } from "./analytics/ErrorBoundary";
 
 type TimeRangePreset = 7 | 30 | 90;
 
@@ -14,6 +15,11 @@ const Analytics: React.FC = () => {
   const [selectedDays, setSelectedDays] = useState<TimeRangePreset>(30);
   const [isLoading, setIsLoading] = useState(false);
   const [isRangeLoading, setIsRangeLoading] = useState(false);
+
+  // Subscription and global error state
+  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [isRetryingAll, setIsRetryingAll] = useState(false);
 
   // Usage data state
   const [usageData, setUsageData] = useState<AnalyticsUsage | null>(null);
@@ -35,6 +41,18 @@ const Analytics: React.FC = () => {
   const [insightsLoading, setInsightsLoading] = useState(true);
   const [insightsError, setInsightsError] = useState<string | null>(null);
 
+  // Centralized error handler
+  const handleApiError = (error: unknown) => {
+    if (error && typeof error === 'object' && 'type' in error) {
+      if ((error as any).type === ApiErrorType.SUBSCRIPTION_EXPIRED) {
+        setSubscriptionExpired(true);
+        return;
+      }
+    }
+    // For other errors, set global error
+    setGlobalError(error instanceof Error ? error.message : 'Ошибка загрузки');
+  };
+
   const fetchUsage = async () => {
     setUsageLoading(true);
     setUsageError(null);
@@ -43,6 +61,7 @@ const Analytics: React.FC = () => {
       setUsageData(data);
     } catch (error) {
       console.error("Failed to fetch usage data:", error);
+      handleApiError(error);
       setUsageError(error instanceof Error ? error.message : "Ошибка загрузки данных");
     } finally {
       setUsageLoading(false);
@@ -57,6 +76,7 @@ const Analytics: React.FC = () => {
       setTrendsData(data);
     } catch (error) {
       console.error("Failed to fetch trends data:", error);
+      handleApiError(error);
       setTrendsError(error instanceof Error ? error.message : "Ошибка загрузки данных");
     } finally {
       setTrendsLoading(false);
@@ -71,6 +91,7 @@ const Analytics: React.FC = () => {
       setDriversData(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch drivers data:", error);
+      handleApiError(error);
       setDriversError(error instanceof Error ? error.message : "Ошибка загрузки данных");
     } finally {
       setDriversLoading(false);
@@ -85,9 +106,25 @@ const Analytics: React.FC = () => {
       setInsightsData(data);
     } catch (error) {
       console.error("Failed to fetch insights data:", error);
+      handleApiError(error);
       setInsightsError(error instanceof Error ? error.message : "Ошибка загрузки данных");
     } finally {
       setInsightsLoading(false);
+    }
+  };
+
+  const handleRetryAll = async () => {
+    setIsRetryingAll(true);
+    setGlobalError(null);
+    try {
+      await Promise.all([
+        fetchUsage(),
+        fetchTrends(),
+        fetchDrivers(),
+        fetchInsights()
+      ]);
+    } finally {
+      setIsRetryingAll(false);
     }
   };
 
@@ -168,9 +205,24 @@ const Analytics: React.FC = () => {
 
   return (
     <div className="analytics-dashboard">
-      {/* Top Controls Bar - will be implemented in next task */}
+      {/* Subscription-expired banner */}
+      {subscriptionExpired && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-amber-800 font-medium">Подписка истекла</p>
+              <p className="text-amber-700 text-sm mt-1">
+                Данные аналитики недоступны. Продлите подписку для доступа к статистике.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top Controls Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        {/* Time Range Selector - next task */}
+        {/* Time Range Selector */}
         <div className="flex items-center gap-3">
           <Calendar className="w-5 h-5 text-indigo-600" />
           <div className="flex bg-slate-100 rounded-lg p-1">
@@ -196,18 +248,31 @@ const Analytics: React.FC = () => {
           </span>
         </div>
 
-        {/* Export Button - next task */}
-        <button
-          onClick={handleExport}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
-        >
-          <Download className="w-4 h-4" />
-          <span>{isLoading ? "Загрузка..." : "Экспорт"}</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Global Refresh Button */}
+          <button
+            onClick={handleRetryAll}
+            disabled={isRetryingAll}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRetryingAll ? 'animate-spin' : ''}`} />
+            <span>{isRetryingAll ? "Обновление..." : "Обновить"}</span>
+          </button>
+
+          {/* Export Button */}
+          <button
+            onClick={handleExport}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
+          >
+            <Download className="w-4 h-4" />
+            <span>{isLoading ? "Загрузка..." : "Экспорт"}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Content Grid - will be implemented in later task */}
+      {/* Content Grid */}
       <div className="relative">
         {isRangeLoading && (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-3xl flex items-center justify-center z-10">
@@ -217,7 +282,8 @@ const Analytics: React.FC = () => {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <ErrorBoundary onReset={handleRetryAll}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Row 1: Usage cards (3 columns) */}
           {usageLoading ? (
             // Loading skeletons for usage cards
@@ -298,6 +364,7 @@ const Analytics: React.FC = () => {
             <InsightsPanel days={selectedDays} />
           </div>
         </div>
+        </ErrorBoundary>
       </div>
     </div>
   );
