@@ -19,6 +19,7 @@ LogiShift is a multi-tenant SaaS platform for shift management of heavy machiner
 - [Database Schema](./docs/backend/database-schema.md) - Complete database schema (tables, relationships, indexes)
 - [Database Operations](./docs/backend/database-operations.md) - Migrations, CRUD, transactions, constraints
 - [API Reference](./docs/backend/api-reference.md) - Complete REST API documentation (all endpoints)
+- [Analytics API](./docs/api/analytics.md) - Analytics endpoints and usage (v1.5)
 
 ### Telegram Bot
 - [Gateway API](./docs/telegram-bot/gateway-api.md) - Gateway API specification and callback commands
@@ -114,6 +115,7 @@ n8n acts as a gateway between Telegram Bot API and backend, providing a unified 
 - **Multi-Tenant SaaS** - Serve multiple organizations from single instance
 - **Plan Limits** - Subscription-based resource limits (machines, drivers, sites)
 - **Real-Time Dashboard** - Active shifts, truck usage, plan statistics
+- **Analytics Dashboard** - Resource utilization trends, driver performance, optimization insights (v1.5)
 - **Photo Documentation** - Odometer and invoice photos attached to shifts
 - **Automatic Salary Calculation** - Hours worked × hourly rate
 - **Audit Logging** - Complete trail of all critical actions
@@ -155,6 +157,6 @@ See [docs/README.md](./docs/README.md) for complete documentation navigation.
 
 ---
 
-**Last Updated:** 2025-01-27
-**Documentation Version:** 2.0.0
+**Last Updated:** 2026-02-01 (v1.5 Analytics Dashboard)
+**Documentation Version:** 2.1.0
 **For detailed information, see linked documents above.**

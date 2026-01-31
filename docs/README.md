@@ -33,6 +33,12 @@ Backend API, database, and server-side documentation.
 - [Database Operations](./backend/database-operations.md) - Migrations, CRUD, transactions, and constraints
 - [API Reference](./backend/api-reference.md) - Complete REST API documentation
 
+### 📊 Analytics (v1.5)
+
+Analytics dashboard for resource tracking and business insights.
+
+- [Analytics API](./api/analytics.md) - Analytics endpoints and frontend integration
+
 ### 🤖 Telegram Bot
 
 Telegram Bot integration and workflow.
