@@ -111,13 +111,10 @@ Plans:
   2. When subscription is expired (403 error), dashboard displays read-only message explaining subscription status
   3. When analytics endpoints fail, dashboard displays error message with description of what went wrong
   4. User can click retry button or refresh to retry failed data requests
-**Plans**: TBD
+**Plans**: 1 plan in 1 wave
 
 Plans:
-- [ ] 06-01: Create loading skeleton components for each analytics section
-- [ ] 06-02: Implement error boundary for analytics page
-- [ ] 06-03: Handle subscription-expired (403) errors with read-only message
-- [ ] 06-04: Add retry logic and refresh button for failed requests
+- [ ] 06-01: Error boundary, 403 subscription-expired handling, typed API errors, and global refresh button
 
 #### Phase 7: Styling & Theming
 **Goal**: Analytics dashboard matches existing LogiShift design system with industrial aesthetic
@@ -147,6 +144,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Usage Overview Cards | v1.5 | 1/1 | Complete | 2026-01-31 |
 | 3. Trends Visualization | v1.5 | 1/1 | Complete | 2026-01-31 |
 | 4. Driver Performance | v1.5 | 1/1 | Complete | 2026-01-31 |
-| 5. Insights Panel | v1.5 | 1/1 | ✓ Complete | 2026-02-01 |
-| 6. Error Handling & Loading | v1.5 | 0/TBD | Not started | - |
+| 5. Insights Panel | v1.5 | 1/1 | Complete | 2026-02-01 |
+| 6. Error Handling & Loading | v1.5 | 0/1 | Not started | - |
 | 7. Styling & Theming | v1.5 | 0/TBD | Not started | - |
