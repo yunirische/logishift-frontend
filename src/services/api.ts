@@ -151,6 +151,10 @@ export const getAnalyticsDrivers = async (days: number = 30, limit: number = 10)
   return get(`${API_ENDPOINTS.ANALYTICS_DRIVERS}?days=${days}&limit=${limit}`);
 };
 
+export const getAnalyticsInsights = async (days: number = 30) => {
+  return get(`${API_ENDPOINTS.ANALYTICS_INSIGHTS}?days=${days}`);
+};
+
 export const getPhotoUrl = (path?: string | null): string | null => {
   if (!path) return null;
   if (path.startsWith('http')) return path;

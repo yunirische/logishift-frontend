@@ -133,3 +133,23 @@ export interface AnalyticsDriver {
 
 export type DriverSortField = 'hours_worked' | 'shifts_count' | 'salary_paid';
 export type SortDirection = 'asc' | 'desc';
+
+export interface AnalyticsInsights {
+  underutilizedResources: {
+    trucks: string[];
+    sites: string[];
+  };
+  nearLimitResources: {
+    trucks: NearLimitResource | null;
+    drivers: NearLimitResource | null;
+    sites: NearLimitResource | null;
+  };
+  costPerShift: number;
+  recommendedActions: string[];
+}
+
+export interface NearLimitResource {
+  current: number;
+  limit: number;
+  percent: number;
+}
