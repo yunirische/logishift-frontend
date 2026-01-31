@@ -52,4 +52,7 @@ export const API_ENDPOINTS = {
   REPORTS_EXCEL: `${API_BASE_URL}/reports/excel`,
   REPORTS_PHOTOS: `${API_BASE_URL}/reports/photos`,
   REPORTS_EXPORT: `${API_BASE_URL}/reports/export`,
+
+  // Analytics
+  ANALYTICS_EXPORT: `${API_BASE_URL}/analytics/export`,
 };

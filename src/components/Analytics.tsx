@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Calendar, Download } from "lucide-react";
+import { API_ENDPOINTS } from "../constants";
 
 type TimeRangePreset = 7 | 30 | 90;
 
@@ -19,7 +20,47 @@ const Analytics: React.FC = () => {
   const handleExport = async () => {
     setIsLoading(true);
     try {
-      // Export logic (later task)
+      const token = localStorage.getItem("logishift_auth_token");
+      if (!token) {
+        throw new Error("Не авторизован");
+      }
+
+      const response = await fetch(
+        `${API_ENDPOINTS.ANALYTICS_EXPORT}?days=${selectedDays}&format=csv`,
+        {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Ошибка экспорта: ${response.status}`);
+      }
+
+      // Get filename from Content-Disposition header or generate one
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `logishift-analytics-${selectedDays}d-${new Date().toISOString().split("T")[0]}.csv`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match && match[1]) {
+          filename = match[1].replace(/['"]/g, "");
+        }
+      }
+
+      // Download blob
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Не удалось экспортировать данные. Попробуйте позже.");
     } finally {
       setIsLoading(false);
     }
