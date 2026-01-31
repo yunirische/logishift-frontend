@@ -4,6 +4,28 @@ import { User } from "../types";
 export const TOKEN_KEY = "logishift_auth_token";
 export const USER_KEY = "logishift_user_info";
 
+// Error types for better error handling
+export enum ApiErrorType {
+  NETWORK = 'NETWORK',
+  TIMEOUT = 'TIMEOUT',
+  AUTHENTICATION = 'AUTHENTICATION',
+  SUBSCRIPTION_EXPIRED = 'SUBSCRIPTION_EXPIRED',
+  SERVER = 'SERVER',
+  UNKNOWN = 'UNKNOWN'
+}
+
+export interface ApiError extends Error {
+  type: ApiErrorType;
+  status?: number;
+}
+
+const createApiError = (message: string, type: ApiErrorType, status?: number): ApiError => {
+  const error = new Error(message) as ApiError;
+  error.type = type;
+  error.status = status;
+  return error;
+};
+
 export const getAuthToken = () => localStorage.getItem(TOKEN_KEY);
 export const setAuthToken = (token: string) =>
   localStorage.setItem(TOKEN_KEY, token);
@@ -48,7 +70,7 @@ export const loginUser = async (login: string, password: string) => {
 export const apiRequest = async (endpoint: string, options: any = {}) => {
   const token = getAuthToken();
   const headers = new Headers(options.headers || {});
-  
+
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -58,7 +80,7 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
 
   try {
     const response = await fetch(fullUrl, {
-      ...options, 
+      ...options,
       headers,
       // Add timeout
       signal: AbortSignal.timeout(30000) // 30 seconds
@@ -71,10 +93,22 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
       return;
     }
 
+    // Handle subscription expired (403) - do NOT clear auth, analytics should be read-only
+    if (response.status === 403) {
+      let errorMessage = 'Подписка истекла';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch {
+        // If response is not JSON, use default message
+      }
+      throw createApiError(errorMessage, ApiErrorType.SUBSCRIPTION_EXPIRED, 403);
+    }
+
     // Handle other HTTP errors
     if (!response.ok) {
       let errorMessage = `HTTP Error ${response.status}`;
-      
+
       try {
         const errorData = await response.json();
         errorMessage = errorData.detail || errorData.message || errorMessage;
@@ -83,7 +117,7 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
         errorMessage = response.statusText || errorMessage;
       }
 
-      throw new Error(errorMessage);
+      throw createApiError(errorMessage, ApiErrorType.SERVER, response.status);
     }
 
     // Handle empty responses
@@ -98,13 +132,17 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
     // Handle network errors
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        throw new Error('Превышено время ожидания запроса');
+        throw createApiError('Превышено время ожидания запроса', ApiErrorType.TIMEOUT);
       }
       if (error.message.includes('Failed to fetch')) {
-        throw new Error('Ошибка сети. Проверьте подключение к интернету');
+        throw createApiError('Ошибка сети. Проверьте подключение к интернету', ApiErrorType.NETWORK);
+      }
+      // Re-throw ApiError as-is
+      if ('type' in error) {
+        throw error;
       }
     }
-    
+
     throw error;
   }
 };
