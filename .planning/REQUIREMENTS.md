@@ -33,11 +33,11 @@ Requirements for Analytics Dashboard milestone. Each maps to roadmap phases.
 
 ### Driver Performance
 
-- [ ] **ANAL-16**: User can view ranked list of top drivers by hours worked
-- [ ] **ANAL-17**: Driver list displays driver name, shifts count, hours worked, salary paid
-- [ ] **ANAL-18**: List is sorted by hours worked (highest first)
-- [ ] **ANAL-19**: List uses configurable limit (default: top 10 drivers)
-- [ ] **ANAL-20**: List updates to reflect selected time range filter (7/30/90 days)
+- [x] **ANAL-16**: User can view ranked list of top drivers by hours worked
+- [x] **ANAL-17**: Driver list displays driver name, shifts count, hours worked, salary paid
+- [x] **ANAL-18**: List is sorted by hours worked (highest first)
+- [x] **ANAL-19**: List uses configurable limit (default: top 10 drivers)
+- [x] **ANAL-20**: List updates to reflect selected time range filter (7/30/90 days)
 
 ### Insights Panel
 
@@ -114,11 +114,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANAL-13 | Phase 3 | Complete |
 | ANAL-14 | Phase 3 | Complete |
 | ANAL-15 | Phase 3 | Complete |
-| ANAL-16 | Phase 4 | Pending |
-| ANAL-17 | Phase 4 | Pending |
-| ANAL-18 | Phase 4 | Pending |
-| ANAL-19 | Phase 4 | Pending |
-| ANAL-20 | Phase 4 | Pending |
+| ANAL-16 | Phase 4 | Complete |
+| ANAL-17 | Phase 4 | Complete |
+| ANAL-18 | Phase 4 | Complete |
+| ANAL-19 | Phase 4 | Complete |
+| ANAL-20 | Phase 4 | Complete |
 | ANAL-21 | Phase 5 | Pending |
 | ANAL-22 | Phase 5 | Pending |
 | ANAL-23 | Phase 5 | Pending |
