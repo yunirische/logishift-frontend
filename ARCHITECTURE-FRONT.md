@@ -309,15 +309,24 @@ Configured in `vite.config.ts` with `vite-plugin-pwa`:
 
 **Framework:** Tailwind CSS + custom styles in `src/index.css`
 
-**Design System:**
-- Color palette: Indigo (primary) + Slate (neutral)
-- Card style: `rounded-3xl` (extra rounded corners)
-- Mobile-first responsive design
+**Industrial UI Design System:**
+- **Documentation:** See `docs/design-system.md` for complete styling guidelines
+- **Color palette:** Deep Navy (#0a192f) industrial theme
+  - Primary: `#0a192f` (Deep Navy)
+  - Hover: `#152238` (Darker Navy)
+  - Accent: `#3b82f6` (Blue)
+- **Typography:** JetBrains Mono for all IDs, numbers, timestamps, and truck plates
+- **Card style:** `rounded-lg` with `p-4` padding (dashboard density)
+- **Spacing:** Reduced density (`gap-4`, `space-y-4`, `mb-4`)
+- **Mobile-first responsive design**
 
-**Common Classes:**
-- Cards: `bg-white rounded-3xl shadow-lg p-6`
-- Buttons: `bg-indigo-600 text-white rounded-xl px-4 py-2`
-- Inputs: `border border-gray-300 rounded-xl px-3 py-2`
+**Common Classes (Industrial UI):**
+- Cards: `bg-white rounded-lg shadow-sm p-4`
+- Buttons: `bg-[#0a192f] text-white rounded-lg px-4 py-2`
+- Inputs: `border border-slate-200 rounded-lg px-4 py-3 focus:border-[#0a192f]`
+- Data IDs: `.mono-id` - All shift IDs
+- Data numbers: `.mono-number` - All numeric values
+- Data dates: `.mono-date` - All timestamps
 
 ---
 
