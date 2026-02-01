@@ -1218,3 +1218,71 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **TYPE SAFETY**: UsageCard accepts null/undefined explicitly
   - ✅ **STATE CONSISTENCY**: All error states set predictable values (null, [])
 - **Impact:** Analytics dashboard is now crash-proof against undefined API responses
+
+## [2026-02-01] - Fix: Analytics API Field Name Mapping - camelCase to snake_case
+- **File(s):** `src/services/api.ts`, `analitic-sync.md` (backend documentation)
+- **Change:** Added data transformation layer to convert backend camelCase response to frontend snake_case types
+- **Critical Issue:** Field name mismatch between backend API and frontend types
+- **Before:**
+  - Backend returns: `{ utilizationPercentage, shiftsCount, totalHours, totalSalary, driverId, driverName }`
+  - Frontend expects: `{ utilization_percent, shifts_count, hours_worked, salary_paid, driver_id, driver_name }`
+  - API functions returned raw data without transformation
+  - Components crashed accessing undefined fields: `TypeError: Cannot read properties of undefined (reading 'trucks')`
+  - No type safety - API functions returned `any` type
+- **After:**
+  - **Imported Analytics Types:**
+    ```typescript
+    import { AnalyticsUsage, AnalyticsTrend, AnalyticsDriver, AnalyticsInsights } from "../types";
+    ```
+  - **transformAnalyticsUsage():**
+    - Maps: `utilizationPercentage` → `utilization_percent`
+    - Handles both camelCase and snake_case (backward compatible)
+    - Returns safe defaults if data is missing
+  - **transformAnalyticsTrends():**
+    - Maps: `shiftsCount` → `shifts_count`
+    - Maps: `totalHours` → `hours_worked`
+    - Maps: `totalSalary` → `salary_paid`
+    - Returns empty array if invalid
+  - **transformAnalyticsDrivers():**
+    - Maps: `driverId` → `driver_id`
+    - Maps: `driverName` → `driver_name`
+    - Maps: `totalHours` → `hours_worked`
+    - Maps: `totalSalary` → `salary_paid`
+    - Maps: `shiftsCount` → `shifts_count`
+  - **transformAnalyticsInsights():**
+    - Handles nested structure: `{ period, utilization, activityMetrics, insights }`
+    - Extracts: `underutilizedResources`, `nearLimitResources`, `costPerShift`, `recommendedActions`
+    - Returns null if data is invalid
+  - **Updated API Functions:**
+    - `getAnalyticsUsage()`: Returns `Promise<AnalyticsUsage>`
+    - `getAnalyticsTrends()`: Returns `Promise<AnalyticsTrend[]>`
+    - `getAnalyticsDrivers()`: Returns `Promise<AnalyticsDriver[]>`
+    - `getAnalyticsInsights()`: Returns `Promise<AnalyticsInsights | null>`
+- **Transformation Pattern:**
+  ```typescript
+  // BEFORE: Raw API response (crashes on field mismatch)
+  const data = await get('/analytics/usage');
+  return data; // { utilizationPercentage } → TypeError: undefined
+
+  // AFTER: Transform to expected format
+  const data = await get('/analytics/usage');
+  return transformAnalyticsUsage(data); // { utilization_percent } → Works!
+  ```
+- **Defense Pattern:**
+  ```typescript
+  const transformResource = (resource: any) => ({
+    current: typeof resource?.current === 'number' ? resource.current : 0,
+    limit: typeof resource?.limit === 'number' ? resource.limit : -1,
+    utilization_percent: typeof resource?.utilizationPercentage === 'number'
+      ? resource.utilizationPercentage
+      : (typeof resource?.utilization_percent === 'number' ? resource.utilization_percent : null),
+  });
+  ```
+- **Benefits:**
+  - ✅ **CRITICAL FIX**: Analytics view no longer crashes on field name mismatch
+  - ✅ **TYPE SAFETY**: All API functions now return properly typed data
+  - ✅ **BACKWARD COMPATIBLE**: Transformers handle both camelCase and snake_case
+  - ✅ **NULL SAFE**: All transformers return safe defaults for missing data
+  - ✅ **MAINTAINABLE**: Clear mapping between backend and frontend field names
+  - ✅ **DOCUMENTED**: Added analitic-sync.md with backend API specification
+- **Impact:** Analytics dashboard now correctly displays all data from backend API with proper type safety and error handling
