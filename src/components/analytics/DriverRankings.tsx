@@ -39,7 +39,8 @@ const formatSalary = (value: number): string => {
   return value.toLocaleString('ru-RU') + ' ₽';
 };
 
-const formatHours = (value: number): string => {
+const formatHours = (value: number | null | undefined): string => {
+  if (value == null || isNaN(value)) return "0.0";
   return value.toFixed(1);
 };
 
@@ -123,8 +124,8 @@ export const DriverRankings: React.FC<DriverRankingsProps> = ({ days }) => {
   // Empty state with time range shortcuts
   if (!loading && rankedDrivers.length === 0 && !error) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg p-8">
-        <div className="flex flex-col items-center text-center py-8">
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex flex-col items-center text-center py-6">
           <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
             <Trophy className="w-8 h-8 text-slate-400" />
           </div>
@@ -163,8 +164,8 @@ export const DriverRankings: React.FC<DriverRankingsProps> = ({ days }) => {
   // Error state with retry
   if (error) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg p-8">
-        <div className="flex flex-col items-center text-center py-8">
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex flex-col items-center text-center py-6">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
@@ -174,7 +175,7 @@ export const DriverRankings: React.FC<DriverRankingsProps> = ({ days }) => {
           <p className="text-sm text-slate-500 mb-6">{error}</p>
           <button
             onClick={fetchDrivers}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238] transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Попробовать снова
@@ -185,11 +186,11 @@ export const DriverRankings: React.FC<DriverRankingsProps> = ({ days }) => {
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-lg p-6">
+    <div className="bg-white rounded-lg shadow-sm p-4">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-indigo-50 rounded-xl">
-          <Trophy className="w-5 h-5 text-indigo-600" />
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-[#0a192f]/10 rounded-lg">
+          <Trophy className="w-5 h-5 text-[#0a192f]" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-800">Рейтинг водителей</h3>
@@ -218,7 +219,7 @@ export const DriverRankings: React.FC<DriverRankingsProps> = ({ days }) => {
               <thead className="sticky top-0 bg-white z-10">
                 <tr className="border-b border-slate-100">
                   <th className="py-3 px-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-12">
-                    #
+                    <span className="mono-id">#</span>
                   </th>
                   <th className="py-3 px-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Водитель
@@ -227,7 +228,7 @@ export const DriverRankings: React.FC<DriverRankingsProps> = ({ days }) => {
                     <th
                       key={col.key}
                       className={`py-3 px-2 text-${col.align} text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-slate-50 transition-colors select-none ${
-                        sortField === col.key ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-500'
+                        sortField === col.key ? 'text-[#0a192f] bg-[#0a192f]/5' : 'text-slate-500'
                       }`}
                       onClick={() => handleSort(col.key)}
                     >
@@ -256,7 +257,7 @@ export const DriverRankings: React.FC<DriverRankingsProps> = ({ days }) => {
                         {rank <= 3 ? (
                           <Medal rank={rank} />
                         ) : (
-                          <span className="text-slate-400 font-medium text-xs">#{rank}</span>
+                          <span className="mono-id mono-number text-slate-400 font-medium text-xs">#{rank}</span>
                         )}
                       </div>
                     </td>

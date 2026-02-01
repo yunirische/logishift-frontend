@@ -139,8 +139,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   };
 
-  // Validate: end_time must be after start_time
-  const isEndTimeInvalid = startTime && endTime
+  // Validate: end_time must be after start_time (only if end_time is provided)
+  // For ACTIVE shifts, end_time can be empty (shift is still ongoing)
+  const isEndTimeInvalid = startTime && endTime && shift.status !== 'ACTIVE'
     ? new Date(endTime) <= new Date(startTime)
     : false;
 
@@ -191,8 +192,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               <h3 id="modal-title" className="text-xl font-semibold text-[#1B254B]">
                 Редактировать смену
               </h3>
-              <p className="text-slate-400 text-xs font-medium mt-1 font-mono">
-                ID: #{shift.id} • {shift.driver_name}
+              <p className="text-slate-400 text-xs font-medium mt-1 font-mono mono-id">
+                ID: <span className="mono-number">#{shift.id}</span> • {shift.driver_name}
               </p>
             </div>
             <button
@@ -258,6 +259,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               <div>
                 <label htmlFor="end-time" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                   Время окончания
+                  {shift.status === 'ACTIVE' && <span className="text-slate-400 font-normal ml-1">(опционально)</span>}
                 </label>
                 <input
                   id="end-time"
@@ -267,19 +269,26 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   onChange={(e) => setEndTime(e.target.value)}
                   max="2100-12-31T23:59"
                   step="60"
+                  disabled={shift.status === 'ACTIVE'}
                   className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
-                    isEndTimeInvalid || isEndTimeYearInvalid
-                      ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                      : "border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    shift.status === 'ACTIVE'
+                      ? "bg-slate-50 text-slate-500 cursor-not-allowed border-slate-200"
+                      : isEndTimeInvalid || isEndTimeYearInvalid
+                        ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                        : "border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   }`}
                 />
-                {isEndTimeYearInvalid ? (
+                {isEndTimeYearInvalid && shift.status !== 'ACTIVE' ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Некорректный год (1900-2100)
                   </p>
-                ) : isEndTimeInvalid ? (
+                ) : isEndTimeInvalid && shift.status !== 'ACTIVE' ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Должно быть позже начала
+                  </p>
+                ) : shift.status === 'ACTIVE' ? (
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Смена активна — время окончания нельзя изменить
                   </p>
                 ) : null}
               </div>
@@ -351,8 +360,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             <button
               type="submit"
               form="edit-shift-form"
-              disabled={loading || isEndTimeInvalid || isStartTimeYearInvalid || isEndTimeYearInvalid}
-              className="flex-1 px-6 py-3 rounded-lg bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={loading || (shift.status !== 'ACTIVE' && isEndTimeInvalid) || isStartTimeYearInvalid || isEndTimeYearInvalid}
+              className="flex-1 px-6 py-3 rounded-lg bg-[#0a192f] text-white font-semibold text-sm hover:bg-[#152238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>Сохранение...</>

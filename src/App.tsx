@@ -46,7 +46,7 @@ const AppContent: React.FC = () => {
       <p className="text-slate-400 mt-2 font-medium">
         Модуль находится в стадии разработки
       </p>
-      <div className="mt-8 px-6 py-2 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-widest">
+      <div className="mt-8 px-6 py-2 bg-[#0a192f]/10 text-[#0a192f] rounded-full text-xs font-bold uppercase tracking-widest">
         Coming Soon
       </div>
     </div>
@@ -55,7 +55,7 @@ const AppContent: React.FC = () => {
   // Hoist static loading state outside render (rendering-hoist-jsx)
   const loadingFallback = (
     <div className="flex flex-col items-center justify-center h-[60vh] text-slate-300">
-      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-12 h-12 border-4 border-[#0a192f] border-t-transparent rounded-full animate-spin"></div>
       <p className="mt-4 text-sm text-slate-400">Загрузка...</p>
     </div>
   );
@@ -117,7 +117,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-[#0a192f] border-t-transparent rounded-full animate-spin"></div>
           <p className="mt-4 text-sm text-gray-600">Загрузка...</p>
         </div>
       </div>
@@ -128,7 +128,7 @@ const AppContent: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="antialiased selection:bg-indigo-100 selection:text-indigo-900">
+      <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
         <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
           <ErrorBoundary>
             {renderContent()}

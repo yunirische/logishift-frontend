@@ -234,7 +234,7 @@ const Analytics: React.FC = () => {
                   onClick={() => handleRangeChange(days)}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                     isActive
-                      ? "bg-white text-indigo-600 shadow-sm"
+                      ? "bg-white text-[#0a192f] shadow-sm"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
@@ -254,7 +254,7 @@ const Analytics: React.FC = () => {
           <button
             onClick={handleRetryAll}
             disabled={isRetryingAll}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
+            className="flex items-center gap-2 px-4 py-2 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238] disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
           >
             <RefreshCw className={`w-4 h-4 ${isRetryingAll ? 'animate-spin' : ''}`} />
             <span>{isRetryingAll ? "Обновление..." : "Обновить"}</span>
@@ -264,7 +264,7 @@ const Analytics: React.FC = () => {
           <button
             onClick={handleExport}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
+            className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-white rounded-lg hover:bg-[#334155] disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px] touch-manipulation"
           >
             <Download className="w-4 h-4" />
             <span>{isLoading ? "Загрузка..." : "Экспорт"}</span>
@@ -283,33 +283,33 @@ const Analytics: React.FC = () => {
           </div>
         )}
         <ErrorBoundary onReset={handleRetryAll}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {/* Row 1: Usage cards (3 columns) */}
           {usageLoading ? (
             // Loading skeletons for usage cards
             <>
-              <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[180px] animate-pulse">
+              <div className="bg-white rounded-lg shadow-sm p-4 min-h-[160px] animate-pulse">
                 <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
                 <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
                 <div className="h-4 bg-slate-200 rounded w-1/4"></div>
               </div>
-              <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[180px] animate-pulse">
+              <div className="bg-white rounded-lg shadow-sm p-4 min-h-[160px] animate-pulse">
                 <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
                 <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
                 <div className="h-4 bg-slate-200 rounded w-1/4"></div>
               </div>
-              <div className="bg-white rounded-3xl shadow-lg p-6 min-h-[180px] animate-pulse">
+              <div className="bg-white rounded-lg shadow-sm p-4 min-h-[160px] animate-pulse">
                 <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
                 <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
                 <div className="h-4 bg-slate-200 rounded w-1/4"></div>
               </div>
             </>
           ) : usageError ? (
-            <div className="col-span-full lg:col-span-3 bg-white rounded-3xl shadow-lg p-6">
+            <div className="col-span-full lg:col-span-3 bg-white rounded-lg shadow-sm p-4">
               <p className="text-red-600 text-center">{usageError}</p>
               <button
                 onClick={fetchUsage}
-                className="mx-auto mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                className="mx-auto mt-4 flex items-center gap-2 px-4 py-2 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238]"
               >
                 Попробовать снова
               </button>

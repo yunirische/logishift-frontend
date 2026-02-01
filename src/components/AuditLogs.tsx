@@ -95,7 +95,7 @@ const AuditLogs: React.FC = () => {
     <div className="bg-white rounded-lg border border-slate-50 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-50 flex justify-between items-center">
         <h3 className="text-lg font-semibold text-[#1B254B]">Системный журнал</h3>
-        <button className="text-indigo-600 text-xs font-semibold hover:underline">
+        <button className="text-[#0a192f] text-xs font-semibold hover:underline">
           Экспорт CSV
         </button>
       </div>

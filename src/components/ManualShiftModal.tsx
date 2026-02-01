@@ -148,7 +148,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
               </div>
             ) : (
               <select
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[#0a192f] focus:border-transparent outline-none transition-all text-sm"
                 value={manualDriverId || ""}
                 onChange={(e) => setManualDriverId(Number(e.target.value) || null)}
                 disabled={manualLoading}
@@ -171,7 +171,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
               Машина (не занята)
             </label>
             <select
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[#0a192f] focus:border-transparent outline-none transition-all text-sm"
               value={manualTruckId || ""}
               onChange={(e) => setManualTruckId(Number(e.target.value) || null)}
               disabled={manualLoading}
@@ -193,7 +193,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
               Объект
             </label>
             <select
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-[#0a192f] focus:border-transparent outline-none transition-all text-sm"
               value={manualSiteId || ""}
               onChange={(e) => setManualSiteId(Number(e.target.value) || null)}
               disabled={manualLoading}
@@ -221,7 +221,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
           </button>
           <button
             onClick={handleCreateShift}
-            className="flex-1 px-4 py-2.5 bg-indigo-600 text-white font-semibold text-sm rounded-lg hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2.5 bg-[#0a192f] text-white font-semibold text-sm rounded-lg hover:bg-[#152238] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             disabled={manualLoading || isLoadingData || !manualDriverId || !manualTruckId || !manualSiteId}
           >
             {manualLoading ? (

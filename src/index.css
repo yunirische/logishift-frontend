@@ -6,6 +6,13 @@ body {
     @apply bg-slate-50 text-slate-900;
 }
 
+/* Industrial UI Theme */
+:root {
+    --industrial-navy: #0a192f;
+    --industrial-slate: #1e293b;
+    --industrial-blue: #334155;
+}
+
 /* Focus-visible styles - only show focus ring on keyboard navigation */
 *:focus-visible {
     @apply outline-none ring-2 ring-indigo-500 ring-offset-2;
@@ -44,5 +51,32 @@ select:focus-visible {
     /* Legend text */
     .recharts-legend-item-text {
         @apply font-mono;
+    }
+
+    /* Industrial UI Utilities */
+    .mono-id {
+        @apply font-mono text-xs text-slate-500;
+    }
+
+    .mono-number {
+        @apply font-mono;
+    }
+
+    .mono-date {
+        @apply font-mono text-sm;
+    }
+
+    .mono-plate {
+        @apply font-mono font-semibold;
+    }
+
+    /* Industrial button - Deep Navy background */
+    .btn-industrial {
+        @apply bg-[#0a192f] text-white hover:bg-[#152238] transition-colors;
+    }
+
+    /* Industrial card - reduced padding */
+    .card-industrial {
+        @apply bg-white rounded-lg shadow-sm p-4;
     }
 }

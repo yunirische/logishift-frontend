@@ -113,7 +113,7 @@ const Layout: React.FC<LayoutProps> = ({
         }}
         className={`w-full flex items-center gap-4 px-5 py-3 rounded-lg transition-all duration-200 group ${
           activeTab === item.id
-            ? "bg-indigo-600 text-white font-semibold"
+            ? "bg-[#0a192f] text-white font-semibold"
             : "text-slate-400 hover:text-white hover:bg-slate-800"
         }`}
       >
@@ -150,7 +150,7 @@ const Layout: React.FC<LayoutProps> = ({
       >
         <div className="p-8">
           <h1 className="text-2xl font-semibold text-white">
-            <span className="text-indigo-400">LOGI</span>SHIFT
+            <span className="text-[#3b82f6]">LOGI</span>SHIFT
           </h1>
           <div className="flex items-center gap-2 mt-1">
             <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -186,7 +186,7 @@ const Layout: React.FC<LayoutProps> = ({
             <p className="text-xs font-semibold text-white truncate mt-0.5">
               {user?.full_name}
             </p>
-            <p className="text-[9px] font-semibold text-indigo-400 uppercase mt-1">
+            <p className="text-[9px] font-semibold text-[#3b82f6] uppercase mt-1">
               {user?.role}
             </p>
           </div>
@@ -221,7 +221,7 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-semibold text-xs border border-indigo-100/50">
+            <div className="w-10 h-10 rounded-lg bg-[#0a192f]/10 text-[#0a192f] flex items-center justify-center font-semibold text-xs border border-[#0a192f]/20">
               {user?.full_name?.charAt(0) || "U"}
             </div>
           </div>

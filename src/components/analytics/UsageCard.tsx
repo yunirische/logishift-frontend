@@ -8,9 +8,9 @@ interface UsageCardProps {
 }
 
 // Helper to determine progress bar color with optional pulse animation
-const getUtilizationColor = (percent: number | null, limit: number): { bg: string; pulse: boolean } => {
+const getUtilizationColor = (percent: number | null, limit: number | null): { bg: string; pulse: boolean } => {
   // Unlimited resources
-  if (limit === -1 || percent === null) {
+  if (limit === -1 || limit === null || percent === null) {
     return { bg: "bg-slate-200", pulse: false };
   }
 
@@ -21,8 +21,8 @@ const getUtilizationColor = (percent: number | null, limit: number): { bg: strin
   return { bg: "bg-red-500", pulse: true };
 };
 
-const getTextColor = (percent: number | null, limit: number): string => {
-  if (limit === -1 || percent === null) return "text-slate-600";
+const getTextColor = (percent: number | null, limit: number | null): string => {
+  if (limit === -1 || limit === null || percent === null) return "text-slate-600";
   if (percent < 70) return "text-emerald-600";
   if (percent < 90) return "text-amber-600";
   return "text-red-600";
@@ -30,28 +30,28 @@ const getTextColor = (percent: number | null, limit: number): string => {
 
 export const UsageCard: React.FC<UsageCardProps> = ({ title, icon: Icon, usage }) => {
   const { current, limit, utilization_percent: percent } = usage;
-  const isUnlimited = limit === -1;
+  const isUnlimited = limit === -1 || limit === null;
   const { bg: colorClass, pulse: shouldPulse } = getUtilizationColor(percent, limit);
 
   return (
-    <div className="bg-white rounded-3xl shadow-lg p-6">
+    <div className="bg-white rounded-lg shadow-sm p-4">
       {/* Header with icon and title */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-indigo-50 rounded-xl">
-          <Icon className="w-5 h-5 text-indigo-600" />
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 bg-[#0a192f]/10 rounded-lg">
+          <Icon className="w-5 h-5 text-[#0a192f]" />
         </div>
-        <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
+        <h3 className="text-base font-semibold text-slate-800">{title}</h3>
       </div>
 
       {/* Current / Limit display */}
       <div className="mb-3">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-slate-900">{current}</span>
+          <span className="text-2xl font-bold text-slate-900 mono-number">{current}</span>
           <span className="text-slate-400">/</span>
-          <span className="text-xl font-medium text-slate-600">
+          <span className="text-lg font-medium text-slate-600 mono-number">
             {isUnlimited ? (
               // Infinity symbol with 60% opacity per context decision
-              <span className="text-2xl opacity-60">&infin;</span>
+              <span className="text-xl opacity-60">&infin;</span>
             ) : (
               limit
             )}

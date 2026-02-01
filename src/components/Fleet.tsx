@@ -122,7 +122,7 @@ const Fleet: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="p-10 text-center flex flex-col items-center justify-center gap-4"><Loader2 className="animate-spin text-indigo-600" size={32} /><span className="text-slate-500 font-medium">Загрузка автопарка...</span></div>;
+  if (loading) return <div className="p-10 text-center flex flex-col items-center justify-center gap-4"><Loader2 className="animate-spin text-[#0a192f]" size={32} /><span className="text-slate-500 font-medium">Загрузка автопарка...</span></div>;
 
   return (
     <div className="space-y-6">
@@ -134,7 +134,7 @@ const Fleet: React.FC = () => {
         </div>
         <button
           onClick={handleAddClick}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+          className="flex items-center gap-2 px-6 py-3 bg-[#0a192f] text-white rounded-lg font-bold hover:bg-[#152238] transition-colors shadow-lg shadow-indigo-200"
         >
           <Plus size={20} />
           Добавить машину
@@ -156,7 +156,7 @@ const Fleet: React.FC = () => {
             <div className="absolute top-4 right-4 flex gap-2 z-10">
               <button
                 onClick={() => handleEditClick(t)}
-                className="p-2 bg-white border border-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-600 transition-colors shadow-sm"
+                className="p-2 bg-white border border-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-[#0a192f] transition-colors shadow-sm"
                 aria-label={`Редактировать ${t.name}`}
               >
                 <Pencil size={16} />
@@ -171,7 +171,7 @@ const Fleet: React.FC = () => {
             </div>
 
             <div className="flex justify-between items-start pr-16">
-              <Truck size={40} className="text-indigo-600 drop-shadow-sm" />
+              <Truck size={40} className="text-[#0a192f] drop-shadow-sm" />
               {/* Статус в карточке */}
               <div className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1.5 ${t.is_busy ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
                  <Power size={10} fill="currentColor" />
@@ -272,7 +272,7 @@ const Fleet: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 py-3 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-3 rounded-lg bg-[#0a192f] text-white font-bold hover:bg-[#152238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? 'Сохранение...' : (editingTruck ? 'Сохранить' : 'Создать')}
                 </button>

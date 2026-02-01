@@ -1057,3 +1057,109 @@ npm run type-check   # Run TypeScript compiler check
 - **Stats:** 34 requirements (100%), 97% integration health, 6,473 LOC, 1 day execution
 - **Git Tag:** v1.5
 - **Impact:** Complete Analytics Dashboard milestone shipped, production-ready with professional styling
+
+## [2026-02-01] - Bugfix: Analytics Crash - Null-Safe Number Formatting
+- **File(s):** `src/components/analytics/TrendsChart.tsx`, `src/components/analytics/DriverRankings.tsx`, `src/components/analytics/InsightsPanel.tsx`, `src/components/analytics/UsageCard.tsx`
+- **Change:** Added null/undefined checks before calling `.toFixed()` and throughout analytics components to prevent crashes
+- **Before:**
+  - `formatYAxisValue()` in TrendsChart.tsx called `(value / 1000).toFixed(1)` without null check
+  - `formatHours()` in DriverRankings.tsx called `value.toFixed(1)` without null check
+  - `formatCost()` in InsightsPanel.tsx called `Intl.NumberFormat.format(cost)` without null check
+  - UsageCard.tsx only handled `limit === -1` for unlimited, not `limit === null`
+  - Analytics dashboard crashed when API returned null/undefined values
+- **After:**
+  - `formatYAxisValue()`: Returns "0" if value is null/undefined/NaN before calling toFixed(1)
+  - `formatHours()`: Returns "0.0" if value is null/undefined/NaN before calling toFixed(1)
+  - `formatCost()`: Returns "— ₽" if cost is null/undefined/NaN before formatting
+  - `getUtilizationColor()`: Handles `limit === null` same as `limit === -1`
+  - `getTextColor()`: Handles `limit === null` same as `limit === -1`
+  - `isUnlimited` check: Changed from `limit === -1` to `limit === -1 || limit === null`
+- **Benefits:**
+  - ✅ **CRITICAL FIX**: Prevents analytics crash on null/undefined data
+  - ✅ Handles edge cases: missing API data, migration issues, incomplete records
+  - ✅ Graceful fallback values (0, 0.0, "— ₽") instead of NaN crashes
+  - ✅ Consistent null-safety across all number formatting functions
+- **Impact:** Analytics dashboard now handles incomplete data gracefully without crashing
+
+## [2026-02-01] - Feature: EditShiftModal - ACTIVE Shift End Time Handling
+- **File(s):** `src/components/EditShiftModal.tsx`
+- **Change:** Made end_time field optional and disabled for ACTIVE shifts, removed validation error
+- **Before:**
+  - End_time validation error showed even when shift.status === 'ACTIVE'
+  - "Должно быть позже начала" error appeared when editing active shifts
+  - End_time field was always editable
+  - Active shifts cannot have a meaningful end_time (shift is still ongoing)
+- **After:**
+  - `isEndTimeInvalid` check excludes ACTIVE shifts: `shift.status !== 'ACTIVE'`
+  - End_time field has "(опционально)" label for ACTIVE shifts
+  - End_time input is `disabled={shift.status === 'ACTIVE'}` for active shifts
+  - Shows grayed-out styling with "Смена активна — время окончания нельзя изменить" hint
+  - Submit button disabled check excludes ACTIVE shifts: `shift.status !== 'ACTIVE' && isEndTimeInvalid`
+  - Validation error message only shows for non-active shifts
+- **Benefits:**
+  - ✅ **UX IMPROVEMENT**: Active shifts no longer show confusing validation errors
+  - ✅ Visual feedback: disabled state makes it clear end_time cannot be edited
+  - ✅ Helpful hint text explains why the field is disabled
+  - ✅ Prevents invalid data entry (editing end_time of active shift)
+- **Impact:** EditShiftModal now correctly handles active shifts by making end_time optional and disabled
+
+## [2026-02-01] - Feature: Industrial UI Overhaul - Colors, Typography, Density
+- **File(s):** `src/index.css`, `src/components/Analytics.tsx`, `src/components/analytics/*.tsx` (5 components), `src/components/Layout.tsx`, `src/components/EditShiftModal.tsx`, `src/views/AdminView.tsx`
+- **Change:** Applied industrial UI design system with deep navy colors, JetBrains Mono typography, and reduced density
+- **Before:**
+  - Primary color: Indigo/Violet palette (indigo-600, indigo-700, etc.)
+  - Card style: `rounded-3xl` with `p-6` padding and `gap-6` gaps
+  - Buttons: `bg-indigo-600 text-white` with indigo hover states
+  - Typography: Standard sans-serif for all text, no monospace for IDs/numbers
+  - Date/time displays: Standard text styling
+  - Active tab color: `bg-indigo-600`
+- **After:**
+  - **Colors:**
+    - Sidebar/Action background: `#0a192f` (Deep Navy)
+    - Primary buttons: `bg-[#0a192f]` with `hover:bg-[#152238]`
+    - Secondary buttons: `bg-[#1e293b]` with `hover:bg-[#334155]`
+    - Active tab: `bg-[#0a192f]` (was indigo-600)
+    - Icon backgrounds: `bg-[#0a192f]/10` with `text-[#0a192f]`
+    - Card headers: Changed from `bg-indigo-50` to `bg-[#0a192f]/10`
+    - Brand accent: Changed from `text-indigo-400` to `text-[#3b82f6]` (blue)
+  - **Typography (JetBrains Mono):**
+    - All IDs: `mono-id` class with `font-mono text-xs text-slate-500`
+    - All Numbers: `mono-number` class with `font-mono`
+    - All Time/Date strings: `mono-date` class with `font-mono text-sm`
+    - Truck Plates: `mono-plate` class with `font-mono font-semibold`
+    - Applied to: shift IDs (#55), analytics numbers, time displays, table headers
+  - **Density:**
+    - Cards: `rounded-3xl` → `rounded-lg` (less rounded)
+    - Padding: `p-6` → `p-4` across all analytics and admin views
+    - Gaps: `gap-6` → `gap-4` in grids
+    - Headers: `mb-6` → `mb-4`
+    - Shadows: `shadow-lg` → `shadow-sm` (subtle)
+  - **Components Updated:**
+    - Analytics.tsx: Buttons, grid gaps, padding, active tab colors
+    - UsageCard.tsx: Card styling, mono-number class, reduced padding
+    - TrendsChart.tsx: Loading skeleton, error state, card styling
+    - DriverRankings.tsx: Header styling, mono-id class, active tab color
+    - InsightsPanel.tsx: Card styling, mono-number class, reduced padding
+    - EditShiftModal.tsx: Button colors, mono-id class, ID display
+    - Layout.tsx: Active tab color, brand accent, avatar styling
+    - AdminView.tsx: Density changes, mono classes for table data
+  - **CSS Utilities Added** (`src/index.css`):
+    - `.mono-id`: `font-mono text-xs text-slate-500`
+    - `.mono-number`: `font-mono`
+    - `.mono-date`: `font-mono text-sm`
+    - `.mono-plate`: `font-mono font-semibold`
+    - `.btn-industrial`: Deep Navy background
+    - `.card-industrial`: Reduced padding
+    - CSS variables: `--industrial-navy: #0a192f`
+- **Design Rationale:**
+  - **Industrial Aesthetic**: Deep navy colors evoke logistics/warehouse software
+  - **Data Density**: Reduced padding/gaps increases information density
+  - **Typography**: JetBrains Mono (monospace) for IDs/numbers improves data readability
+  - **Consistency**: Applied across all admin/analytics views for cohesive look
+- **Benefits:**
+  - ✅ **PROFESSIONAL APPEARANCE**: Industrial navy color scheme fits logistics domain
+  - ✅ **DATA READABILITY**: Monospace typography for IDs/numbers makes data easier to scan
+  - ✅ **INCREASED DENSITY**: More information visible on screen with reduced padding
+  - ✅ **BRAND CONSISTENCY**: All admin views use same color/typography system
+  - ✅ **IMPROVED CONTRAST**: Deep navy provides better visual hierarchy
+- **Impact:** Complete visual overhaul to industrial UI with professional appearance, improved data readability, and consistent design language

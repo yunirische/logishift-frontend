@@ -62,7 +62,8 @@ const formatTooltipDate = (dateStr: string): string => {
 };
 
 // Format y-axis value with K suffix
-const formatYAxisValue = (value: number): string => {
+const formatYAxisValue = (value: number | null | undefined): string => {
+  if (value == null || isNaN(value)) return "0";
   if (value >= 1000) {
     return `${(value / 1000).toFixed(1)}K`;
   }
@@ -111,24 +112,24 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-indigo-50 rounded-xl">
-            <TrendingUp className="w-5 h-5 text-indigo-600" />
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-[#0a192f]/10 rounded-lg">
+            <TrendingUp className="w-5 h-5 text-[#0a192f]" />
           </div>
           <div className="h-6 bg-slate-200 rounded w-32 animate-pulse"></div>
         </div>
-        <div className="h-64 bg-slate-100 rounded-2xl animate-pulse"></div>
+        <div className="h-64 bg-slate-100 rounded-lg animate-pulse"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-indigo-50 rounded-xl">
-            <TrendingUp className="w-5 h-5 text-indigo-600" />
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-[#0a192f]/10 rounded-lg">
+            <TrendingUp className="w-5 h-5 text-[#0a192f]" />
           </div>
           <h3 className="text-lg font-semibold text-slate-800">Динамика</h3>
         </div>
@@ -138,7 +139,7 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
           {onRetry && (
             <button
               onClick={onRetry}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238] transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               Попробовать снова
@@ -151,10 +152,10 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
 
   if (!data.length) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-indigo-50 rounded-xl">
-            <TrendingUp className="w-5 h-5 text-indigo-600" />
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-[#0a192f]/10 rounded-lg">
+            <TrendingUp className="w-5 h-5 text-[#0a192f]" />
           </div>
           <h3 className="text-lg font-semibold text-slate-800">Динамика</h3>
         </div>
@@ -166,12 +167,12 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-lg p-6">
+    <div className="bg-white rounded-lg shadow-sm p-4">
       {/* Header with icon and metric tabs */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-50 rounded-xl">
-            <TrendingUp className="w-5 h-5 text-indigo-600" />
+          <div className="p-2 bg-[#0a192f]/10 rounded-lg">
+            <TrendingUp className="w-5 h-5 text-[#0a192f]" />
           </div>
           <h3 className="text-lg font-semibold text-slate-800">Динамика</h3>
         </div>
@@ -184,7 +185,7 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
               onClick={() => setSelectedMetric(metric)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 selectedMetric === metric
-                  ? "bg-white text-indigo-600 shadow-sm"
+                  ? "bg-white text-[#0a192f] shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >

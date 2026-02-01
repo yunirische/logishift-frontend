@@ -113,9 +113,9 @@ const AIAssistant: React.FC = () => {
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-50 rounded-tl-none flex gap-1.5 items-center">
-                  <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></span>
-                  <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                  <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                  <span className="w-1.5 h-1.5 bg-[#0a192f] rounded-full animate-bounce"></span>
+                  <span className="w-1.5 h-1.5 bg-[#0a192f] rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                  <span className="w-1.5 h-1.5 bg-[#0a192f] rounded-full animate-bounce [animation-delay:0.4s]"></span>
                 </div>
               </div>
             )}

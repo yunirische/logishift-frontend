@@ -113,7 +113,7 @@ const Objects: React.FC = () => {
       <div className="flex justify-end">
         <button
           onClick={handleAddClick}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+          className="flex items-center gap-2 px-6 py-3 bg-[#0a192f] text-white rounded-xl font-bold hover:bg-[#152238] transition-colors shadow-lg shadow-indigo-200"
         >
           <Plus size={20} />
           Добавить объект
@@ -129,7 +129,7 @@ const Objects: React.FC = () => {
             <div className="absolute top-4 right-4 flex gap-2">
               <button
                 onClick={() => handleEditClick(s)}
-                className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-600 transition-colors"
+                className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-[#0a192f] transition-colors"
                 title="Редактировать"
               >
                 <Pencil size={16} />
@@ -144,7 +144,7 @@ const Objects: React.FC = () => {
             </div>
 
             <div className="flex justify-between items-start pr-16">
-              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+              <div className="p-2 bg-indigo-50 text-[#0a192f] rounded-lg">
                 <Building size={28} strokeWidth={2} />
               </div>
               {!s.is_active && <span className="px-3 py-1 rounded-full text-[10px] font-semibold uppercase bg-slate-100 text-slate-500">Неактивен</span>}
@@ -245,7 +245,7 @@ const Objects: React.FC = () => {
                     type="checkbox"
                     checked={formData.odometer_required}
                     onChange={(e) => setFormData({ ...formData, odometer_required: e.target.checked })}
-                    className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
+                    className="w-5 h-5 text-[#0a192f] rounded focus:ring-indigo-500 border-gray-300"
                   />
                 </label>
 
@@ -260,7 +260,7 @@ const Objects: React.FC = () => {
                     type="checkbox"
                     checked={formData.invoice_required}
                     onChange={(e) => setFormData({ ...formData, invoice_required: e.target.checked })}
-                    className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
+                    className="w-5 h-5 text-[#0a192f] rounded focus:ring-indigo-500 border-gray-300"
                   />
                 </label>
                 
@@ -272,7 +272,7 @@ const Objects: React.FC = () => {
                     type="checkbox"
                     checked={formData.is_active}
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
+                    className="w-5 h-5 text-[#0a192f] rounded focus:ring-indigo-500 border-gray-300"
                   />
                 </label>
               </div>
@@ -288,7 +288,7 @@ const Objects: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-3 rounded-xl bg-[#0a192f] text-white font-bold hover:bg-[#152238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? 'Сохранение...' : (editingSite ? 'Сохранить' : 'Создать')}
                 </button>

@@ -69,7 +69,7 @@ const UsageCard: React.FC<{
         <div
           className={`h-full rounded-full transition-all duration-500 ${
             isUnlimited ? 'bg-slate-300' :
-            isNearLimit ? 'bg-orange-500' : 'bg-indigo-500'
+            isNearLimit ? 'bg-orange-500' : 'bg-[#0a192f]'
           }`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
         ></div>
@@ -251,7 +251,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-[#0a192f] border-t-transparent rounded-full animate-spin"></div>
         <p className="mt-4 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
           Синхронизация стейт-машины...
         </p>
@@ -266,7 +266,7 @@ const Dashboard: React.FC = () => {
         {/* Основная статистика */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+            <div className="w-12 h-12 rounded-lg bg-indigo-50 text-[#0a192f] flex items-center justify-center mb-4">
               <Clock size={24} />
             </div>
             <p className="text-3xl font-semibold text-[#1B254B]">
@@ -309,7 +309,7 @@ const Dashboard: React.FC = () => {
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-[#1B254B]">Лимиты тарифа</h3>
             {stats.currentPlan && stats.currentPlan.name && (
-              <span className="px-3 py-1 bg-indigo-100 text-indigo-600 text-xs font-bold rounded-full">
+              <span className="px-3 py-1 bg-indigo-100 text-[#0a192f] text-xs font-bold rounded-full">
                 {stats.currentPlan.name}
               </span>
             )}
@@ -319,19 +319,19 @@ const Dashboard: React.FC = () => {
               <>
                 <UsageCard
                   label="Машины"
-                  icon={<Truck size={24} className="text-indigo-600" />}
+                  icon={<Truck size={24} className="text-[#0a192f]" />}
                   current={stats.usage.trucks?.current || 0}
                   limit={stats.usage.trucks?.limit || 0}
                 />
                 <UsageCard
                   label="Водители"
-                  icon={<User size={24} className="text-indigo-600" />}
+                  icon={<User size={24} className="text-[#0a192f]" />}
                   current={stats.usage.drivers?.current || 0}
                   limit={stats.usage.drivers?.limit || 0}
                 />
                 <UsageCard
                   label="Объекты"
-                  icon={<Building2 size={24} className="text-indigo-600" />}
+                  icon={<Building2 size={24} className="text-[#0a192f]" />}
                   current={stats.usage.sites?.current || 0}
                   limit={stats.usage.sites?.limit || 0}
                 />
@@ -437,7 +437,7 @@ const Dashboard: React.FC = () => {
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between px-4">
               <h2 className="text-2xl font-semibold text-[#1B254B] flex items-center gap-2">
-                <Truck size={20} className="text-indigo-600" />
+                <Truck size={20} className="text-[#0a192f]" />
                 Выберите машину
               </h2>
               <button
@@ -456,7 +456,7 @@ const Dashboard: React.FC = () => {
                       setSelectedTruck(truck.id);
                       setStep("selecting_site");
                     }}
-                    className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm hover:border-indigo-600 text-left flex items-center justify-between group transition-all"
+                    className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm hover:border-[#0a192f] text-left flex items-center justify-between group transition-all"
                   >
                     <div>
                       <p className="text-lg font-semibold text-[#1B254B]">
@@ -486,7 +486,7 @@ const Dashboard: React.FC = () => {
           <div className="space-y-6 animate-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between px-4">
               <h2 className="text-2xl font-semibold text-[#1B254B] flex items-center gap-2">
-                <Building2 size={20} className="text-indigo-600" />
+                <Building2 size={20} className="text-[#0a192f]" />
                 Выберите объект
               </h2>
               <button
@@ -510,7 +510,7 @@ const Dashboard: React.FC = () => {
                       setStep("idle");
                     })
                   }
-                  className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm hover:border-indigo-600 text-left flex items-center justify-between group transition-all"
+                  className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm hover:border-[#0a192f] text-left flex items-center justify-between group transition-all"
                 >
                   <div>
                     <p className="text-lg font-semibold text-[#1B254B]">
@@ -550,11 +550,11 @@ const Dashboard: React.FC = () => {
       return (
         <div className="text-center py-8 animate-in zoom-in-95">
           <div className="bg-white p-10 rounded-lg shadow-2xl border border-slate-100">
-            <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-indigo-50 text-[#0a192f] rounded-lg flex items-center justify-center mx-auto mb-6">
               <Camera size={32} />
             </div>
             <h3 className="text-xl font-semibold text-[#1B254B] mb-2 flex items-center justify-center gap-2">
-              <Camera size={20} className="text-indigo-600" />
+              <Camera size={20} className="text-[#0a192f]" />
               {title}
             </h3>
             <p className="text-slate-400 text-sm mb-8">
@@ -667,7 +667,7 @@ const Dashboard: React.FC = () => {
         <p>Неизвестное состояние системы</p>
         <button
           onClick={() => window.location.reload()}
-          className="mt-4 text-indigo-600 font-bold"
+          className="mt-4 text-[#0a192f] font-bold"
         >
           Обновить
         </button>

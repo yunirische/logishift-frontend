@@ -17,7 +17,7 @@ const PhotoLink = React.memo(({ url, icon, title }: { url?: string; icon: string
       href={photoUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors"
+      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#0a192f] transition-colors"
       title={title}
     >
       {icon}
@@ -170,7 +170,7 @@ const Shifts: React.FC = () => {
 
     switch (s) {
       case "active":
-        return "bg-indigo-50 text-indigo-600 border-indigo-100";
+        return "bg-indigo-50 text-[#0a192f] border-indigo-100";
       case "pending_invoice":
       case "awaiting_invoice":
         return "bg-amber-50 text-amber-600 border-amber-100";
@@ -247,7 +247,7 @@ const Shifts: React.FC = () => {
 
   if (loading)
     return (
-      <div className="p-20 text-center animate-pulse font-semibold text-indigo-600 uppercase tracking-widest text-[10px]">
+      <div className="p-20 text-center animate-pulse font-semibold text-[#0a192f] uppercase tracking-widest text-[10px]">
         Загрузка истории...
       </div>
     );
@@ -261,12 +261,12 @@ const Shifts: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-slate-50 p-4">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors"
+            className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-[#0a192f] transition-colors"
           >
             <Filter size={16} />
             Фильтры
             {hasActiveFilters && (
-              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded-full">
+              <span className="px-2 py-0.5 bg-indigo-100 text-[#0a192f] text-xs rounded-full">
                 {[filters.driver_id, filters.truck_id, filters.date].filter(Boolean).length}
               </span>
             )}
@@ -435,7 +435,7 @@ const Shifts: React.FC = () => {
                               setEditingShift(s);
                               setIsEditModalOpen(true);
                             }}
-                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors text-xs"
+                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-[#0a192f] transition-colors text-xs"
                             title="Редактировать"
                           >
                             ✏️
@@ -465,7 +465,7 @@ const Shifts: React.FC = () => {
             <button
               onClick={loadMore}
               disabled={loadingMore}
-              className="px-6 py-2 bg-indigo-50 text-indigo-600 font-semibold text-sm rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2 bg-indigo-50 text-[#0a192f] font-semibold text-sm rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loadingMore ? "Загрузка..." : "Загрузить еще"}
               {totalCount > 0 && ` (${displayShifts.length}/${totalCount})`}

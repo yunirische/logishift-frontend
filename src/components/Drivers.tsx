@@ -102,7 +102,7 @@ const Drivers: React.FC = () => {
 
   if (loading)
     return (
-      <div className="p-20 text-center animate-pulse text-indigo-600 font-semibold uppercase tracking-widest text-xs">
+      <div className="p-20 text-center animate-pulse text-[#0a192f] font-semibold uppercase tracking-widest text-xs">
         Загрузка штата KONTROLSMEN...
       </div>
     );
@@ -117,7 +117,7 @@ const Drivers: React.FC = () => {
         <button
           onClick={handleInvite}
           disabled={inviteLoading}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-[#0a192f] text-white rounded-lg font-bold hover:bg-[#152238] transition-colors shadow-lg shadow-indigo-200 disabled:opacity-50"
         >
           <Plus size={20} />
           {inviteLoading ? "Создание..." : "Пригласить водителя"}
@@ -148,7 +148,7 @@ const Drivers: React.FC = () => {
                 <div
                   className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg shadow-inner ${
                     driver.is_active
-                      ? "bg-indigo-100 text-indigo-600"
+                      ? "bg-indigo-100 text-[#0a192f]"
                       : "bg-slate-100 text-slate-400"
                   }`}
                 >
@@ -164,7 +164,7 @@ const Drivers: React.FC = () => {
                 </div>
                 <button
                   onClick={() => openEditModal(driver)}
-                  className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-600 transition-colors"
+                  className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-[#0a192f] transition-colors"
                   aria-label={`Редактировать ${driver.full_name}`}
                 >
                   <Pencil size={16} />
@@ -228,7 +228,7 @@ const Drivers: React.FC = () => {
               />
               <button
                 onClick={copyToClipboard}
-                className="p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                className="p-3 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238]"
                 aria-label="Копировать ссылку приглашения"
               >
                 <Copy size={18} />
@@ -243,7 +243,7 @@ const Drivers: React.FC = () => {
               </button>
               <button
                 onClick={copyToClipboard}
-                className="flex-1 py-3 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700"
+                className="flex-1 py-3 rounded-lg bg-[#0a192f] text-white font-bold hover:bg-[#152238]"
               >
                 Скопировать
               </button>
@@ -329,7 +329,7 @@ const Drivers: React.FC = () => {
               <button
                 onClick={saveEdit}
                 disabled={saving}
-                className="flex-1 py-3 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 disabled:opacity-50"
+                className="flex-1 py-3 rounded-lg bg-[#0a192f] text-white font-bold hover:bg-[#152238] disabled:opacity-50"
               >
                 {saving ? "Сохранение..." : "Сохранить"}
               </button>

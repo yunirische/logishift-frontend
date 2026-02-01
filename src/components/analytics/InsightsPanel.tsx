@@ -33,30 +33,30 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
   // Loading skeleton matching component structure
   if (loading) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg p-6">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center gap-3 mb-4">
           <div className="h-6 bg-slate-200 rounded w-8 animate-pulse"></div>
           <div className="h-6 bg-slate-200 rounded w-1/3 animate-pulse"></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Cost per shift skeleton */}
-          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl p-5 animate-pulse">
-            <div className="h-4 bg-indigo-200 rounded w-1/2 mb-2"></div>
-            <div className="h-8 bg-indigo-200 rounded w-2/3"></div>
+          <div className="bg-gradient-to-br from-[#0a192f]/5 to-[#0a192f]/10 rounded-lg p-4 animate-pulse">
+            <div className="h-4 bg-slate-200 rounded w-1/2 mb-2"></div>
+            <div className="h-8 bg-slate-200 rounded w-2/3"></div>
           </div>
           {/* Underutilized resources skeleton */}
-          <div className="bg-amber-50 rounded-2xl p-5 animate-pulse">
+          <div className="bg-amber-50 rounded-lg p-4 animate-pulse">
             <div className="h-4 bg-amber-200 rounded w-1/2 mb-2"></div>
             <div className="h-4 bg-amber-200 rounded w-3/4"></div>
           </div>
           {/* Near limit warnings skeleton */}
-          <div className="bg-orange-50 rounded-2xl p-5 animate-pulse">
+          <div className="bg-orange-50 rounded-lg p-4 animate-pulse">
             <div className="h-4 bg-orange-200 rounded w-1/2 mb-2"></div>
             <div className="h-2 bg-orange-200 rounded w-full mb-1"></div>
             <div className="h-2 bg-orange-200 rounded w-1/2"></div>
           </div>
           {/* Recommendations skeleton */}
-          <div className="bg-blue-50 rounded-2xl p-5 animate-pulse">
+          <div className="bg-blue-50 rounded-lg p-4 animate-pulse">
             <div className="h-4 bg-blue-200 rounded w-1/2 mb-2"></div>
             <div className="h-3 bg-blue-200 rounded w-full mb-1"></div>
             <div className="h-3 bg-blue-200 rounded w-2/3"></div>
@@ -69,13 +69,13 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
   // Error state with retry button
   if (error) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg p-6">
-        <div className="flex flex-col items-center justify-center py-8">
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex flex-col items-center justify-center py-6">
           <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
           <p className="text-red-600 text-center mb-4">{error}</p>
           <button
             onClick={fetchInsights}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238] transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Попробовать снова
@@ -88,8 +88,8 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
   // Empty state when no insights available
   if (!insights) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg p-6">
-        <div className="flex flex-col items-center justify-center py-8">
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex flex-col items-center justify-center py-6">
           <Info className="w-12 h-12 text-slate-300 mb-3" />
           <p className="text-slate-500 text-center">Недостаточно данных для анализа</p>
           <p className="text-sm text-slate-400 text-center mt-1">Попробуйте увеличить период анализа</p>
@@ -120,8 +120,8 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
   // Empty state when no actionable insights
   if (!hasAnyInsights) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg p-6">
-        <div className="flex flex-col items-center justify-center py-8">
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex flex-col items-center justify-center py-6">
           <Info className="w-12 h-12 text-emerald-500 mb-3" />
           <p className="text-slate-700 text-center font-medium">Все работает отлично!</p>
           <p className="text-sm text-slate-500 text-center mt-1">
@@ -133,7 +133,8 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
   }
 
   // Format currency for cost per shift (Russian locale)
-  const formatCost = (cost: number): string => {
+  const formatCost = (cost: number | null | undefined): string => {
+    if (cost == null || isNaN(cost)) return "— ₽";
     return new Intl.NumberFormat("ru-RU", {
       style: "currency",
       currency: "RUB",
@@ -153,7 +154,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
     <div className="mb-3 last:mb-0">
       <div className="flex justify-between items-center mb-1">
         <span className="text-sm font-medium text-orange-800">{label}</span>
-        <span className="text-sm font-bold text-orange-900">
+        <span className="text-sm font-bold text-orange-900 mono-number">
           {resource.current} / {resource.limit} ({resource.percent}%)
         </span>
       </div>
@@ -171,35 +172,35 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
   );
 
   return (
-    <div className="bg-white rounded-3xl shadow-lg p-6">
+    <div className="bg-white rounded-lg shadow-sm p-4">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-indigo-50 rounded-xl">
-          <Info className="w-5 h-5 text-indigo-600" />
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-[#0a192f]/10 rounded-lg">
+          <Info className="w-5 h-5 text-[#0a192f]" />
         </div>
         <h3 className="text-lg font-semibold text-slate-800">Рекомендации и инсайты</h3>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Cost per shift card - always visible */}
-        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl p-5">
+        <div className="bg-gradient-to-br from-[#0a192f]/5 to-[#0a192f]/10 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingDown className="w-5 h-5 text-indigo-600" />
-            <span className="text-sm font-medium text-indigo-700">
+            <TrendingDown className="w-5 h-5 text-[#0a192f]" />
+            <span className="text-sm font-medium text-[#0a192f]/80">
               Стоимость смены
             </span>
           </div>
-          <p className="text-2xl font-bold text-indigo-900">
+          <p className="text-2xl font-bold text-[#0a192f] mono-number">
             {formatCost(costPerShift)}
           </p>
-          <p className="text-xs text-indigo-600 mt-1">
+          <p className="text-xs text-[#0a192f]/70 mt-1">
             Среднее значение за выбранный период
           </p>
         </div>
 
         {/* Underutilized resources - amber alert styling */}
         {hasUnderutilized && (
-          <div className="bg-amber-50 rounded-2xl p-5">
+          <div className="bg-amber-50 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-5 h-5 text-amber-600" />
               <span className="text-sm font-medium text-amber-700">
@@ -247,7 +248,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
 
         {/* Near limit warnings - orange styling */}
         {hasNearLimit && (
-          <div className="bg-orange-50 rounded-2xl p-5">
+          <div className="bg-orange-50 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
               <AlertCircle className="w-5 h-5 text-orange-600" />
               <span className="text-sm font-medium text-orange-700">
@@ -270,7 +271,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
 
         {/* Recommended actions - blue info styling */}
         {hasRecommendations && (
-          <div className="bg-blue-50 rounded-2xl p-5">
+          <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
               <Info className="w-5 h-5 text-blue-600" />
               <span className="text-sm font-medium text-blue-700">
