@@ -1720,3 +1720,42 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **COMMENT-ONLY FIX**: Backend time-validation properly bypassed for comment-only updates
   - ✅ **BETTER ERROR FEEDBACK**: Users see specific reason when deletion fails (e.g., "Active shift exists")
 - **Impact:** Reduced confusion for drivers, reliable comment updates, better error communication
+
+## [2026-02-01] - Bugfix: EditShiftModal Proxy Photo Upload - Wrong Endpoint
+- **File(s):** `src/components/EditShiftModal.tsx`, `src/constants.ts`
+- **Change:** Fixed photo upload in EditShiftModal to use correct proxy endpoint for admin photo uploads
+- **Before:**
+  - `handlePhotoUpload()` used `API_ENDPOINTS.UPLOAD_PHOTO` (`/shifts/photo`)
+  - This endpoint is for driver active shift flow only, not for admin editing shifts
+  - FormData used `photo_type` parameter instead of `type`
+  - Missing shift ID in URL path
+  - Result: 500 Internal Server Error when admin tried to upload photos in EditShiftModal
+  - Browser errors:
+    - `POST /api/v1/shifts/photo 500` (Internal Server Error)
+    - `GET /api/v1/shifts/current 400` (related side effect)
+- **After:**
+  - Added `API_BASE_URL` import to `EditShiftModal.tsx`
+  - `handlePhotoUpload()` now uses correct proxy endpoint: `/api/v1/shifts/:id/proxy-photo`
+  - FormData parameter changed from `photo_type` to `type`
+  - Added `typeMap` to convert photo types:
+    - `'start'` → `'odo_start'`
+    - `'end'` → `'odo_end'`
+    - `'invoice'` → `'invoice'`
+  - URL includes shift ID: `${API_BASE_URL}/shifts/${shift.id}/proxy-photo`
+  - Proper error response handling with `response.ok` check
+  - Extracts backend error messages from JSON response
+- **API Endpoint Reference:**
+  - **Wrong (driver flow):** `POST /api/v1/shifts/photo`
+    - Auto-detects photo type from user state
+    - Only works for active shifts
+  - **Correct (admin proxy):** `POST /api/v1/shifts/:id/proxy-photo`
+    - Requires `type` parameter: "odo_start", "odo_end", or "invoice"
+    - Works for any shift status
+    - Admin role required
+- **Benefits:**
+  - ✅ **CRITICAL FIX**: Admins can now upload photos in EditShiftModal
+  - ✅ **CORRECT ENDPOINT**: Uses proxy endpoint designed for admin photo uploads
+  - ✅ **PROPER PARAMETERS**: Sends `type` instead of `photo_type`
+  - ✅ **ERROR MESSAGES**: Shows specific backend errors instead of generic failures
+  - ✅ **SHIFT ID IN URL**: Correctly includes shift ID in endpoint path
+- **Impact:** Photo uploads in EditShiftModal now work correctly for admins editing shifts

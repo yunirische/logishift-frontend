@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { API_ENDPOINTS } from "../constants";
+import { API_ENDPOINTS, API_BASE_URL } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift } from "../types";
 import { toTenantISO, fromTenantISO } from "../utils/dateUtils";
@@ -212,23 +212,36 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   };
 
-  // Handle photo upload
+  // Handle photo upload - use proxy endpoint for admin photo uploads
   const handlePhotoUpload = async (photoType: 'start' | 'end' | 'invoice', file: File) => {
     setUploadingPhotoType(photoType);
     setError(null);
 
     try {
+      // Map photo type to API format
+      const typeMap: Record<string, string> = {
+        'start': 'odo_start',
+        'end': 'odo_end',
+        'invoice': 'invoice',
+      };
+
       const formData = new FormData();
       formData.append('photo', file);
-      formData.append('photo_type', photoType); // Tell backend which photo type
+      formData.append('type', typeMap[photoType]); // API expects 'type' not 'photo_type'
 
-      await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
+      // Use proxy endpoint: /api/v1/shifts/:id/proxy-photo
+      const response = await fetch(`${API_BASE_URL}/shifts/${shift.id}/proxy-photo`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${api.getAuthToken()}`,
         },
         body: formData,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.message || 'Ошибка загрузки фото');
+      }
 
       // Refresh the shift data after upload
       onSave();
