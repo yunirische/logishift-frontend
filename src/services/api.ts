@@ -1,5 +1,5 @@
 import { API_ENDPOINTS, API_BASE_URL, STATIC_BASE_URL } from "../constants";
-import { User } from "../types";
+import { User, AnalyticsUsage, AnalyticsTrend, AnalyticsDriver, AnalyticsInsights } from "../types";
 
 export const TOKEN_KEY = "logishift_auth_token";
 export const USER_KEY = "logishift_user_info";
@@ -177,20 +177,129 @@ export const del = (url: string) => {
   });
 };
 
-export const getAnalyticsUsage = async () => {
-  return get(API_ENDPOINTS.ANALYTICS_USAGE);
+// ============================================================================
+// ANALYTICS DATA TRANSFORMERS
+// Backend returns camelCase, frontend expects snake_case
+// ============================================================================
+
+/**
+ * Transform backend usage response to frontend format
+ * Backend: { utilizationPercentage } → Frontend: { utilization_percent }
+ */
+const transformAnalyticsUsage = (data: any): AnalyticsUsage => {
+  if (!data || typeof data !== 'object') {
+    return {
+      trucks: { current: 0, limit: -1, utilization_percent: null },
+      drivers: { current: 0, limit: -1, utilization_percent: null },
+      sites: { current: 0, limit: -1, utilization_percent: null },
+    };
+  }
+
+  const transformResource = (resource: any) => ({
+    current: typeof resource?.current === 'number' ? resource.current : 0,
+    limit: typeof resource?.limit === 'number' ? resource.limit : -1,
+    utilization_percent: typeof resource?.utilizationPercentage === 'number'
+      ? resource.utilizationPercentage
+      : (typeof resource?.utilization_percent === 'number' ? resource.utilization_percent : null),
+  });
+
+  return {
+    trucks: transformResource(data.trucks),
+    drivers: transformResource(data.drivers),
+    sites: transformResource(data.sites),
+  };
 };
 
-export const getAnalyticsTrends = async (days: number = 30) => {
-  return get(`${API_ENDPOINTS.ANALYTICS_TRENDS}?days=${days}`);
+/**
+ * Transform backend trends response to frontend format
+ * Backend: { shiftsCount, totalHours, totalSalary } → Frontend: { shifts_count, hours_worked, salary_paid }
+ */
+const transformAnalyticsTrends = (data: any[]): AnalyticsTrend[] => {
+  if (!Array.isArray(data)) return [];
+
+  return data.map((item: any) => ({
+    date: item.date || null,
+    shifts_count: typeof item.shiftsCount === 'number' ? item.shiftsCount :
+                 (typeof item.shifts_count === 'number' ? item.shifts_count : 0),
+    hours_worked: typeof item.totalHours === 'number' ? item.totalHours :
+                  (typeof item.hours_worked === 'number' ? item.hours_worked : 0),
+    salary_paid: typeof item.totalSalary === 'number' ? item.totalSalary :
+                 (typeof item.salary_paid === 'number' ? item.salary_paid : 0),
+  }));
 };
 
-export const getAnalyticsDrivers = async (days: number = 30, limit: number = 10) => {
-  return get(`${API_ENDPOINTS.ANALYTICS_DRIVERS}?days=${days}&limit=${limit}`);
+/**
+ * Transform backend drivers response to frontend format
+ * Backend: { driverId, driverName, totalHours, totalSalary, shiftsCount }
+ * → Frontend: { driver_id, driver_name, hours_worked, salary_paid, shifts_count }
+ */
+const transformAnalyticsDrivers = (data: any[]): AnalyticsDriver[] => {
+  if (!Array.isArray(data)) return [];
+
+  return data.map((item: any) => ({
+    driver_id: typeof item.driverId === 'number' ? item.driverId :
+                (typeof item.driver_id === 'number' ? item.driver_id : 0),
+    driver_name: item.driverName || item.driver_name || 'Неизвестно',
+    hours_worked: typeof item.totalHours === 'number' ? item.totalHours :
+                  (typeof item.hours_worked === 'number' ? item.hours_worked : 0),
+    salary_paid: typeof item.totalSalary === 'number' ? item.totalSalary :
+                 (typeof item.salary_paid === 'number' ? item.salary_paid : 0),
+    shifts_count: typeof item.shiftsCount === 'number' ? item.shiftsCount :
+                  (typeof item.shifts_count === 'number' ? item.shifts_count : 0),
+  }));
 };
 
-export const getAnalyticsInsights = async (days: number = 30) => {
-  return get(`${API_ENDPOINTS.ANALYTICS_INSIGHTS}?days=${days}`);
+/**
+ * Transform backend insights response to frontend format
+ * Backend structure: { period, utilization, activityMetrics, insights }
+ * Frontend structure: { underutilizedResources, nearLimitResources, costPerShift, recommendedActions }
+ */
+const transformAnalyticsInsights = (data: any): AnalyticsInsights | null => {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  // Handle both old and new response formats
+  const insights = data.insights || data;
+
+  return {
+    underutilizedResources: {
+      trucks: insights.underutilizedResources?.trucks || insights.underutilizedResources || [],
+      sites: insights.underutilizedResources?.sites || [],
+    },
+    nearLimitResources: {
+      trucks: insights.nearLimitResources?.trucks || null,
+      drivers: insights.nearLimitResources?.drivers || null,
+      sites: insights.nearLimitResources?.sites || null,
+    },
+    costPerShift: typeof insights.costPerShift === 'number' ? insights.costPerShift :
+                  (typeof insights.cost_per_shift === 'number' ? insights.cost_per_shift : 0),
+    recommendedActions: insights.recommendedActions || [],
+  };
+};
+
+// ============================================================================
+// ANALYTICS API FUNCTIONS (with transformers)
+// ============================================================================
+
+export const getAnalyticsUsage = async (): Promise<AnalyticsUsage> => {
+  const data = await get(API_ENDPOINTS.ANALYTICS_USAGE);
+  return transformAnalyticsUsage(data);
+};
+
+export const getAnalyticsTrends = async (days: number = 30): Promise<AnalyticsTrend[]> => {
+  const data = await get(`${API_ENDPOINTS.ANALYTICS_TRENDS}?days=${days}`);
+  return transformAnalyticsTrends(data);
+};
+
+export const getAnalyticsDrivers = async (days: number = 30, limit: number = 10): Promise<AnalyticsDriver[]> => {
+  const data = await get(`${API_ENDPOINTS.ANALYTICS_DRIVERS}?days=${days}&limit=${limit}`);
+  return transformAnalyticsDrivers(data);
+};
+
+export const getAnalyticsInsights = async (days: number = 30): Promise<AnalyticsInsights | null> => {
+  const data = await get(`${API_ENDPOINTS.ANALYTICS_INSIGHTS}?days=${days}`);
+  return transformAnalyticsInsights(data);
 };
 
 export const getPhotoUrl = (path?: string | null): string | null => {
