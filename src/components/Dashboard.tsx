@@ -165,13 +165,10 @@ const Dashboard: React.FC = () => {
           realStateInDb = shiftRes.status as DriverState;
           setNeedsRecovery(false);
         } else {
-          // No shift found
-          // If user thinks they're active but DB has no shift, we need recovery
-          if (currentUser.current_state !== DriverState.IDLE) {
-            setNeedsRecovery(true);
-          }
-          // Reset to idle
+          // No shift found - API returned 200 OK with null (valid state, no active shift)
+          // Immediately reset to idle, no recovery needed
           realStateInDb = DriverState.IDLE;
+          setNeedsRecovery(false);
         }
 
         // Sync state to localStorage if different

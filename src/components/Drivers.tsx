@@ -124,7 +124,9 @@ const Drivers: React.FC = () => {
       await api.del(API_ENDPOINTS.UPDATE_USER(driver.id));
       await fetchDrivers();
     } catch (err: any) {
-      alert(err.message || "Ошибка удаления");
+      // Show backend error message if available
+      const errorMessage = err?.message || err?.response?.data?.detail || err?.response?.data?.message || "Ошибка удаления";
+      alert(errorMessage);
     }
   };
 

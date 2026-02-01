@@ -1690,3 +1690,33 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **AUTO-RECOVERY**: State clears automatically when AuthContext syncs
   - ✅ **CONFIRMED ACTIONS**: Shift start/photo upload wait for backend confirmation
 - **Impact:** Dashboard UI now correctly reflects user state with proper recovery handling, no more confusing state mismatches
+
+## [2026-02-01] - Fix: Dashboard Resilience & UI Improvements
+- **File(s):** `src/components/Dashboard.tsx`, `src/components/EditShiftModal.tsx`, `src/components/Drivers.tsx`
+- **Change:** Fixed "syncing" loop issue, improved EditShiftModal comment-only updates, enhanced driver deletion UX
+- **Before:**
+  - Dashboard showed "Синхронизация... Обнаружено рассинхрон" even when API correctly returned no active shift (200 OK with null)
+  - Recovery state was triggered unnecessarily when `getCurrentShift()` returned `null` but user state was not idle
+  - EditShiftModal sent payload with time fields even for comment-only updates (could trigger backend validation)
+  - Driver deletion used generic error messages, didn't show specific backend errors
+- **After:**
+  - **Dashboard.tsx:**
+    - Removed `needsRecovery=true` setting when `getCurrentShift()` returns `null`
+    - When API returns 200 OK with null (valid "no active shift" response), immediately set `needsRecovery=false`
+    - Recovery state now only shows for genuine network failures, not for valid API responses
+    - Driver state still syncs to idle when no shift found, but without showing recovery UI
+  - **EditShiftModal.tsx:**
+    - Added early return for comment-only updates (lines 112-119)
+    - When `isCommentOnly = true`, payload contains ONLY `{ comment: "text" }`
+    - Explicit handling bypasses all time-validation logic for comment-only updates
+    - Time+comment updates continue to use existing validation flow
+  - **Drivers.tsx:**
+    - Enhanced `handleDelete()` error handling (line 126)
+    - Now extracts and displays specific backend error messages from response
+    - Shows `err.message || err.response.data.detail || err.response.data.message` instead of generic error
+- **Benefits:**
+  - ✅ **NO FALSE RECOVERY**: Drivers don't see "syncing" message when they simply have no active shift
+  - ✅ **CLEANER UX**: Immediate idle state instead of unnecessary recovery animation
+  - ✅ **COMMENT-ONLY FIX**: Backend time-validation properly bypassed for comment-only updates
+  - ✅ **BETTER ERROR FEEDBACK**: Users see specific reason when deletion fails (e.g., "Active shift exists")
+- **Impact:** Reduced confusion for drivers, reliable comment updates, better error communication

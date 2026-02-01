@@ -98,8 +98,6 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     setOverlapError(false);
 
     try {
-      const payload: any = {};
-
       // Check what fields changed
       const originalStart = shift.start_time ? fromTenantISO(shift.start_time, timezone) : "";
       const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, timezone) : "";
@@ -108,6 +106,17 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
       // Determine if this is a comment-only update
       const isCommentOnly = commentChanged && !timeChanged;
+
+      // COMMENT-ONLY UPDATE: Send ONLY { comment: "text" } to bypass backend time-validation
+      if (isCommentOnly) {
+        const payload = { comment: newComment.trim() };
+        await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
+        onSave();
+        onClose();
+        return;
+      }
+
+      const payload: any = {};
 
       // v1.1.2: Comment-only updates are allowed for ANY shift status
       // Time changes require admin role and can't be done on finished shifts
@@ -135,7 +144,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         }
       }
 
-      // Append comment if provided
+      // Append comment if provided (for time+comment updates)
       if (commentChanged) {
         payload.comment = newComment.trim();
       }
