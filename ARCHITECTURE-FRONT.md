@@ -1172,3 +1172,49 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **BRAND CONSISTENCY**: All admin views use same color/typography system
   - ✅ **IMPROVED CONTRAST**: Deep navy provides better visual hierarchy
 - **Impact:** Complete visual overhaul to industrial UI with professional appearance, improved data readability, and consistent design language
+
+## [2026-02-01] - Fix: Analytics Data Guards - Undefined Object Crash
+- **File(s):** `src/components/Analytics.tsx`, `src/components/analytics/UsageCard.tsx`
+- **Change:** Added null/undefined guards to prevent Analytics crash when API returns undefined data
+- **Before:**
+  - `setUsageData(data)` → could be undefined if API returns empty response
+  - `setTrendsData(data)` → could be undefined
+  - `setInsightsData(data)` → could be undefined
+  - UsageCard destructured `usage` directly: `const { current, limit, utilization_percent } = usage`
+  - Component crash: `TypeError: Cannot read properties of undefined (reading 'trucks')`
+  - Conditional check `usageData &&` allowed falsy values like undefined to pass
+- **After:**
+  - **Analytics.tsx:**
+    - `setUsageData(data ?? null)` - always null or object, never undefined
+    - `setTrendsData(Array.isArray(data) ? data : [])` - always array
+    - `setInsightsData(data ?? null)` - always null or object
+    - All catch blocks explicitly set state to null/array on error
+    - Added fallback skeleton when `!usageData` (handles null/undefined)
+    - Early return for subscription expired state (removes duplicate banner)
+  - **UsageCard.tsx:**
+    - Changed prop type: `usage: ResourceUsage | null | undefined`
+    - Safe destructuring: `const safeUsage = usage ?? DEFAULT_USAGE`
+    - Added DEFAULT_USAGE constant with safe defaults (current: 0, limit: -1, percent: null)
+    - Early return with skeleton if `!usage` before rendering
+- **Defense Pattern:**
+  ```tsx
+  // BAD: API could return undefined
+  setUsageData(data);
+
+  // GOOD: Always null or valid object
+  setUsageData(data ?? null);
+
+  // BAD: Crashes if usage is undefined
+  const { current } = usage;
+
+  // GOOD: Safe with default
+  const safeUsage = usage ?? DEFAULT_USAGE;
+  const { current } = safeUsage;
+  ```
+- **Benefits:**
+  - ✅ **CRASH FIX**: Analytics view no longer crashes when API returns undefined
+  - ✅ **DEFENSIVE PROGRAMMING**: All state setters coerce undefined to null/empty array
+  - ✅ **GRACEFUL DEGRADATION**: Missing data shows skeleton instead of crash
+  - ✅ **TYPE SAFETY**: UsageCard accepts null/undefined explicitly
+  - ✅ **STATE CONSISTENCY**: All error states set predictable values (null, [])
+- **Impact:** Analytics dashboard is now crash-proof against undefined API responses
