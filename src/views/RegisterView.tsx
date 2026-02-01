@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Loader2, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Loader2, CheckCircle2, Check } from 'lucide-react';
 import { acceptInvite } from '../services/api';
 
 interface RegisterFormData {
@@ -8,6 +8,13 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
+}
+
+interface PasswordChecks {
+  length: boolean;
+  upper: boolean;
+  number: boolean;
+  special: boolean;
 }
 
 const RegisterView: React.FC = () => {
@@ -22,6 +29,12 @@ const RegisterView: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [prefillEmail, setPrefillEmail] = useState<string | null>(null);
+  const [passwordChecks, setPasswordChecks] = useState<PasswordChecks>({
+    length: false,
+    upper: false,
+    number: false,
+    special: false,
+  });
 
   // Extract invite code from URL query params (e.g., /register?code=ABC-123)
   useEffect(() => {
@@ -59,10 +72,25 @@ const RegisterView: React.FC = () => {
       setError('Введите пароль');
       return false;
     }
-    if (formData.password.length < 6) {
-      setError('Пароль должен содержать минимум 6 символов');
+
+    // Backend password requirements: 8+ chars, uppercase, number, special
+    if (formData.password.length < 8) {
+      setError('Пароль должен содержать минимум 8 символов');
       return false;
     }
+    if (!/[A-Z]/.test(formData.password)) {
+      setError('Пароль должен содержать заглавную букву (A-Z)');
+      return false;
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      setError('Пароль должен содержать цифру (0-9)');
+      return false;
+    }
+    if (!/[^A-Za-z0-9]/.test(formData.password)) {
+      setError('Пароль должен содержать спецсимвол (!@#$%^&* и т.д.)');
+      return false;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Пароли не совпадают');
       return false;
@@ -107,6 +135,17 @@ const RegisterView: React.FC = () => {
     setFormData((prev) => ({ ...prev, code: cleaned }));
   };
 
+  // Update password validation checks on password change
+  const handlePasswordChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, password: value }));
+    setPasswordChecks({
+      length: value.length >= 8,
+      upper: /[A-Z]/.test(value),
+      number: /[0-9]/.test(value),
+      special: /[^A-Za-z0-9]/.test(value),
+    });
+  };
+
   if (success) {
     return (
       <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
@@ -144,17 +183,26 @@ const RegisterView: React.FC = () => {
             <label htmlFor="code" className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest">
               Код приглашения <span className="text-red-500">*</span>
             </label>
-            <input
-              id="code"
-              name="code"
-              type="text"
-              value={formData.code}
-              onChange={(e) => handleCodeChange(e.target.value)}
-              placeholder="ABC-123"
-              className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm font-mono focus:ring-2 focus:ring-[#0a192f] transition-all uppercase"
-              maxLength={10}
-              required
-            />
+            <div className="relative">
+              <input
+                id="code"
+                name="code"
+                type="text"
+                value={formData.code}
+                onChange={(e) => handleCodeChange(e.target.value)}
+                placeholder="ABC-123"
+                className={`w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm font-mono focus:ring-2 focus:ring-[#0a192f] transition-all uppercase ${
+                  formData.code.length > 0 ? 'ring-2 ring-green-500' : ''
+                }`}
+                maxLength={10}
+                required
+              />
+              {formData.code.length > 0 && (
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                  <Check size={20} className="text-green-500" />
+                </div>
+              )}
+            </div>
             <p className="text-xs text-slate-400 ml-4">Введите код от вашего администратора</p>
           </div>
 
@@ -205,13 +253,31 @@ const RegisterView: React.FC = () => {
               name="password"
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="Минимум 6 символов"
+              onChange={(e) => handlePasswordChange(e.target.value)}
+              placeholder="Минимум 8 символов"
               autoComplete="new-password"
               className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
               required
-              minLength={6}
+              minLength={8}
             />
+            <ul className="flex flex-wrap gap-x-4 gap-y-1 ml-4 mt-2">
+              <li className={`text-xs flex items-center gap-1 ${passwordChecks.length ? 'text-green-600' : 'text-slate-400'}`}>
+                {passwordChecks.length && <Check size={14} />}
+                Мин. 8 символов
+              </li>
+              <li className={`text-xs flex items-center gap-1 ${passwordChecks.upper ? 'text-green-600' : 'text-slate-400'}`}>
+                {passwordChecks.upper && <Check size={14} />}
+                Заглавная буква (A-Z)
+              </li>
+              <li className={`text-xs flex items-center gap-1 ${passwordChecks.number ? 'text-green-600' : 'text-slate-400'}`}>
+                {passwordChecks.number && <Check size={14} />}
+                Цифра (0-9)
+              </li>
+              <li className={`text-xs flex items-center gap-1 ${passwordChecks.special ? 'text-green-600' : 'text-slate-400'}`}>
+                {passwordChecks.special && <Check size={14} />}
+                Спецсимвол (!@#...)
+              </li>
+            </ul>
           </div>
 
           {/* Confirm Password */}
