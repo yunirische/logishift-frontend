@@ -1,5 +1,5 @@
 import { API_ENDPOINTS, API_BASE_URL, STATIC_BASE_URL } from "../constants";
-import { User, AnalyticsUsage, AnalyticsTrend, AnalyticsDriver, AnalyticsInsights } from "../types";
+import { User, AnalyticsUsage, AnalyticsTrend, AnalyticsDriver, AnalyticsInsights, SubscriptionInfo } from "../types";
 
 export const TOKEN_KEY = "logishift_auth_token";
 export const USER_KEY = "logishift_user_info";
@@ -325,6 +325,28 @@ export const getPhotoUrl = (path?: string | null): string | null => {
   return `${STATIC_BASE_URL}/uploads/${cleanPath.replace(/^\/+/, '')}`;
 };
 
+// ============================================================================
+// AUTH & SECURITY API
+// ============================================================================
+
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+  await post(API_ENDPOINTS.AUTH_PASSWORD, {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+};
+
+export const getSubscription = async (): Promise<SubscriptionInfo> => {
+  const data = await get(API_ENDPOINTS.TENANT_SUBSCRIPTION);
+
+  // Transform backend response if needed
+  return {
+    status: data.status || 'active',
+    expires_at: data.expires_at || data.expiryDate || null,
+    plan_name: data.plan_name || data.planName || undefined,
+  };
+};
+
 const api = {
   loginUser,
   apiRequest,
@@ -338,6 +360,8 @@ const api = {
   setAuthToken,
   clearAuth,
   getPhotoUrl,
+  changePassword,
+  getSubscription,
   TOKEN_KEY,
   USER_KEY,
 };

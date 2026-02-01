@@ -27,6 +27,7 @@ export interface User {
   current_state: DriverState;
   tenant_id: number;
   avatar_url?: string;
+  must_change_password?: boolean;
 }
 
 export interface Shift {
@@ -161,4 +162,16 @@ export interface NearLimitResource {
   current: number;
   limit: number;
   percent: number;
+}
+
+// Subscription types
+export interface SubscriptionInfo {
+  status: 'active' | 'expired' | 'trial';
+  expires_at: string | null;
+  plan_name?: string;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
 }

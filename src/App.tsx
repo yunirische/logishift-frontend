@@ -11,7 +11,7 @@ const AuditLogs = lazy(() => import("./components/AuditLogs"));
 const Shifts = lazy(() => import("./components/Shifts"));
 const Fleet = lazy(() => import("./components/Fleet"));
 const Objects = lazy(() => import("./components/Objects"));
-const Settings = lazy(() => import("./components/Settings"));
+const System = lazy(() => import("./components/System"));
 const Analytics = lazy(() => import("./components/Analytics"));
 
 const AppContent: React.FC = () => {
@@ -103,7 +103,7 @@ const AppContent: React.FC = () => {
       case "settings":
         return (
           <Suspense fallback={loadingFallback}>
-            <Settings />
+            <System />
           </Suspense>
         );
       case "users":

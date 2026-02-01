@@ -1351,3 +1351,75 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **DATA DISPLAY**: Cost per shift shows correctly when 0
   - ✅ **ERROR HANDLING**: Clear messages for authorization failures
 - **Impact:** Shift editing modal now supports comment-only updates on finished shifts with proper authorization and visual feedback
+
+## [2026-02-01] - Feature: System Hub & Security Integration (v2.5 Backend)
+- **File(s):** `src/components/System.tsx` (NEW), `src/components/common/SecurityCard.tsx` (NEW), `src/components/common/PasswordChangeModal.tsx` (NEW), `src/constants.ts`, `src/services/api.ts`, `src/types.ts`, `src/context/AuthContext.tsx`, `src/App.tsx`
+- **Change:** Transform "Settings" page into "System" dashboard with subscription status, usage quotas, and password security features
+- **Before:**
+  - Settings.tsx was a simple form for company name and timezone
+  - No subscription status display
+  - No usage quota visualization
+  - No password change functionality
+  - No first-login password change enforcement
+- **After:**
+  - **System.tsx (NEW):**
+    - Grid layout with three zones:
+      * Zone A: Subscription & Quotas (top row)
+      * Zone B: Security (bottom left)
+      * Zone C: Tenant Settings (bottom right)
+    - Subscription card with status (Active/Expired/Trial) and expiry date
+    - Usage quota bars for Trucks, Drivers, Sites with color coding:
+      * Indigo < 80%
+      * Amber 80-99%
+      * Red 100%
+    - Extend subscription button (links to Telegram support)
+  - **SecurityCard.tsx (NEW):**
+    - Change password form with current, new, confirm fields
+    - Password visibility toggles (eye icons)
+    - Validation: min 8 chars, matching confirmation
+    - Success/error messages with toast notifications
+    - Industrial Navy styling with Slate-50 inputs
+  - **PasswordChangeModal.tsx (NEW):**
+    - Non-dismissible modal for forced password changes
+    - Same validation logic as SecurityCard
+    - Auto-focuses on first input
+    - Full-screen overlay with backdrop blur
+  - **AuthContext.tsx:**
+    - Added `showPasswordModal` state
+    - Checks `user.must_change_password === true` on login/init
+    - Shows PasswordChangeModal when flag is set
+    - Updates user object on successful password change
+    - Modal cannot be dismissed without changing password
+  - **API Endpoints (constants.ts):**
+    - `AUTH_PASSWORD: /auth/password` - POST for password change
+    - `TENANT_SUBSCRIPTION: /tenant/subscription` - GET for subscription info
+  - **API Methods (api.ts):**
+    - `changePassword(current, new): Promise<void>` - Password change
+    - `getSubscription(): Promise<SubscriptionInfo>` - Subscription status
+  - **Types (types.ts):**
+    - `User.must_change_password?: boolean` - Force password change flag
+    - `SubscriptionInfo` interface - Subscription status data
+    - `ChangePasswordRequest` interface - Password change payload
+  - **App.tsx:**
+    - Lazy load changed: `Settings` → `System`
+    - Route key remains "settings" (Layout label is "Система")
+- **Design System Applied:**
+  - Industrial Navy (#0a192f) for headers and buttons
+  - JetBrains Mono for dates and numbers
+  - Slate-50 background for inputs
+  - Rounded-lg cards with shadow-sm
+  - Grid layout: 1 column mobile, 2 columns desktop (lg:grid-cols-2)
+- **User Flow (First Login):**
+  1. User logs in with `must_change_password === true`
+  2. AuthContext detects flag and shows PasswordChangeModal
+  3. User must enter current + new + confirm password
+  4. On success, modal closes and user object updated
+  5. User can continue to app
+- **Benefits:**
+  - ✅ **NEW FEATURE**: Subscription status visible to admins
+  - ✅ **NEW FEATURE**: Usage quota visualization with color coding
+  - ✅ **NEW FEATURE**: Password change form in System view
+  - ✅ **NEW FEATURE**: Forced password change on first login
+  - ✅ **INDUSTRIAL DESIGN**: Consistent Navy/JetBrains Mono styling
+  - ✅ **UX IMPROVEMENT**: Settings renamed to "System" for broader scope
+- **Impact:** System dashboard now provides complete subscription, quota, and security management in one industrial-styled interface

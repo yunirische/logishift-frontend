@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '../types';
-import { TOKEN_KEY, USER_KEY } from '../services/api';
+import { TOKEN_KEY, USER_KEY, getUserInfo, setUserInfo } from '../services/api';
+import PasswordChangeModal from '../components/common/PasswordChangeModal';
 
 interface AuthContextType {
   user: User | null;
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -56,6 +58,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem(USER_KEY, JSON.stringify(newUser));
       setToken(newToken);
       setUser(newUser);
+
+      // Check if password change is required
+      if (newUser.must_change_password) {
+        setShowPasswordModal(true);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка авторизации';
       setError(errorMessage);
@@ -72,15 +79,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(true);
         const storedUser = localStorage.getItem(USER_KEY);
         const storedToken = localStorage.getItem(TOKEN_KEY);
-        
+
         if (storedToken && storedUser) {
           try {
             const parsedUser = JSON.parse(storedUser);
-            
+
             // Validate stored data
             if (parsedUser && parsedUser.id && parsedUser.full_name) {
               setUser(parsedUser);
               setToken(storedToken);
+
+              // Check if password change is required
+              if (parsedUser.must_change_password) {
+                setShowPasswordModal(true);
+              }
             } else {
               // Invalid stored data, clear it
               logout();
@@ -113,6 +125,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [logout]);
 
+  const handlePasswordChangeSuccess = useCallback(() => {
+    // Update user object to remove must_change_password flag
+    if (user) {
+      const updatedUser = { ...user, must_change_password: false };
+      setUserInfo(updatedUser);
+      setUser(updatedUser);
+    }
+    setShowPasswordModal(false);
+  }, [user]);
+
   const value = {
     user,
     token,
@@ -127,6 +149,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={value}>
       {children}
+      {showPasswordModal && (
+        <PasswordChangeModal onSuccess={handlePasswordChangeSuccess} />
+      )}
     </AuthContext.Provider>
   );
 };

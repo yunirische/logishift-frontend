@@ -60,4 +60,10 @@ export const API_ENDPOINTS = {
   ANALYTICS_TRENDS: `${API_BASE_URL}/analytics/trends`,
   ANALYTICS_DRIVERS: `${API_BASE_URL}/analytics/drivers`,
   ANALYTICS_INSIGHTS: `${API_BASE_URL}/analytics/insights`,
+
+  // Auth & Security
+  AUTH_PASSWORD: `${API_BASE_URL}/auth/password`,
+
+  // Subscription
+  TENANT_SUBSCRIPTION: `${API_BASE_URL}/tenant/subscription`,
 };
