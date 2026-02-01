@@ -88,6 +88,14 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
+  // Track if getCurrentShift has completed (for sync state detection)
+  // Start as false so loading state shows first, then recovery if needed
+  const [shiftCheckComplete, setShiftCheckComplete] = useState(false);
+  const [needsRecovery, setNeedsRecovery] = useState(false);
+
+  // Loading state: show spinner until shift check is complete
+  // Then show recovery state if needed, or normal UI
+  const isLoading = loading || !shiftCheckComplete;
 
   // Use ref to store start time and prevent timer re-creation
   const startTimeRef = useRef<number>();
@@ -142,6 +150,9 @@ const Dashboard: React.FC = () => {
         sites.length === 0 ? api.get(API_ENDPOINTS.SITES).catch(() => []) : Promise.resolve(sites),
       ]);
 
+      // Mark shift check as complete
+      setShiftCheckComplete(true);
+
       // 2. Устанавливаем данные смены
       setActiveShift(shiftRes);
 
@@ -150,13 +161,20 @@ const Dashboard: React.FC = () => {
         let realStateInDb = currentUser.current_state;
 
         if (shiftRes) {
+          // If we have a shift, use its status
           realStateInDb = shiftRes.status as DriverState;
+          setNeedsRecovery(false);
         } else {
-          if (step === "idle") {
-            realStateInDb = DriverState.IDLE;
+          // No shift found
+          // If user thinks they're active but DB has no shift, we need recovery
+          if (currentUser.current_state !== DriverState.IDLE) {
+            setNeedsRecovery(true);
           }
+          // Reset to idle
+          realStateInDb = DriverState.IDLE;
         }
 
+        // Sync state to localStorage if different
         if (currentUser.current_state !== realStateInDb) {
           const updatedUser = { ...currentUser, current_state: realStateInDb };
           api.setUserInfo(updatedUser);
@@ -248,7 +266,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <div className="w-12 h-12 border-4 border-[#0a192f] border-t-transparent rounded-full animate-spin"></div>
@@ -408,6 +426,29 @@ const Dashboard: React.FC = () => {
   const renderDriverUI = () => {
     const state = currentUser?.current_state || DriverState.IDLE;
 
+    // Show recovery state if:
+    // - Shift check is complete
+    // - We detected a state mismatch (needsRecovery=true)
+    // - No active shift exists
+    if (shiftCheckComplete && needsRecovery && !activeShift) {
+      return (
+        <div className="text-center py-10 animate-in zoom-in-95">
+          <div className="w-32 h-32 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <Clock size={64} className="text-amber-500 animate-spin-slow" />
+          </div>
+          <h2 className="text-2xl font-semibold text-[#1B254B] mb-4">
+            Синхронизация...
+          </h2>
+          <p className="text-slate-400 mb-10 max-w-xs mx-auto font-medium">
+            Обнаружено рассинхрон. Состояние сбрасывается в режим отдыха.
+          </p>
+          <div className="flex justify-center">
+            <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+      );
+    }
+
     if (state === DriverState.IDLE) {
       if (step === "idle") {
         return (
@@ -501,13 +542,17 @@ const Dashboard: React.FC = () => {
                 <button
                   key={site.id}
                   disabled={isActionLoading}
-                  onClick={() =>
+                  onClick={async () =>
                     performAction(async () => {
+                      // Call start shift API
                       await api.post(API_ENDPOINTS.START_SHIFT, {
                         truck_id: selectedTruck,
                         site_id: site.id,
                       });
+                      // Wait for refreshStatus to confirm the shift before resetting step
+                      await refreshStatus();
                       setStep("idle");
+                      setNeedsRecovery(false);
                     })
                   }
                   className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm hover:border-[#0a192f] text-left flex items-center justify-between group transition-all"
@@ -572,12 +617,12 @@ const Dashboard: React.FC = () => {
                 capture="environment"
                 className="sr-only"
                 disabled={isActionLoading}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (file) {
                     const fd = new FormData();
                     fd.append("photo", file);
-                    performAction(async () => {
+                    await performAction(async () => {
                       await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
                         method: "POST",
                         headers: {
@@ -585,6 +630,8 @@ const Dashboard: React.FC = () => {
                         },
                         body: fd,
                       });
+                      // Wait for confirmation after photo upload
+                      await refreshStatus();
                     });
                   }
                 }}

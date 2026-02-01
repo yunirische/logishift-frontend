@@ -85,4 +85,18 @@ select:focus-visible {
     .card-industrial {
         @apply bg-white rounded-lg shadow-sm p-4;
     }
+
+    /* Slow spin animation for sync/recovery state */
+    .animate-spin-slow {
+        animation: spin 3s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
 }

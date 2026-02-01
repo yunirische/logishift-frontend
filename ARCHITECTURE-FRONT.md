@@ -1637,3 +1637,56 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **NEW FEATURE**: Admins can upload photos on behalf of drivers via registry
   - ✅ **MOBILE FRIENDLY**: Delete button has 40x40px minimum hit area
 - **Impact:** Driver management restored, industrial design consistency achieved, shift sync improved, proxy upload feature added
+
+## [2026-02-01] - Bugfix: Dashboard UI Sync & Recovery State Handling
+- **File(s):** `src/components/Dashboard.tsx`, `src/index.css`, `src/services/api.ts`
+- **Change:** Fixed Dashboard UI showing incorrect "Resting" state when user status is "Active", added recovery/sync state
+- **Before:**
+  - Dashboard showed "Resting" (idle) card while user status was "Active"
+  - Console showed 400 errors from `/shifts/current` (expected when no shift)
+  - No visual feedback for state sync/recovery process
+  - UI didn't wait for API confirmation before switching states
+  - Shift start changed UI immediately without backend confirmation
+- **After:**
+  - **Dashboard.tsx:**
+    - Added `shiftCheckComplete` state to track when `getCurrentShift()` completes
+    - Added `needsRecovery` state to detect state mismatch
+    - Added `isLoading` computed state: `loading || !shiftCheckComplete`
+    - Added recovery UI with Clock icon and slow-spin animation
+    - Recovery state shows when: `shiftCheckComplete && needsRecovery && !activeShift`
+    - Message: "Синхронизация... Обнаружено рассинхрон. Состояние сбрасывается в режим отдыха."
+    - Shift start now awaits `refreshStatus()` before resetting step
+    - Photo upload now awaits `refreshStatus()` for confirmation
+    - Updated loading check to use `isLoading` instead of `loading`
+    - `refreshStatus()` sets `shiftCheckComplete=true` and detects `needsRecovery`
+    - When `getCurrentShift()` returns `null` but `user.current_state !== 'idle'`, sets `needsRecovery=true`
+    - AuthContext picks up localStorage changes and clears recovery state automatically
+  - **index.css:**
+    - Added `.animate-spin-slow` class: 3s linear infinite rotation
+    - Applied to Clock icon in recovery state for visual feedback
+  - **api.ts:**
+    - `getCurrentShift()` already returns `null` for 400/404 instead of throwing
+    - Helper function handles expected "no shift" state gracefully
+  - **State Flow:**
+    1. Component mounts: `loading=true`, `shiftCheckComplete=false`
+    2. `refreshStatus()` runs, calls `getCurrentShift()` (returns `null` or shift)
+    3. `setShiftCheckComplete(true)` - first render possible
+    4. If `getCurrentShift()` returned `null` but user state is not idle: `setNeedsRecovery(true)`
+    5. User state synced to localStorage with `realStateInDb = DriverState.IDLE`
+    6. `setLoading(false)`
+    7. Recovery UI shows: "Синхронизация..." with spinning Clock icon
+    8. AuthContext detects localStorage change, re-renders with `user.current_state === 'idle'`
+    9. `refreshStatus()` runs again, detects no mismatch, clears `needsRecovery`
+    10. Normal IDLE UI shows: "Вы отдыхаете"
+  - **Drivers.tsx:**
+    - Trash2 icon already present (verified at line 205)
+    - No changes needed
+- **Benefits:**
+  - ✅ **FIXED SYNC BUG**: Dashboard card now matches top status dot
+  - ✅ **RECOVERY FEEDBACK**: Users see "Синхронизация..." during state reset
+  - ✅ **NO JUMPS**: UI waits for API confirmation before changing state
+  - ✅ **CLEAN CONSOLE**: `getCurrentShift()` returns null for 400/404 (no errors)
+  - ✅ **VISUAL POLISH**: Slow-spin animation indicates active sync process
+  - ✅ **AUTO-RECOVERY**: State clears automatically when AuthContext syncs
+  - ✅ **CONFIRMED ACTIONS**: Shift start/photo upload wait for backend confirmation
+- **Impact:** Dashboard UI now correctly reflects user state with proper recovery handling, no more confusing state mismatches
