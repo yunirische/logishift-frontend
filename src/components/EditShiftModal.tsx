@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { API_ENDPOINTS } from "../constants";
-import api from "../services/api";
+import api, { getPhotoUrl } from "../services/api";
 import { Shift } from "../types";
 import { toTenantISO, fromTenantISO } from "../utils/dateUtils";
 import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
-import { AlertCircle, MessageSquare, Send, X, Lock } from "lucide-react";
+import { AlertCircle, MessageSquare, Send, X, Lock, Upload, Check, Image } from "lucide-react";
 import { getUserInfo } from "../services/api";
 
 interface Comment {
@@ -47,6 +47,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [overlapError, setOverlapError] = useState(false);
+  const [uploadingPhotoType, setUploadingPhotoType] = useState<string | null>(null);
 
   // Pre-fill time fields when modal opens
   useEffect(() => {
@@ -202,6 +203,33 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   };
 
+  // Handle photo upload
+  const handlePhotoUpload = async (photoType: 'start' | 'end' | 'invoice', file: File) => {
+    setUploadingPhotoType(photoType);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      formData.append('photo_type', photoType); // Tell backend which photo type
+
+      await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${api.getAuthToken()}`,
+        },
+        body: formData,
+      });
+
+      // Refresh the shift data after upload
+      onSave();
+    } catch (err: any) {
+      setError(err.message || 'Ошибка загрузки фото');
+    } finally {
+      setUploadingPhotoType(null);
+    }
+  };
+
   // Validate: end_time must be after start_time (only if end_time is provided)
   // For ACTIVE shifts, end_time can be empty (shift is still ongoing)
   // For FINISHED shifts with comment-only update, validation is bypassed
@@ -315,6 +343,144 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 <span>{error}</span>
               </div>
             )}
+
+            {/* Proxy Photo Upload Section */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Upload size={16} className="text-slate-500" />
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Загрузка фото (админ)
+                </label>
+              </div>
+
+              <div className="space-y-3">
+                {/* Start Odometer Photo */}
+                <div className="border border-slate-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">🏁</span>
+                      <span className="text-sm font-semibold text-slate-700">Одометр (старт)</span>
+                    </div>
+                    {(shift as any).photo_start_url ? (
+                      <a
+                        href={getPhotoUrl((shift as any).photo_start_url) || ''}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      >
+                        <Image size={12} />
+                        Просмотр
+                      </a>
+                    ) : (
+                      <span className="text-xs text-slate-400">Не загружено</span>
+                    )}
+                  </div>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingPhotoType === 'start'}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePhotoUpload('start', file);
+                      }}
+                    />
+                    <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
+                      uploadingPhotoType === 'start'
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    }`}>
+                      {uploadingPhotoType === 'start' ? 'Загрузка...' : 'Загрузить фото'}
+                    </div>
+                  </label>
+                </div>
+
+                {/* End Odometer Photo */}
+                <div className="border border-slate-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">🏁</span>
+                      <span className="text-sm font-semibold text-slate-700">Одометр (финиш)</span>
+                    </div>
+                    {(shift as any).photo_end_url ? (
+                      <a
+                        href={getPhotoUrl((shift as any).photo_end_url) || ''}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      >
+                        <Image size={12} />
+                        Просмотр
+                      </a>
+                    ) : (
+                      <span className="text-xs text-slate-400">Не загружено</span>
+                    )}
+                  </div>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingPhotoType === 'end'}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePhotoUpload('end', file);
+                      }}
+                    />
+                    <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
+                      uploadingPhotoType === 'end'
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    }`}>
+                      {uploadingPhotoType === 'end' ? 'Загрузка...' : 'Загрузить фото'}
+                    </div>
+                  </label>
+                </div>
+
+                {/* Invoice Photo */}
+                <div className="border border-slate-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">📄</span>
+                      <span className="text-sm font-semibold text-slate-700">Накладная</span>
+                    </div>
+                    {(shift as any).photo_invoice_url ? (
+                      <a
+                        href={getPhotoUrl((shift as any).photo_invoice_url) || ''}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      >
+                        <Image size={12} />
+                        Просмотр
+                      </a>
+                    ) : (
+                      <span className="text-xs text-slate-400">Не загружено</span>
+                    )}
+                  </div>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingPhotoType === 'invoice'}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePhotoUpload('invoice', file);
+                      }}
+                    />
+                    <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
+                      uploadingPhotoType === 'invoice'
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    }`}>
+                      {uploadingPhotoType === 'invoice' ? 'Загрузка...' : 'Загрузить фото'}
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
 
             {/* Time fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
 import { UserRole } from "../types";
-import { Pencil, Copy, Plus, X, CheckCircle2 } from "lucide-react";
+import { Pencil, Copy, Plus, X, CheckCircle2, Trash2 } from "lucide-react";
 import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
 
 interface Driver {
@@ -118,6 +118,16 @@ const Drivers: React.FC = () => {
     }
   };
 
+  const handleDelete = async (driver: Driver) => {
+    if (!confirm(`Удалить сотрудника ${driver.full_name}?`)) return;
+    try {
+      await api.del(API_ENDPOINTS.UPDATE_USER(driver.id));
+      await fetchDrivers();
+    } catch (err: any) {
+      alert(err.message || "Ошибка удаления");
+    }
+  };
+
   if (loading)
     return (
       <div className="p-20 text-center animate-pulse text-[#0a192f] font-semibold uppercase tracking-widest text-xs">
@@ -182,10 +192,17 @@ const Drivers: React.FC = () => {
                 </div>
                 <button
                   onClick={() => openEditModal(driver)}
-                  className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-[#0a192f] transition-colors"
+                  className="min-w-[40px] min-h-[40px] p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-[#0a192f] transition-colors"
                   aria-label={`Редактировать ${driver.full_name}`}
                 >
                   <Pencil size={16} />
+                </button>
+                <button
+                  onClick={() => handleDelete(driver)}
+                  className="min-w-[40px] min-h-[40px] p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors"
+                  aria-label={`Удалить ${driver.full_name}`}
+                >
+                  <Trash2 size={16} />
                 </button>
               </div>
               <div className="pt-4 border-t border-slate-50 text-sm space-y-2 relative z-10">

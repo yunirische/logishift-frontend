@@ -180,7 +180,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     refreshStatus();
-    const interval = setInterval(refreshStatus, 15000);
+    const interval = setInterval(refreshStatus, 30000);
     return () => clearInterval(interval);
   }, [refreshStatus]);
 
@@ -423,7 +423,7 @@ const Dashboard: React.FC = () => {
             </p>
             <button
               onClick={() => setStep("selecting_truck")}
-              className="w-full max-w-sm py-8 bg-indigo-600 text-white rounded-lg font-semibold uppercase tracking-widest shadow-2xl shadow-indigo-100 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+              className="w-full max-w-sm py-8 bg-[#0a192f] text-white rounded-lg font-semibold uppercase tracking-widest shadow-2xl shadow-indigo-100 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
             >
               <Rocket size={24} />
               Начать смену
@@ -615,7 +615,7 @@ const Dashboard: React.FC = () => {
             <p className="text-[10px] font-semibold text-indigo-300 uppercase tracking-[0.3em] mb-4">
               Время в работе
             </p>
-            <h2 className="text-6xl font-semibold tracking-tighter mb-8 font-mono">
+            <h2 className="text-6xl font-semibold tracking-tighter mb-8 font-jetbrains">
               {elapsedTime}
             </h2>
             <div className="flex justify-center gap-2 mb-2">
@@ -636,7 +636,7 @@ const Dashboard: React.FC = () => {
                 {activeShift?.truck?.name || "—"}
               </span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-4">
               <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1.5">
                 <Building2 size={16} className="text-slate-500" />
                 Объект
@@ -645,6 +645,26 @@ const Dashboard: React.FC = () => {
                 {activeShift?.site?.name || "—"}
               </span>
             </div>
+            {/* Photo requirements indicator */}
+            {activeShift?.site && (activeShift.site.odometer_required || activeShift.site.invoice_required) && (
+              <div className="pt-4 border-t border-slate-100">
+                <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">
+                  Требуется фото:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {activeShift.site.odometer_required && (
+                    <span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-semibold rounded border border-amber-200">
+                      🏁 Одометр
+                    </span>
+                  )}
+                  {activeShift.site.invoice_required && (
+                    <span className="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-semibold rounded border border-amber-200">
+                      📄 Накладная
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <button
@@ -653,7 +673,7 @@ const Dashboard: React.FC = () => {
                 performAction(() => api.post(API_ENDPOINTS.END_SHIFT, {}));
             }}
             disabled={isActionLoading}
-            className="w-full py-8 bg-red-500 text-white rounded-lg font-semibold uppercase tracking-widest shadow-xl shadow-red-100 active:scale-95 transition-all flex items-center justify-center gap-3"
+            className="w-full py-8 bg-[#0a192f] text-white rounded-lg font-semibold uppercase tracking-widest shadow-xl shadow-indigo-100 active:scale-95 transition-all flex items-center justify-center gap-3"
           >
             <Flag size={24} />
             Завершить смену

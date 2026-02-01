@@ -4,6 +4,12 @@
 
 body {
     @apply bg-slate-50 text-slate-900;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* JetBrains Mono for timers and data display */
+.font-jetbrains {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 /* Industrial UI Theme */
