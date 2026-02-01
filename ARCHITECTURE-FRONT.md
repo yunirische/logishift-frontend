@@ -1583,3 +1583,57 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **SECURE**: Invite codes validate backend-side
   - ✅ **CONVENIENT**: Email pre-filled after registration
 - **Impact:** Admins can now invite drivers by sharing a link, enabling web-based onboarding without Telegram dependency
+
+## [2026-02-01] - Feature: Critical Fixes & State Sync Polish
+- **File(s):** `src/components/Drivers.tsx`, `src/components/Dashboard.tsx`, `src/components/EditShiftModal.tsx`, `src/index.css`
+- **Change:** UI regressions fixed, shift state synchronization improved, and proxy photo upload added to registry
+- **Before:**
+  - Drivers component missing Delete (Trash2) icon
+  - Dashboard Start/End Shift buttons used inconsistent colors (indigo-600, red-500)
+  - Elapsed time timer used generic font-mono instead of JetBrains Mono
+  - Polling interval was 15 seconds (too frequent)
+  - No photo requirements indicator for active shifts
+  - EditShiftModal had no upload zones for proxy photo uploads
+  - CSS missing JetBrains Mono utility class
+- **After:**
+  - **Drivers.tsx:**
+    - Added `Trash2` icon import from lucide-react
+    - Added `handleDelete()` function with confirmation dialog
+    - Added Delete button with proper hit area: `min-w-[40px] min-h-[40px]`
+    - Delete button uses red styling: `bg-red-50 text-red-500 hover:bg-red-100`
+    - Calls `api.del(API_ENDPOINTS.UPDATE_USER(driver.id))`
+  - **Dashboard.tsx:**
+    - Changed Start Shift button color from `bg-indigo-600` to `bg-[#0a192f]` (Navy-900)
+    - Changed End Shift button color from `bg-red-500` to `bg-[#0a192f]` (Navy-900)
+    - Applied JetBrains Mono font to elapsed time timer via `font-jetbrains` class
+    - Increased polling interval from 15s to 30s (line 183)
+    - Added photo requirements indicator for active shifts:
+      * Shows when site requires odometer or invoice photos
+      * Displays amber badges: "🏁 Одометр", "📄 Накладная"
+      * Only shows when `activeShift.site.odometer_required` or `invoice_required` is true
+  - **EditShiftModal.tsx:**
+    - Added `Upload`, `Check`, `Image` icon imports
+    - Added `uploadingPhotoType` state for tracking upload progress
+    - Added `handlePhotoUpload()` function for proxy photo uploads
+    - Added 3 upload zones in modal:
+      * Start Odometer photo (with current status display)
+      * End Odometer photo (with current status display)
+      * Invoice photo (with current status display)
+    - Each upload zone shows:
+      * Photo type label with emoji
+      * Current status (uploaded/not uploaded) with view link
+      * Upload button with loading state
+    - Uses `getPhotoUrl()` to generate view links
+  - **index.css:**
+    - Added `.font-jetbrains` utility class with JetBrains Mono font family
+    - Fallback to 'Courier New', monospace
+    - Applied body font-family: 'Inter', system-ui, -apple-system, sans-serif
+- **Benefits:**
+  - ✅ **RESTORED FUNCTIONALITY**: Delete button available for driver management
+  - ✅ **CONSISTENT BRANDING**: All action buttons now use Navy-900 color
+  - ✅ **PROFESSIONAL TYPOGRAPHY**: JetBrains Mono for elapsed time (industrial aesthetic)
+  - ✅ **REDED SERVER LOAD**: 30s polling instead of 15s (50% reduction)
+  - ✅ **BETTER UX**: Drivers see which photos are required for their shift
+  - ✅ **NEW FEATURE**: Admins can upload photos on behalf of drivers via registry
+  - ✅ **MOBILE FRIENDLY**: Delete button has 40x40px minimum hit area
+- **Impact:** Driver management restored, industrial design consistency achieved, shift sync improved, proxy upload feature added
