@@ -1423,3 +1423,53 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **INDUSTRIAL DESIGN**: Consistent Navy/JetBrains Mono styling
   - ✅ **UX IMPROVEMENT**: Settings renamed to "System" for broader scope
 - **Impact:** System dashboard now provides complete subscription, quota, and security management in one industrial-styled interface
+
+## [2026-02-01] - Bugfix: Password Change Error Handling & Shift Current 400 Fix
+- **File(s):** `src/services/api.ts`, `src/components/common/SecurityCard.tsx`, `src/components/common/PasswordChangeModal.tsx`, `src/views/DriverView.tsx`
+- **Change:** Fix password change error display and handle `/shifts/current` 400/404 gracefully
+- **Before:**
+  - Password change showed generic "HTTP Error 400" instead of backend validation message
+  - Backend response format `{ error: "..." }` not extracted (only `detail` and `message` were)
+  - `/shifts/current` in DriverView threw 400 error when no active shift exists
+  - Console polluted with red error for expected "no shift" condition
+  - No password complexity hints for users
+  - Password visibility toggle buttons used wrong icons (Shield instead of Eye/EyeOff)
+  - Required field indicators missing from password form labels
+- **After:**
+  - **api.ts:**
+    - Updated error extraction to check `errorData.error` in addition to `detail` and `message`
+    - Now handles: `errorData.detail || errorData.message || errorData.error`
+    - Works with various backend response formats
+  - **SecurityCard.tsx:**
+    - Imported `ApiError` type (unused but documents intent)
+    - Password complexity hint: "(Min 8 chars, 1 number, 1 uppercase)" under new password field
+    - Required field indicators: red `*` next to all labels
+    - Error handling already used `error.message` which gets proper backend message
+  - **PasswordChangeModal.tsx:**
+    - Fixed password visibility toggle icons: changed from `Shield` to `Eye`/`EyeOff`
+    - Added password complexity hint: "(Min 8 chars, 1 number, 1 uppercase)"
+    - Added required field indicators: red `*` next to all labels
+    - Removed duplicate `togglePasswordVisibility` function definition
+    - Imported `Eye` and `EyeOff` icons from lucide-react
+  - **DriverView.tsx:**
+    - `/shifts/current` call now uses `.catch(() => null)` to handle 400/404 gracefully
+    - No active shift is treated as `null` response, not an error
+    - Changed from `await api.get("/shifts/current")` to `await api.get("/shifts/current").catch(() => null)`
+    - Console no longer shows red errors for expected "no shift" scenario
+- **Error Flow:**
+  ```
+  Backend returns: { "error": "Password too weak" }
+  ↓
+  apiRequest() extracts: errorData.error → "Password too weak"
+  ↓
+  createApiError("Password too weak", ApiErrorType.SERVER, 400)
+  ↓
+  SecurityCard displays: "Password too weak" in red alert
+  ```
+- **Benefits:**
+  - ✅ **BETTER UX**: Users see specific validation messages instead of generic errors
+  - ✅ **CLEANER CONSOLE**: No false-positive errors for missing shifts
+  - ✅ **PASSWORD HINTS**: Users know password requirements before submitting
+  - ✅ **CORRECT ICONS**: Eye/EyeOff icons for password visibility toggle
+  - ✅ **REQUIRED FIELD MARKERS**: Red asterisks indicate required fields
+- **Impact:** Password change errors now display specific backend messages, shift loading no longer pollutes console with expected 400 errors

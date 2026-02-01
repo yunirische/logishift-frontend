@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Shield, Loader2, Eye, EyeOff } from "lucide-react";
-import { changePassword } from "../../services/api";
+import { changePassword, ApiError } from "../../services/api";
 
 interface SecurityCardProps {
   onSuccess?: () => void;
@@ -62,6 +62,7 @@ const SecurityCard: React.FC<SecurityCardProps> = ({ onSuccess }) => {
       }, 1500);
     } catch (error) {
       console.error("Failed to change password:", error);
+      // ApiError already contains the proper message from backend
       const errorMsg = error instanceof Error ? error.message : "Ошибка при смене пароля";
       setMessage({ type: "error", text: errorMsg });
     } finally {
@@ -93,7 +94,7 @@ const SecurityCard: React.FC<SecurityCardProps> = ({ onSuccess }) => {
         {/* Current Password */}
         <div className="space-y-2">
           <label htmlFor="current-password" className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
-            Текущий пароль
+            Текущий пароль <span className="text-red-500">*</span>
           </label>
           <div className="relative">
             <input
@@ -122,7 +123,7 @@ const SecurityCard: React.FC<SecurityCardProps> = ({ onSuccess }) => {
         {/* New Password */}
         <div className="space-y-2">
           <label htmlFor="new-password" className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
-            Новый пароль
+            Новый пароль <span className="text-red-500">*</span>
           </label>
           <div className="relative">
             <input
@@ -143,6 +144,7 @@ const SecurityCard: React.FC<SecurityCardProps> = ({ onSuccess }) => {
               {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
+          <p className="text-xs text-slate-500">(Min 8 chars, 1 number, 1 uppercase)</p>
           {errors.newPassword && (
             <p className="text-xs text-red-600 font-medium">{errors.newPassword}</p>
           )}

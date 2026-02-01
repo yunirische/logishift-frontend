@@ -30,10 +30,10 @@ export const DriverView = () => {
   const initData = async () => {
     setLoading(true);
     try {
-      // 1. Запрашиваем текущую смену
-      const currentRes = await api.get("/shifts/current");
+      // 1. Запрашиваем текущую смену (handle 400/404 gracefully - no active shift)
+      const currentRes = await api.get("/shifts/current").catch(() => null);
 
-      if (currentRes.data) {
+      if (currentRes?.data) {
         // Если смена есть в базе — сохраняем её
         setActiveShift(currentRes.data);
       } else {

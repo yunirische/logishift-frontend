@@ -98,7 +98,7 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
       let errorMessage = 'Подписка истекла';
       try {
         const errorData = await response.json();
-        errorMessage = errorData.detail || errorData.message || errorMessage;
+        errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage;
       } catch {
         // If response is not JSON, use default message
       }
@@ -111,7 +111,8 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
 
       try {
         const errorData = await response.json();
-        errorMessage = errorData.detail || errorData.message || errorMessage;
+        // Try multiple possible error field names (detail, message, error)
+        errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage;
       } catch {
         // If response is not JSON, use status text
         errorMessage = response.statusText || errorMessage;

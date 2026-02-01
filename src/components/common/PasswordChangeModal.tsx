@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield, Loader2, Eye, EyeOff } from "lucide-react";
 import { changePassword } from "../../services/api";
 
 interface PasswordChangeModalProps {
@@ -61,6 +61,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onSuccess }) 
       }, 1500);
     } catch (error) {
       console.error("Failed to change password:", error);
+      // ApiError already contains the proper message from backend
       const errorMsg = error instanceof Error ? error.message : "Ошибка при смене пароля";
       setMessage({ type: "error", text: errorMsg });
     } finally {
@@ -91,7 +92,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onSuccess }) 
           {/* Current Password */}
           <div className="space-y-2">
             <label htmlFor="modal-current-password" className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
-              Текущий пароль
+              Текущий пароль <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -110,7 +111,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onSuccess }) 
                 onClick={() => togglePasswordVisibility("current")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
               >
-                {showPasswords.current ? <Shield className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+                {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
             {errors.currentPassword && (
@@ -121,7 +122,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onSuccess }) 
           {/* New Password */}
           <div className="space-y-2">
             <label htmlFor="modal-new-password" className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
-              Новый пароль
+              Новый пароль <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -139,9 +140,10 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onSuccess }) 
                 onClick={() => togglePasswordVisibility("new")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
               >
-                {showPasswords.new ? <Shield className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+                {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            <p className="text-xs text-slate-500">(Min 8 chars, 1 number, 1 uppercase)</p>
             {errors.newPassword && (
               <p className="text-xs text-red-600 font-medium">{errors.newPassword}</p>
             )}
@@ -150,7 +152,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onSuccess }) 
           {/* Confirm Password */}
           <div className="space-y-2">
             <label htmlFor="modal-confirm-password" className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
-              Подтвердите пароль
+              Подтвердите пароль <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -168,7 +170,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onSuccess }) 
                 onClick={() => togglePasswordVisibility("confirm")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
               >
-                {showPasswords.confirm ? <Shield className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+                {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
             {errors.confirmPassword && (
