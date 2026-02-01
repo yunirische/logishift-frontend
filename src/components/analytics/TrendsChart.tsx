@@ -41,7 +41,7 @@ const METRIC_CONFIG = {
     key: "salary_paid" as const,
     color: "fill-indigo-800",
     unit: " ₽",
-    formatValue: (v: number) => v.toLocaleString("ru-RU"),
+    formatValue: (v: number | null | undefined) => (v == null || isNaN(v) ? "0" : v.toLocaleString("ru-RU")),
   },
 } as const;
 

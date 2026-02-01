@@ -35,7 +35,8 @@ const SORTABLE_COLUMNS: SortableColumn[] = [
   { key: 'salary_paid', label: 'Зарплата', align: 'right' },
 ];
 
-const formatSalary = (value: number): string => {
+const formatSalary = (value: number | null | undefined): string => {
+  if (value == null || isNaN(value)) return "0 ₽";
   return value.toLocaleString('ru-RU') + ' ₽';
 };
 
