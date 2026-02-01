@@ -4,7 +4,7 @@ import { ResourceUsage } from "../../types";
 interface UsageCardProps {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
-  usage: ResourceUsage;
+  usage: ResourceUsage | null | undefined;
 }
 
 // Helper to determine progress bar color with optional pulse animation
@@ -28,10 +28,30 @@ const getTextColor = (percent: number | null, limit: number | null): string => {
   return "text-red-600";
 };
 
+// Default usage object for null/undefined cases
+const DEFAULT_USAGE: ResourceUsage = {
+  current: 0,
+  limit: -1,
+  utilization_percent: null,
+};
+
 export const UsageCard: React.FC<UsageCardProps> = ({ title, icon: Icon, usage }) => {
-  const { current, limit, utilization_percent: percent } = usage;
+  // Safe destructuring with default values
+  const safeUsage = usage ?? DEFAULT_USAGE;
+  const { current, limit, utilization_percent: percent } = safeUsage;
   const isUnlimited = limit === -1 || limit === null;
   const { bg: colorClass, pulse: shouldPulse } = getUtilizationColor(percent, limit);
+
+  // Don't render if usage is missing (optional: could render skeleton instead)
+  if (!usage) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-4 min-h-[160px] animate-pulse">
+        <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+        <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
+        <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">

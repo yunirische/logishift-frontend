@@ -58,11 +58,13 @@ const Analytics: React.FC = () => {
     setUsageError(null);
     try {
       const data = await getAnalyticsUsage();
-      setUsageData(data);
+      // Ensure data is not undefined before setting
+      setUsageData(data ?? null);
     } catch (error) {
       console.error("Failed to fetch usage data:", error);
       handleApiError(error);
       setUsageError(error instanceof Error ? error.message : "Ошибка загрузки данных");
+      setUsageData(null); // Explicitly set to null on error
     } finally {
       setUsageLoading(false);
     }
@@ -73,11 +75,13 @@ const Analytics: React.FC = () => {
     setTrendsError(null);
     try {
       const data = await getAnalyticsTrends(selectedDays);
-      setTrendsData(data);
+      // Ensure data is always an array
+      setTrendsData(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch trends data:", error);
       handleApiError(error);
       setTrendsError(error instanceof Error ? error.message : "Ошибка загрузки данных");
+      setTrendsData([]); // Explicitly set to empty array on error
     } finally {
       setTrendsLoading(false);
     }
@@ -103,11 +107,13 @@ const Analytics: React.FC = () => {
     setInsightsError(null);
     try {
       const data = await getAnalyticsInsights(selectedDays);
-      setInsightsData(data);
+      // Ensure data is not undefined before setting
+      setInsightsData(data ?? null);
     } catch (error) {
       console.error("Failed to fetch insights data:", error);
       handleApiError(error);
       setInsightsError(error instanceof Error ? error.message : "Ошибка загрузки данных");
+      setInsightsData(null); // Explicitly set to null on error
     } finally {
       setInsightsLoading(false);
     }
@@ -203,10 +209,11 @@ const Analytics: React.FC = () => {
 
   const timeRangePresets: TimeRangePreset[] = [7, 30, 90];
 
-  return (
-    <div className="analytics-dashboard">
-      {/* Subscription-expired banner */}
-      {subscriptionExpired && (
+  // Early return for subscription expired
+  if (subscriptionExpired) {
+    return (
+      <div className="analytics-dashboard">
+        {/* Subscription-expired banner */}
         <div className="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-4 mb-6">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
@@ -218,8 +225,36 @@ const Analytics: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
 
+        {/* Top Controls Bar (disabled) */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 opacity-50 pointer-events-none">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-indigo-600" />
+            <div className="flex bg-slate-100 rounded-lg p-1">
+              {timeRangePresets.map((days) => {
+                const isActive = selectedDays === days;
+                return (
+                  <button
+                    key={days}
+                    className={`px-4 py-2 rounded-md text-sm font-medium ${
+                      isActive
+                        ? "bg-white text-[#0a192f] shadow-sm"
+                        : "text-slate-600"
+                    }`}
+                  >
+                    {days} д
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="analytics-dashboard">
       {/* Top Controls Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         {/* Time Range Selector */}
@@ -314,7 +349,26 @@ const Analytics: React.FC = () => {
                 Попробовать снова
               </button>
             </div>
-          ) : usageData && (
+          ) : !usageData ? (
+            // Fallback: show skeleton if data is missing (null/undefined)
+            <>
+              <div className="bg-white rounded-lg shadow-sm p-4 min-h-[160px] animate-pulse">
+                <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm p-4 min-h-[160px] animate-pulse">
+                <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm p-4 min-h-[160px] animate-pulse">
+                <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+                <div className="h-10 bg-slate-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+              </div>
+            </>
+          ) : (
             <>
               <UsageCard
                 title="Грузовики"
