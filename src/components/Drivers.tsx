@@ -23,6 +23,7 @@ const Drivers: React.FC = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [toast, setToast] = useState<{show: boolean; message: string}>({show: false, message: ''});
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [currentDriver, setCurrentDriver] = useState<Driver | null>(null);
   const [editForm, setEditForm] = useState({
@@ -72,8 +73,25 @@ const Drivers: React.FC = () => {
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(inviteLink);
-    alert("Ссылка скопирована в буфер");
+    // Extract invite code from the link (format may be /invite/CODE or just CODE)
+    let inviteCode = inviteLink;
+    if (inviteLink.includes('/invite/')) {
+      inviteCode = inviteLink.split('/invite/')[1];
+    }
+
+    // Build full registration URL
+    const fullUrl = `${window.location.origin}/register?code=${inviteCode}`;
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(fullUrl);
+
+    // Show toast notification
+    setToast({show: true, message: 'Ссылка скопирована!'});
+
+    // Auto-hide after 2 seconds
+    setTimeout(() => {
+      setToast({show: false, message: ''});
+    }, 2000);
   };
 
   const openEditModal = (driver: Driver) => {
@@ -222,14 +240,14 @@ const Drivers: React.FC = () => {
               <input
                 type="text"
                 readOnly
-                value={inviteLink}
+                value={`${window.location.origin}/register?code=${inviteLink.includes('/invite/') ? inviteLink.split('/invite/')[1] : inviteLink}`}
                 className="flex-1 p-3 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
                 aria-label="Ссылка приглашения"
               />
               <button
                 onClick={copyToClipboard}
                 className="p-3 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238]"
-                aria-label="Копировать ссылку приглашения"
+                aria-label="Копировать ссылку"
               >
                 <Copy size={18} />
               </button>
@@ -334,6 +352,16 @@ const Drivers: React.FC = () => {
                 {saving ? "Сохранение..." : "Сохранить"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4">
+          <div className="bg-[#0a192f] text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-green-400" />
+            <span className="text-sm font-medium">{toast.message}</span>
           </div>
         </div>
       )}
