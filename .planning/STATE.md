@@ -126,6 +126,12 @@ None yet.
 
 None yet.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Smart invite links with auto-fill and password UX | 2026-02-01 | d34868f | [001-smart-invite-links](./quick/001-smart-invite-links/) |
+
 ## Session Continuity
 
 Last session: 2026-02-01T13:00:08Z
