@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef, Suspense } from "react";
 import { API_ENDPOINTS } from "../constants";
-import api, { getPhotoUrl } from "../services/api";
+import api, { getPhotoUrl, getCurrentShift } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { DriverState, Shift, UserRole, ManualShiftRequest } from "../types";
 import {
@@ -137,7 +137,7 @@ const Dashboard: React.FC = () => {
     try {
       // 1. Параллельная загрузка всех данных с better-all паттерном
       const [shiftRes, trucksData, sitesData] = await Promise.all([
-        api.get(API_ENDPOINTS.CURRENT_SHIFT).catch(() => null),
+        getCurrentShift(),
         trucks.length === 0 ? api.get(API_ENDPOINTS.TRUCKS).catch(() => []) : Promise.resolve(trucks),
         sites.length === 0 ? api.get(API_ENDPOINTS.SITES).catch(() => []) : Promise.resolve(sites),
       ]);

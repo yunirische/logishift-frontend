@@ -12,7 +12,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import api, { getCurrentShift } from "../services/api";
 
 export const DriverView = () => {
   const { user, logout } = useAuth();
@@ -30,12 +30,12 @@ export const DriverView = () => {
   const initData = async () => {
     setLoading(true);
     try {
-      // 1. Запрашиваем текущую смену (handle 400/404 gracefully - no active shift)
-      const currentRes = await api.get("/shifts/current").catch(() => null);
+      // 1. Запрашиваем текущую смену (getCurrentShift handles 400/404 gracefully)
+      const currentShift = await getCurrentShift();
 
-      if (currentRes?.data) {
+      if (currentShift?.data) {
         // Если смена есть в базе — сохраняем её
-        setActiveShift(currentRes.data);
+        setActiveShift(currentShift.data);
       } else {
         // Если смены нет — обнуляем стейт и грузим списки выборасч
         setActiveShift(null);

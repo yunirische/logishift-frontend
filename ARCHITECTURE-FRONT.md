@@ -1473,3 +1473,52 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **CORRECT ICONS**: Eye/EyeOff icons for password visibility toggle
   - ✅ **REQUIRED FIELD MARKERS**: Red asterisks indicate required fields
 - **Impact:** Password change errors now display specific backend messages, shift loading no longer pollutes console with expected 400 errors
+
+## [2026-02-01] - Refactor: Add getCurrentShift Helper Function
+- **File(s):** `src/services/api.ts`, `src/components/Dashboard.tsx`, `src/views/DriverView.tsx`
+- **Change:** Create `getCurrentShift()` helper function that handles 400/404 gracefully at API level
+- **Before:**
+  - Each component had to add `.catch(() => null)` to handle missing shift
+  - `Dashboard.tsx`: `api.get(API_ENDPOINTS.CURRENT_SHIFT).catch(() => null)`
+  - `DriverView.tsx`: `api.get("/shifts/current").catch(() => null)`
+  - Console showed red errors for expected "no active shift" state before catch
+  - Inconsistent handling across components
+  - Password payload was already correct (snake_case: `current_password`, `new_password`)
+- **After:**
+  - **api.ts:**
+    - New `getCurrentShift()` helper function with proper TypeScript typing
+    - Wraps API call in try/catch block
+    - Returns `null` for 400/404 (no active shift) without throwing
+    - Re-throws other errors (network, auth, server issues)
+    - Exported in both named export and default `api` object
+  - **Dashboard.tsx:**
+    - Replaced `api.get(API_ENDPOINTS.CURRENT_SHIFT).catch(() => null)` with `getCurrentShift()`
+    - Cleaner code, no need for inline error handling
+    - Imported `getCurrentShift` from api service
+  - **DriverView.tsx:**
+    - Replaced `api.get("/shifts/current").catch(() => null)` with `getCurrentShift()`
+    - Cleaner code with direct helper call
+    - Variable renamed from `currentRes` to `currentShift` for clarity
+- **Code Pattern:**
+  ```typescript
+  // Helper function in api.ts
+  export const getCurrentShift = async (): Promise<any | null> => {
+    try {
+      return await get(API_ENDPOINTS.CURRENT_SHIFT);
+    } catch (err) {
+      const error = err as ApiError;
+      if (error.status === 400 || error.status === 404) {
+        return null;  // Silent return for expected state
+      }
+      throw err;  // Re-throw unexpected errors
+    }
+  };
+  ```
+- **Benefits:**
+  - ✅ **CENTRALIZED LOGIC**: Single source of truth for shift fetching
+  - ✅ **CONSISTENT BEHAVIOR**: All components handle missing shifts the same way
+  - ✅ **CLEANER CODE**: Components don't need inline `.catch(() => null)`
+  - ✅ **SILENT 400/404**: No console errors for expected "no shift" state
+  - ✅ **PROPER ERROR PROPAGATION**: Network/auth errors still throw correctly
+  - ✅ **TYPE SAFE**: Proper TypeScript return type `Promise<any | null>`
+- **Impact:** Shift fetching now has consistent, silent handling of missing shifts across all components, console is cleaner, code is more maintainable

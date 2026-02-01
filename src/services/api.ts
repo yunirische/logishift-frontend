@@ -348,6 +348,26 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
   };
 };
 
+/**
+ * Get current shift for the logged-in user.
+ * Returns null if no active shift exists (400/404), instead of throwing.
+ * This prevents console errors for the expected "no shift" state.
+ */
+export const getCurrentShift = async (): Promise<any | null> => {
+  try {
+    return await get(API_ENDPOINTS.CURRENT_SHIFT);
+  } catch (err) {
+    // Silently return null for 400/404 (no active shift)
+    // These are expected states, not errors
+    const error = err as ApiError;
+    if (error.status === 400 || error.status === 404) {
+      return null;
+    }
+    // Re-throw other errors (network, auth, etc)
+    throw err;
+  }
+};
+
 const api = {
   loginUser,
   apiRequest,
@@ -363,6 +383,7 @@ const api = {
   getPhotoUrl,
   changePassword,
   getSubscription,
+  getCurrentShift,
   TOKEN_KEY,
   USER_KEY,
 };
