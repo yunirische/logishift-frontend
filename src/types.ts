@@ -134,6 +134,13 @@ export interface AnalyticsDriver {
 export type DriverSortField = 'hours_worked' | 'shifts_count' | 'salary_paid';
 export type SortDirection = 'asc' | 'desc';
 
+// Activity metrics from backend analytics
+export interface ActivityMetrics {
+  avgDailyActiveShifts: number;
+  peakSimultaneousUsage: number;
+  finishedShifts: number;
+}
+
 export interface AnalyticsInsights {
   underutilizedResources: {
     trucks: string[];
@@ -144,8 +151,10 @@ export interface AnalyticsInsights {
     drivers: NearLimitResource | null;
     sites: NearLimitResource | null;
   };
-  costPerShift: number;
+  costPerShift: number; // v1.1.1: now returns 0 instead of null
   recommendedActions: string[];
+  // Optional: backend may return these in the full response
+  activityMetrics?: ActivityMetrics;
 }
 
 export interface NearLimitResource {

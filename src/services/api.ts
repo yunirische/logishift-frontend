@@ -252,7 +252,7 @@ const transformAnalyticsDrivers = (data: any[]): AnalyticsDriver[] => {
 /**
  * Transform backend insights response to frontend format
  * Backend structure: { period, utilization, activityMetrics, insights }
- * Frontend structure: { underutilizedResources, nearLimitResources, costPerShift, recommendedActions }
+ * Frontend structure: { underutilizedResources, nearLimitResources, costPerShift, recommendedActions, activityMetrics }
  */
 const transformAnalyticsInsights = (data: any): AnalyticsInsights | null => {
   if (!data || typeof data !== 'object') {
@@ -261,6 +261,7 @@ const transformAnalyticsInsights = (data: any): AnalyticsInsights | null => {
 
   // Handle both old and new response formats
   const insights = data.insights || data;
+  const activityMetrics = data.activityMetrics;
 
   return {
     underutilizedResources: {
@@ -275,6 +276,14 @@ const transformAnalyticsInsights = (data: any): AnalyticsInsights | null => {
     costPerShift: typeof insights.costPerShift === 'number' ? insights.costPerShift :
                   (typeof insights.cost_per_shift === 'number' ? insights.cost_per_shift : 0),
     recommendedActions: insights.recommendedActions || [],
+    // v1.1.1: Include activityMetrics if available (for costPerShift display logic)
+    ...(activityMetrics && {
+      activityMetrics: {
+        avgDailyActiveShifts: activityMetrics.avgDailyActiveShifts || 0,
+        peakSimultaneousUsage: activityMetrics.peakSimultaneousUsage || 0,
+        finishedShifts: activityMetrics.finishedShifts || 0,
+      }
+    })
   };
 };
 

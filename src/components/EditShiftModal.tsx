@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
 import { Shift } from "../types";
 import { toTenantISO, fromTenantISO } from "../utils/dateUtils";
 import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
-import { AlertCircle, MessageSquare, Send, X } from "lucide-react";
+import { AlertCircle, MessageSquare, Send, X, Lock } from "lucide-react";
+import { getUserInfo } from "../services/api";
 
 interface Comment {
   id: number;
@@ -30,6 +31,10 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 }) => {
   const containerRef = useFocusTrap(isOpen);
   useFocusRestore(isOpen);
+
+  // Get current user role
+  const currentUser = getUserInfo();
+  const isAdmin = currentUser?.role === 'admin';
 
   // Time fields
   const [startTime, setStartTime] = useState("");
@@ -63,18 +68,25 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   }, [isOpen, shift, timezone]);
 
-  // Load comment history
+  // Load comment history using new GET /shifts/:id endpoint
   const loadComments = async () => {
     try {
-      // Assuming shift has comments array or we fetch from API
-      // For now, let's assume comments come with shift object
+      // Use new endpoint to fetch full shift details with comments
+      const data = await api.get(API_ENDPOINTS.GET_SHIFT(shift.id));
+
+      if (data && data.comments && Array.isArray(data.comments)) {
+        setComments(data.comments);
+      } else {
+        setComments([]);
+      }
+    } catch (err) {
+      console.error("Failed to load shift comments:", err);
+      // If GET /shifts/:id fails, fall back to shift object
       if ((shift as any).comments && Array.isArray((shift as any).comments)) {
         setComments((shift as any).comments);
       } else {
         setComments([]);
       }
-    } catch (err) {
-      console.error("Failed to load comments:", err);
     }
   };
 
@@ -87,31 +99,54 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     try {
       const payload: any = {};
 
-      // Only send start_time if it changed (or if shift is not active)
+      // Check what fields changed
       const originalStart = shift.start_time ? fromTenantISO(shift.start_time, timezone) : "";
-      if (startTime !== originalStart) {
-        payload.start_time = toTenantISO(startTime, timezone);
-      }
+      const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, timezone) : "";
+      const timeChanged = startTime !== originalStart || endTime !== originalEnd;
+      const commentChanged = newComment.trim().length > 0;
 
-      // For ACTIVE shifts, only send end_time if it was explicitly set
-      // For FINISHED shifts, only send end_time if it changed
-      if (shift.status === 'ACTIVE') {
-        // For active shifts, only send end_time if user explicitly set it
-        // Otherwise, leave it undefined so backend doesn't validate it
-        if (endTime && endTime !== (shift.end_time ? fromTenantISO(shift.end_time, timezone) : "")) {
+      // Determine if this is a comment-only update
+      const isCommentOnly = commentChanged && !timeChanged;
+
+      // v1.1.2: Comment-only updates are allowed for ANY shift status
+      // Time changes require admin role and can't be done on finished shifts
+      if (timeChanged) {
+        // Time changes: need admin + active shift
+        if (!isAdmin) {
+          setError("⚠️ Только администратор может изменять время смены");
+          setLoading(false);
+          return;
+        }
+
+        if (shift.status === 'finished') {
+          setError("⚠️ Нельзя изменить время завершенной смены. Используйте только поле комментария.");
+          setLoading(false);
+          return;
+        }
+
+        // Send time fields
+        if (startTime !== originalStart) {
+          payload.start_time = toTenantISO(startTime, timezone);
+        }
+
+        if (endTime !== originalEnd) {
           payload.end_time = toTenantISO(endTime, timezone);
         }
-      } else {
-        // For finished shifts, only send if changed
-        const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, timezone) : "";
-        if (endTime !== originalEnd) {
-          payload.end_time = endTime ? toTenantISO(endTime, timezone) : null;
-        }
       }
 
-      // Append new comment if provided
-      if (newComment.trim()) {
+      // Append comment if provided
+      if (commentChanged) {
         payload.comment = newComment.trim();
+      }
+
+      // Validate time changes
+      if (timeChanged && shift.status !== 'ACTIVE') {
+        // For non-active shifts, end_time must be after start_time
+        if (startTime && endTime && new Date(endTime) <= new Date(startTime)) {
+          setError("⚠️ Время окончания должно быть позже начала");
+          setLoading(false);
+          return;
+        }
       }
 
       await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
@@ -122,8 +157,19 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
       // Check for overlap error (400 status with specific message)
       const status = err?.response?.status;
-      const message = err?.response?.data?.message || err?.message || "";
+      const message = err?.response?.data?.message || err?.response?.data?.detail || err?.message || "";
       const errorCode = err?.response?.data?.error_code || err?.response?.data?.error;
+
+      // v1.1.2: Check for new error messages
+      if (message.includes("Смена уже завершена") || message.includes("только поле comment")) {
+        setError("⚠️ " + message);
+        return;
+      }
+
+      if (message.includes("Водитель может добавлять комментарии только к своим сменам")) {
+        setError("⚠️ " + message);
+        return;
+      }
 
       // Check for various overlap error formats
       const isOverlap =
@@ -138,14 +184,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
       if (isOverlap) {
         setOverlapError(true);
-        setError(
+          setError(
           "⚠️ Эта машина или водитель уже заняты в указанный период"
         );
       } else {
         // Extract backend error message
-        const errorMessage =
-          message || "Failed to update shift";
-        setError(errorMessage);
+        setError(message || "Failed to update shift");
       }
     } finally {
       setLoading(false);
@@ -160,6 +204,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
   // Validate: end_time must be after start_time (only if end_time is provided)
   // For ACTIVE shifts, end_time can be empty (shift is still ongoing)
+  // For FINISHED shifts with comment-only update, validation is bypassed
   const isEndTimeInvalid = startTime && endTime && shift.status !== 'ACTIVE'
     ? new Date(endTime) <= new Date(startTime)
     : false;
@@ -175,6 +220,33 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
   const isStartTimeYearInvalid = !isValidYear(startTime);
   const isEndTimeYearInvalid = !isValidYear(endTime);
+
+  // v1.1.2: Determine if changes are comment-only
+  const originalStart = shift.start_time ? fromTenantISO(shift.start_time, timezone) : "";
+  const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, timezone) : "";
+  const timeChanged = startTime !== originalStart || endTime !== originalEnd;
+  const commentChanged = newComment.trim().length > 0;
+  const isCommentOnly = commentChanged && !timeChanged;
+
+  // v1.1.2: Smart save button validation
+  const canSave = useMemo(() => {
+    // Comment-only updates: always allowed (any status, any role)
+    if (isCommentOnly) {
+      return true;
+    }
+
+    // Time changes: require admin + active shift + valid times
+    if (timeChanged) {
+      if (!isAdmin) return false; // Only admin can change times
+      if (shift.status === 'finished') return false; // Can't change finished shift times
+      if (isStartTimeYearInvalid || isEndTimeYearInvalid) return false;
+      if (shift.status !== 'ACTIVE' && isEndTimeInvalid) return false;
+      return true;
+    }
+
+    // No changes: can't save
+    return false;
+  }, [isCommentOnly, timeChanged, isAdmin, shift.status, isStartTimeYearInvalid, isEndTimeYearInvalid, isEndTimeInvalid]);
 
   // Format comment time for display
   const formatCommentTime = (dateString: string) => {
@@ -246,9 +318,27 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
             {/* Time fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* v1.1.2: Finished shifts warning */}
+              {shift.status === 'finished' && (
+                <div className="md:col-span-2 mb-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                  <Lock size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-800">Смена завершена</p>
+                    <p className="text-amber-700 mt-1">
+                      {isAdmin
+                        ? "Только добавление комментария доступно. Изменение времени невозможно."
+                        : "Вы можете добавить комментарий к этой смене."}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label htmlFor="start-time" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                   Время начала *
+                  {shift.status === 'finished' && !isAdmin && (
+                    <span className="text-amber-600 font-normal ml-1">(только чтение)</span>
+                  )}
                 </label>
                 <input
                   id="start-time"
@@ -258,8 +348,11 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   onChange={(e) => setStartTime(e.target.value)}
                   max="2100-12-31T23:59"
                   step="60"
+                  disabled={shift.status === 'finished' && !isAdmin}
                   className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
-                    isStartTimeYearInvalid
+                    (shift.status === 'finished' && !isAdmin)
+                      ? "bg-slate-50 text-slate-500 cursor-not-allowed border-slate-200"
+                      : isStartTimeYearInvalid
                       ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                       : "border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20"
                   }`}
@@ -279,6 +372,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 <label htmlFor="end-time" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                   Время окончания
                   {shift.status === 'ACTIVE' && <span className="text-slate-400 font-normal ml-1">(опционально)</span>}
+                  {shift.status === 'finished' && !isAdmin && (
+                    <span className="text-amber-600 font-normal ml-1">(только чтение)</span>
+                  )}
                 </label>
                 <input
                   id="end-time"
@@ -288,26 +384,30 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   onChange={(e) => setEndTime(e.target.value)}
                   max="2100-12-31T23:59"
                   step="60"
-                  disabled={shift.status === 'ACTIVE'}
+                  disabled={shift.status === 'ACTIVE' || (shift.status === 'finished' && !isAdmin)}
                   className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
-                    shift.status === 'ACTIVE'
+                    shift.status === 'ACTIVE' || (shift.status === 'finished' && !isAdmin)
                       ? "bg-slate-50 text-slate-500 cursor-not-allowed border-slate-200"
                       : isEndTimeInvalid || isEndTimeYearInvalid
                         ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                         : "border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20"
                   }`}
                 />
-                {isEndTimeYearInvalid && shift.status !== 'ACTIVE' ? (
+                {isEndTimeYearInvalid && shift.status !== 'ACTIVE' && !(shift.status === 'finished' && !isAdmin) ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Некорректный год (1900-2100)
                   </p>
-                ) : isEndTimeInvalid && shift.status !== 'ACTIVE' ? (
+                ) : isEndTimeInvalid && shift.status !== 'ACTIVE' && !(shift.status === 'finished' && !isAdmin) ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Должно быть позже начала
                   </p>
                 ) : shift.status === 'ACTIVE' ? (
                   <p className="text-[10px] text-slate-400 mt-1">
                     Смена активна — время окончания нельзя изменить
+                  </p>
+                ) : shift.status === 'finished' && !isAdmin ? (
+                  <p className="text-[10px] text-amber-600 mt-1">
+                    Завершенная смена — время нельзя изменить
                   </p>
                 ) : null}
               </div>
@@ -319,6 +419,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 <MessageSquare size={16} className="text-slate-500" />
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Комментарии и история
+                  {shift.status === 'finished' && (
+                    <span className="text-amber-600 font-normal ml-2">(добавление комментариев разрешено)</span>
+                  )}
                 </label>
               </div>
 
@@ -350,13 +453,17 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               {/* Add New Comment */}
               <div>
                 <label htmlFor="new-comment" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  Добавить заметку
+                  {shift.status === 'finished'
+                    ? "Добавить комментарий к завершенной смене"
+                    : "Добавить заметку"}
                 </label>
                 <textarea
                   id="new-comment"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Опишите изменения или причину редактирования..."
+                  placeholder={shift.status === 'finished'
+                    ? "Укажите причину редактирования или добавьте примечание..."
+                    : "Опишите изменения или причину редактирования..."}
                   rows={2}
                   className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20 outline-none transition-all text-sm resize-none"
                 />
@@ -379,15 +486,20 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             <button
               type="submit"
               form="edit-shift-form"
-              disabled={loading || (shift.status !== 'ACTIVE' && isEndTimeInvalid) || isStartTimeYearInvalid || isEndTimeYearInvalid}
+              disabled={loading || !canSave}
               className="flex-1 px-6 py-3 rounded-lg bg-[#0a192f] text-white font-semibold text-sm hover:bg-[#152238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>Сохранение...</>
+              ) : isCommentOnly ? (
+                <>
+                  <Send size={16} />
+                  Добавить комментарий
+                </>
               ) : (
                 <>
                   <Send size={16} />
-                  Сохранить
+                  Сохранить изменения
                 </>
               )}
             </button>

@@ -133,8 +133,17 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
   }
 
   // Format currency for cost per shift (Russian locale)
-  const formatCost = (cost: number | null | undefined): string => {
+  // v1.1.1: costPerShift now returns 0 instead of null
+  // Need to distinguish between "no data" (0 shifts) and "actual zero cost"
+  const formatCost = (cost: number | null | undefined, finishedShifts?: number): string => {
+    // If no shifts finished, show "Нет данных"
+    if (finishedShifts === 0) return "Нет данных";
+
+    // If cost is null/undefined/NaN, show placeholder
     if (cost == null || isNaN(cost)) return "— ₽";
+
+    // v1.1.1: Backend returns 0 for costPerShift instead of null
+    // If we have finished shifts but cost is 0, show the actual value
     return new Intl.NumberFormat("ru-RU", {
       style: "currency",
       currency: "RUB",
@@ -191,10 +200,12 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
             </span>
           </div>
           <p className="text-2xl font-bold text-[#0a192f] mono-number">
-            {formatCost(costPerShift)}
+            {formatCost(costPerShift, insights.activityMetrics?.finishedShifts)}
           </p>
           <p className="text-xs text-[#0a192f]/70 mt-1">
-            Среднее значение за выбранный период
+            {insights.activityMetrics?.finishedShifts === 0
+              ? "Нет завершенных смен за период"
+              : "Среднее значение за выбранный период"}
           </p>
         </div>
 
