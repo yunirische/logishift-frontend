@@ -1286,3 +1286,68 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **MAINTAINABLE**: Clear mapping between backend and frontend field names
   - ✅ **DOCUMENTED**: Added analitic-sync.md with backend API specification
 - **Impact:** Analytics dashboard now correctly displays all data from backend API with proper type safety and error handling
+
+## [2026-02-01] - Feature: Implement CHANGELOG v1.1.2 - Shift Editing & Analytics
+- **File(s):** `src/constants.ts`, `src/components/EditShiftModal.tsx`, `src/components/analytics/InsightsPanel.tsx`, `src/types.ts`, `src/services/api.ts`, `CHANGELOG.md`
+- **Change:** Implement backend v1.1.2 features - GET /shifts/:id endpoint, comment-only updates on finished shifts, costPerShift null safety
+- **Reference:** CHANGELOG.md v1.1.2 backend release
+- **Before:**
+  - No dedicated endpoint to fetch single shift details
+  - Finished shifts couldn't be edited (even for comments)
+  - Save button required time validation even for comment-only updates
+  - Analytics costPerShift assumed null meant "no data"
+  - No visual hints for finished shift restrictions
+- **After:**
+  - **src/constants.ts:**
+    - Added `GET_SHIFT(id)` endpoint constant for fetching single shift
+  - **src/components/EditShiftModal.tsx:**
+    - `loadComments()`: Uses new `GET /shifts/:id` endpoint
+    - Smart save button validation with `canSave`:
+      * Comment-only updates: Always allowed (any status, any role)
+      * Time changes: Admin only + active shift only
+    - Added visual warnings for finished shifts:
+      * Lock icon banner with explanation
+      * Disabled time inputs for non-admin users
+      * Clear "(только чтение)" labels
+    - Button text adapts: "Добавить комментарий" vs "Сохранить изменения"
+    - Error handling for new backend messages:
+      * "Смена уже завершена. Используйте только поле comment."
+      * "Водитель может добавлять комментарии только к своим сменам"
+    - Helper text updated for finished shifts
+  - **src/components/analytics/InsightsPanel.tsx:**
+    - `formatCost()` now accepts `finishedShifts` parameter
+    - Distinguishes between "no data" (0 shifts) vs "actual zero cost"
+    - Shows "Нет завершенных смен за период" when appropriate
+  - **src/types.ts:**
+    - Added `ActivityMetrics` interface:
+      * `avgDailyActiveShifts: number`
+      * `peakSimultaneousUsage: number`
+      * `finishedShifts: number`
+    - Updated `AnalyticsInsights` with optional `activityMetrics?`
+  - **src/services/api.ts:**
+    - `transformAnalyticsInsights()` includes `activityMetrics` if available
+    - Properly maps backend response structure to frontend types
+- **Authorization Logic (v1.1.2):**
+  ```typescript
+  // Comment-only updates (any shift status):
+  - Driver: Can comment on own shifts
+  - Admin: Can comment on any shift
+
+  // Time changes:
+  - Admin only
+  - Only on active shifts
+  - Finished shifts: Time changes blocked
+  ```
+- **UX Improvements:**
+  - Visual feedback for finished shifts (amber warning banner)
+  - Disabled state for time inputs on finished shifts
+  - Context-aware button text
+  - Clear error messages for authorization failures
+- **Benefits:**
+  - ✅ **NEW FEATURE**: Drivers can add comments to their finished shifts
+  - ✅ **NEW FEATURE**: Single shift endpoint for better data loading
+  - ✅ **UX IMPROVEMENT**: Smart validation prevents confusing errors
+  - ✅ **VISUAL FEEDBACK**: Users understand what they can/can't edit
+  - ✅ **DATA DISPLAY**: Cost per shift shows correctly when 0
+  - ✅ **ERROR HANDLING**: Clear messages for authorization failures
+- **Impact:** Shift editing modal now supports comment-only updates on finished shifts with proper authorization and visual feedback
