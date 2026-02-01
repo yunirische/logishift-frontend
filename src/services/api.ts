@@ -368,6 +368,19 @@ export const getCurrentShift = async (): Promise<any | null> => {
   }
 };
 
+/**
+ * Accept an invite code to register as a driver.
+ * POST /invites/accept
+ */
+export const acceptInvite = async (data: {
+  code: string;
+  full_name: string;
+  email: string;
+  password: string;
+}): Promise<void> => {
+  await post(`${API_BASE_URL}/invites/accept`, data);
+};
+
 const api = {
   loginUser,
   apiRequest,
@@ -384,6 +397,7 @@ const api = {
   changePassword,
   getSubscription,
   getCurrentShift,
+  acceptInvite,
   TOKEN_KEY,
   USER_KEY,
 };

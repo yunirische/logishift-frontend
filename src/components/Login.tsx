@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { loginUser } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,6 +9,22 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+
+  // Prefill email from URL params (redirected from registration)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get('email');
+    if (email) {
+      setUsername(email);
+    }
+  }, []);
+
+  const navigateToRegister = () => {
+    const url = new URL(window.location.href);
+    url.pathname = '/register';
+    url.search = '';
+    window.location.href = url.toString();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +97,17 @@ const Login: React.FC = () => {
             {isLoading ? 'Вход...' : 'Войти в систему'}
           </button>
         </form>
+
+        {/* Register Link */}
+        <div className="text-center mt-6">
+          <button
+            type="button"
+            onClick={navigateToRegister}
+            className="text-sm text-slate-500 hover:text-[#0a192f] transition-colors"
+          >
+            Нет аккаунта? Зарегистрироваться
+          </button>
+        </div>
 
         <p className="text-center text-[10px] text-slate-300 mt-8 uppercase font-bold tracking-widest">
           KONTROLSMEN v2.0 Enterprise

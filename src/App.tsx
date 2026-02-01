@@ -3,6 +3,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
+import RegisterView from "./views/RegisterView";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Bundle optimization: lazy load heavy components (bundle-dynamic-imports)
@@ -17,6 +18,14 @@ const Analytics = lazy(() => import("./components/Analytics"));
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { isAuthenticated, isLoading, error, clearError } = useAuth();
+
+  // Check if on register page
+  const isRegisterPage = window.location.pathname === '/register';
+
+  // Show register page
+  if (isRegisterPage) {
+    return <RegisterView />;
+  }
 
   // Show error if auth error exists
   if (error) {
