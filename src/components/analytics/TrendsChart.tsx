@@ -47,13 +47,17 @@ const METRIC_CONFIG = {
 
 // Format date for x-axis (short: "Jan 15" or "15 янв")
 const formatXAxisDate = (dateStr: string): string => {
+  if (!dateStr) return "";
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
   return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 };
 
 // Format date for tooltip (long: "January 15, 2026")
 const formatTooltipDate = (dateStr: string): string => {
+  if (!dateStr) return "Неизвестная дата";
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "Некорректная дата";
   return date.toLocaleDateString("ru-RU", {
     year: "numeric",
     month: "long",
@@ -88,7 +92,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-slate-100 px-4 py-3">
-      <p className="text-sm text-slate-500 mb-1">{formatTooltipDate(label)}</p>
+      <p className="text-sm text-slate-500 mb-1">{formatTooltipDate(label || "")}</p>
       <p className="text-lg font-semibold text-slate-800 font-mono">
         {displayValue}{config.unit}
       </p>

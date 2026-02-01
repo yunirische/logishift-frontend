@@ -85,10 +85,29 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     setOverlapError(false);
 
     try {
-      const payload: any = {
-        start_time: toTenantISO(startTime, timezone),
-        end_time: endTime ? toTenantISO(endTime, timezone) : null,
-      };
+      const payload: any = {};
+
+      // Only send start_time if it changed (or if shift is not active)
+      const originalStart = shift.start_time ? fromTenantISO(shift.start_time, timezone) : "";
+      if (startTime !== originalStart) {
+        payload.start_time = toTenantISO(startTime, timezone);
+      }
+
+      // For ACTIVE shifts, only send end_time if it was explicitly set
+      // For FINISHED shifts, only send end_time if it changed
+      if (shift.status === 'ACTIVE') {
+        // For active shifts, only send end_time if user explicitly set it
+        // Otherwise, leave it undefined so backend doesn't validate it
+        if (endTime && endTime !== (shift.end_time ? fromTenantISO(shift.end_time, timezone) : "")) {
+          payload.end_time = toTenantISO(endTime, timezone);
+        }
+      } else {
+        // For finished shifts, only send if changed
+        const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, timezone) : "";
+        if (endTime !== originalEnd) {
+          payload.end_time = endTime ? toTenantISO(endTime, timezone) : null;
+        }
+      }
 
       // Append new comment if provided
       if (newComment.trim()) {
@@ -242,7 +261,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
                     isStartTimeYearInvalid
                       ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                      : "border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                      : "border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20"
                   }`}
                   required
                 />
@@ -275,7 +294,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                       ? "bg-slate-50 text-slate-500 cursor-not-allowed border-slate-200"
                       : isEndTimeInvalid || isEndTimeYearInvalid
                         ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                        : "border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                        : "border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20"
                   }`}
                 />
                 {isEndTimeYearInvalid && shift.status !== 'ACTIVE' ? (
@@ -339,7 +358,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Опишите изменения или причину редактирования..."
                   rows={2}
-                  className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm resize-none"
+                  className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20 outline-none transition-all text-sm resize-none"
                 />
               </div>
             </div>
