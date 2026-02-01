@@ -38,6 +38,13 @@ Backend API, database, and server-side documentation.
 Analytics dashboard for resource tracking and business insights.
 
 - [Analytics API](./api/analytics.md) - Analytics endpoints and frontend integration
+- [Analytics Feature Documentation](./analytics.md) - Complete analytics feature guide
+
+### 🎨 Design System
+
+Frontend design system for LogiShift web interface.
+
+- [Design System](./design-system.md) - Industrial UI colors, typography, spacing, and components
 
 ### 🤖 Telegram Bot
 
@@ -111,6 +118,14 @@ LogiShift is a multi-tenant SaaS platform for shift management of heavy machiner
 - **Multi-Tenant:** Complete tenant isolation via `tenant_id`
 - **Transaction Safety:** All critical operations in database transactions
 - **Audit Logging:** Complete audit trail for compliance
+
+### Design System
+
+For UI/UX implementation guidelines:
+
+1. **Design System** - Read [Design System](./design-system.md) for colors, typography, spacing
+2. **Analytics** - Check [Analytics Documentation](./analytics.md) for component patterns
+3. **Architecture** - Review [Architecture Overview](./architecture/overview.md) for component structure
 
 ## Documentation Structure
 

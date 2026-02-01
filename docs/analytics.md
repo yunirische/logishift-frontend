@@ -105,11 +105,12 @@ Comprehensive error management and recovery:
 
 Professional industrial aesthetic matching LogiShift design system:
 
-- **Typography** - JetBrains Mono font for all chart elements
-- **Color Palette** - Navy/Indigo (indigo-600 to indigo-900)
-- **Card Styling** - Rounded-3xl corners, p-6 padding
+- **Typography** - JetBrains Mono font for all chart elements, IDs, numbers
+- **Color Palette** - Deep Navy (#0a192f) industrial theme
+- **Card Styling** - Rounded-lg corners, p-4 padding (dashboard density)
 - **Icons** - Lucide React icons throughout
 - **Responsive** - Single-column mobile, multi-column desktop
+- **See Also:** [Design System Documentation](./design-system.md) for complete styling guidelines
 
 ## User Interface
 
