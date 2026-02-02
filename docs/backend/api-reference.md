@@ -773,6 +773,41 @@ Update truck details. **[AUTH REQUIRED - ADMIN]**
 }
 ```
 
+#### DELETE `/trucks/:id`
+
+Delete a truck (requires admin role). **[AUTH REQUIRED - ADMIN]**
+
+**URL Parameters:**
+- `id` - Truck ID
+
+**Important Behavior:**
+- Cannot delete truck with an **active shift** (`status != 'finished'`)
+- Truck ID must be parsed as Integer
+- Validates tenant ownership before deletion
+
+**Response (200):**
+```json
+{
+  "message": "Техника удалена",
+  "id": 4
+}
+```
+
+**Error Response (400) - Active shift exists:**
+```json
+{
+  "error": "Нельзя удалить технику с активной сменой. Сначала завершите смену.",
+  "shift_id": 123
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "error": "Техника не найдена"
+}
+```
+
 ---
 
 ### Sites (Dictionary)
@@ -858,6 +893,41 @@ Update site settings. **[AUTH REQUIRED - ADMIN]**
   "odometer_required": false,
   "invoice_required": true,
   "is_active": true
+}
+```
+
+#### DELETE `/sites/:id`
+
+Delete a site (requires admin role). **[AUTH REQUIRED - ADMIN]**
+
+**URL Parameters:**
+- `id` - Site ID
+
+**Important Behavior:**
+- Cannot delete site with an **active shift** (`status != 'finished'`)
+- Site ID must be parsed as Integer
+- Validates tenant ownership before deletion
+
+**Response (200):**
+```json
+{
+  "message": "Объект удален",
+  "id": 8
+}
+```
+
+**Error Response (400) - Active shift exists:**
+```json
+{
+  "error": "Нельзя удалить объект с активной сменой. Сначала завершите смену.",
+  "shift_id": 123
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "error": "Объект не найден"
 }
 ```
 
