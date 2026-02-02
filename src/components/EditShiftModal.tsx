@@ -43,11 +43,13 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   // Comments (chat style)
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [overlapError, setOverlapError] = useState(false);
   const [uploadingPhotoType, setUploadingPhotoType] = useState<string | null>(null);
+  const [tenantSettings, setTenantSettings] = useState<any>(null);
 
   // Pre-fill time fields when modal opens
   useEffect(() => {
@@ -62,6 +64,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
       // Load comments history
       loadComments();
+
+      // Load audit history
+      loadAuditLogs();
+
+      // Load tenant settings for invoice requirement
+      loadTenantSettings();
 
       setError(null);
       setOverlapError(false);
@@ -88,6 +96,33 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       } else {
         setComments([]);
       }
+    }
+  };
+
+  // Load tenant settings for invoice requirement
+  const loadTenantSettings = async () => {
+    try {
+      const data = await api.get(API_ENDPOINTS.TENANT_SETTINGS);
+      setTenantSettings(data);
+    } catch (err) {
+      console.error("Failed to load tenant settings:", err);
+    }
+  };
+
+  // Load audit logs for this shift
+  const loadAuditLogs = async () => {
+    try {
+      const data = await api.get(API_ENDPOINTS.AUDIT_SHIFT(shift.id));
+      if (Array.isArray(data)) {
+        setAuditLogs(data);
+      } else if (data?.logs && Array.isArray(data.logs)) {
+        setAuditLogs(data.logs);
+      } else {
+        setAuditLogs([]);
+      }
+    } catch (err) {
+      console.error("Failed to load audit logs:", err);
+      setAuditLogs([]);
     }
   };
 
@@ -366,143 +401,174 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               </div>
             )}
 
-            {/* Proxy Photo Upload Section */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Upload size={16} className="text-slate-500" />
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Загрузка фото (админ)
-                </label>
-              </div>
+            {/* Proxy Photo Upload Section - Smart Filtering */}
+            {(() => {
+              const site = (shift as any).site || {};
+              const needsOdometer = site.odometer_required === true;
+              const needsInvoice = site.invoice_required === true || tenantSettings?.invoice_required === true;
+              const hasAnyRequirements = needsOdometer || needsInvoice;
 
-              <div className="space-y-3">
-                {/* Start Odometer Photo */}
-                <div className="border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">🏁</span>
-                      <span className="text-sm font-semibold text-slate-700">Одометр (старт)</span>
+              if (!hasAnyRequirements) {
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Upload size={16} className="text-slate-500" />
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Загрузка фото
+                      </label>
                     </div>
-                    {(shift as any).photo_start_url ? (
-                      <a
-                        href={getPhotoUrl((shift as any).photo_start_url) || ''}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                      >
-                        <Image size={12} />
-                        Просмотр
-                      </a>
-                    ) : (
-                      <span className="text-xs text-slate-400">Не загружено</span>
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
+                      <p className="text-sm text-slate-500 font-medium">Фото не требуются по настройкам объекта</p>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Upload size={16} className="text-slate-500" />
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Загрузка фото (админ)
+                    </label>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Start Odometer Photo */}
+                    {needsOdometer && (
+                      <div className="border border-slate-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">🏁</span>
+                            <span className="text-sm font-semibold text-slate-700">Одометр (старт)</span>
+                          </div>
+                          {(shift as any).photo_start_url ? (
+                            <a
+                              href={getPhotoUrl((shift as any).photo_start_url) || ''}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                            >
+                              <Image size={12} />
+                              Просмотр
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-400">Не загружено</span>
+                          )}
+                        </div>
+                        <label className="block">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingPhotoType === 'start'}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handlePhotoUpload('start', file);
+                            }}
+                          />
+                          <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
+                            uploadingPhotoType === 'start'
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                          }`}>
+                            {uploadingPhotoType === 'start' ? 'Загрузка...' : 'Загрузить фото'}
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* End Odometer Photo */}
+                    {needsOdometer && (
+                      <div className="border border-slate-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">🏁</span>
+                            <span className="text-sm font-semibold text-slate-700">Одометр (финиш)</span>
+                          </div>
+                          {(shift as any).photo_end_url ? (
+                            <a
+                              href={getPhotoUrl((shift as any).photo_end_url) || ''}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                            >
+                              <Image size={12} />
+                              Просмотр
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-400">Не загружено</span>
+                          )}
+                        </div>
+                        <label className="block">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingPhotoType === 'end'}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handlePhotoUpload('end', file);
+                            }}
+                          />
+                          <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
+                            uploadingPhotoType === 'end'
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                          }`}>
+                            {uploadingPhotoType === 'end' ? 'Загрузка...' : 'Загрузить фото'}
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* Invoice Photo */}
+                    {needsInvoice && (
+                      <div className="border border-slate-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">📄</span>
+                            <span className="text-sm font-semibold text-slate-700">Накладная</span>
+                          </div>
+                          {(shift as any).photo_invoice_url ? (
+                            <a
+                              href={getPhotoUrl((shift as any).photo_invoice_url) || ''}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                            >
+                              <Image size={12} />
+                              Просмотр
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-400">Не загружено</span>
+                          )}
+                        </div>
+                        <label className="block">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingPhotoType === 'invoice'}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handlePhotoUpload('invoice', file);
+                            }}
+                          />
+                          <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
+                            uploadingPhotoType === 'invoice'
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                          }`}>
+                            {uploadingPhotoType === 'invoice' ? 'Загрузка...' : 'Загрузить фото'}
+                          </div>
+                        </label>
+                      </div>
                     )}
                   </div>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingPhotoType === 'start'}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handlePhotoUpload('start', file);
-                      }}
-                    />
-                    <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
-                      uploadingPhotoType === 'start'
-                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    }`}>
-                      {uploadingPhotoType === 'start' ? 'Загрузка...' : 'Загрузить фото'}
-                    </div>
-                  </label>
                 </div>
-
-                {/* End Odometer Photo */}
-                <div className="border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">🏁</span>
-                      <span className="text-sm font-semibold text-slate-700">Одометр (финиш)</span>
-                    </div>
-                    {(shift as any).photo_end_url ? (
-                      <a
-                        href={getPhotoUrl((shift as any).photo_end_url) || ''}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                      >
-                        <Image size={12} />
-                        Просмотр
-                      </a>
-                    ) : (
-                      <span className="text-xs text-slate-400">Не загружено</span>
-                    )}
-                  </div>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingPhotoType === 'end'}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handlePhotoUpload('end', file);
-                      }}
-                    />
-                    <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
-                      uploadingPhotoType === 'end'
-                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    }`}>
-                      {uploadingPhotoType === 'end' ? 'Загрузка...' : 'Загрузить фото'}
-                    </div>
-                  </label>
-                </div>
-
-                {/* Invoice Photo */}
-                <div className="border border-slate-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">📄</span>
-                      <span className="text-sm font-semibold text-slate-700">Накладная</span>
-                    </div>
-                    {(shift as any).photo_invoice_url ? (
-                      <a
-                        href={getPhotoUrl((shift as any).photo_invoice_url) || ''}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                      >
-                        <Image size={12} />
-                        Просмотр
-                      </a>
-                    ) : (
-                      <span className="text-xs text-slate-400">Не загружено</span>
-                    )}
-                  </div>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingPhotoType === 'invoice'}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handlePhotoUpload('invoice', file);
-                      }}
-                    />
-                    <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
-                      uploadingPhotoType === 'invoice'
-                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    }`}>
-                      {uploadingPhotoType === 'invoice' ? 'Загрузка...' : 'Загрузить фото'}
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Time fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -637,6 +703,26 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   </p>
                 )}
               </div>
+
+              {/* Audit History (Compact) */}
+              {auditLogs.length > 0 && (
+                <div className="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-100 max-h-40 overflow-y-auto">
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">История действий</p>
+                  <div className="space-y-1">
+                    {auditLogs.map((log, index) => (
+                      <div key={index} className="flex items-start gap-2 text-xs">
+                        <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                          {formatCommentTime(log.created_at || log.timestamp)}
+                        </span>
+                        <span className="text-slate-400">—</span>
+                        <span className="font-semibold text-slate-600">{log.user_name || log.user || 'Система'}</span>
+                        <span className="text-slate-400">—</span>
+                        <span className="text-slate-500">{log.action || log.action_name || log.action_type}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Add New Comment */}
               <div>

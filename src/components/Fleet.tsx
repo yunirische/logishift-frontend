@@ -150,7 +150,7 @@ const Fleet: React.FC = () => {
         )}
 
         {trucks.map((t) => (
-          <div key={t.id} className={`bg-white p-6 rounded-lg border shadow-sm relative group transition-all ${t.is_busy ? 'border-orange-200 bg-orange-50/30' : 'border-slate-50'}`}>
+          <div key={t.id} className={`bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative group transition-all ${t.is_busy ? 'border-orange-200 bg-orange-50/30' : 'border-slate-200'}`}>
             
             {/* Кнопки действий */}
             <div className="absolute top-4 right-4 flex gap-2 z-10">
@@ -183,7 +183,7 @@ const Fleet: React.FC = () => {
             
             <div className="flex items-center gap-2 mt-2 text-slate-500 font-medium text-sm">
                <MapPin size={14} className="text-slate-400" />
-               <span className="font-mono tracking-wide">{t.plate || 'Без номера'}</span>
+               <span className="font-mono tracking-wide text-slate-600">{t.plate || 'Без номера'}</span>
             </div>
 
             {/* Переключатель статуса (быстрое действие) */}
@@ -212,7 +212,7 @@ const Fleet: React.FC = () => {
           aria-modal="true"
           aria-labelledby="truck-modal-title"
         >
-          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-lg w-full max-w-md p-5 shadow-sm border border-slate-200 animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
               <h3 id="truck-modal-title" className="text-xl font-semibold text-[#1B254B]">
                 {editingTruck ? 'Редактировать машину' : 'Новая машина'}

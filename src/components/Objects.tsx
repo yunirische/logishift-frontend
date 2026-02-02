@@ -123,7 +123,7 @@ const Objects: React.FC = () => {
       {/* Сетка объектов */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
         {sites.map((s) => (
-          <div key={s.id} className={`bg-white p-6 rounded-lg border shadow-sm relative group ${s.is_active ? 'border-slate-50' : 'border-slate-200 opacity-60'}`}>
+          <div key={s.id} className={`bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative group ${s.is_active ? 'border-slate-200' : 'border-slate-200 opacity-60'}`}>
             
             {/* Кнопки действий */}
             <div className="absolute top-4 right-4 flex gap-2">
@@ -185,7 +185,7 @@ const Objects: React.FC = () => {
           aria-modal="true"
           aria-labelledby="site-modal-title"
         >
-          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-lg w-full max-w-md p-5 shadow-sm border border-slate-200 animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
               <h3 id="site-modal-title" className="text-xl font-semibold text-[#1B254B]">
                 {editingSite ? 'Редактировать объект' : 'Новый объект'}

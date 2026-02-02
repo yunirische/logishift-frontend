@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
   UPDATE_USER: (id: number | string) => `${API_BASE_URL}/users/${id}`,
   INVITES: `${API_BASE_URL}/invites`,
   AUDIT: `${API_BASE_URL}/audit`,
+  AUDIT_SHIFT: (id: number | string) => `${API_BASE_URL}/audit/shift/${id}`,
   DASHBOARD_STATS: `${API_BASE_URL}/dashboard/stats`,
   TENANT_SETTINGS: `${API_BASE_URL}/tenant/settings`,
   
