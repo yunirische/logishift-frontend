@@ -2,8 +2,8 @@
 title: Design System - Industrial UI
 domain: frontend
 related:
-  - ../ARCHITECTURE-FRONT.md
-  - analytics.md
+  - ./architecture.md
+  - analytics-dashboard.md
 last_updated: 2026-02-01
 context_priority: high
 ---

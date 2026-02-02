@@ -4,7 +4,7 @@ domain: backend
 related:
   - database-schema.md
   - ../architecture/security.md
-last_updated: 2026-01-27
+last_updated: 2026-01-31
 context_priority: high
 ---
 
@@ -234,7 +234,9 @@ Get list of recent shifts (last 10). **[AUTH REQUIRED]**
 
 Get current active shift for authenticated user. **[AUTH REQUIRED]**
 
-**Response (200) or `null`:**
+Always returns `200 OK`. If no active shift exists, returns `null`.
+
+**Response (200) - Active shift found:**
 ```json
 {
   "id": 50,
@@ -266,6 +268,71 @@ Get current active shift for authenticated user. **[AUTH REQUIRED]**
   }
 }
 ```
+
+**Response (200) - No active shift:**
+```json
+null
+```
+
+#### GET `/shifts/:id`
+
+Get a specific shift by ID. **[AUTH REQUIRED]**
+
+**URL Parameters:**
+- `id` - Shift ID
+
+**Response (200):**
+```json
+{
+  "id": 52,
+  "tenant_id": 10,
+  "user_id": 5,
+  "truck_id": 3,
+  "site_id": 7,
+  "status": "finished",
+  "start_time": "2024-01-15T08:00:00.000Z",
+  "end_time": "2024-01-15T12:30:00.000Z",
+  "hours_worked": "4.50",
+  "salary": "1800.00",
+  "photo_start_url": "/uploads/10/2024/01/1705315200000-photo.jpg",
+  "photo_end_url": "/uploads/10/2024/01/1705336800000-photo.jpg",
+  "photo_invoice_url": "/uploads/10/2024/01/1705336800000-invoice.jpg",
+  "comment": "[15.01 14:30 Driver]: Смена завершена успешно",
+  "created_at": "2024-01-15T08:00:00.000Z",
+  "updated_at": "2024-01-15T12:30:00.000Z",
+  "user": {
+    "id": 5,
+    "full_name": "Иван Иванов",
+    "current_state": "idle"
+  },
+  "truck": {
+    "id": 3,
+    "name": "МАЗ-533",
+    "plate": "А123БВ777",
+    "is_active": true,
+    "is_busy": false
+  },
+  "site": {
+    "id": 7,
+    "name": "Стройплощадка №1",
+    "address": "ул. Строителей, 10",
+    "odometer_required": true,
+    "invoice_required": false
+  }
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "error": "Смена не найдена"
+}
+```
+
+**Use Cases:**
+- Load shift details for edit modal
+- View complete shift information with related data
+- Fetch shift for audit or review
 
 #### POST `/shifts/start`
 
@@ -354,6 +421,258 @@ photo: <file>
   "newState": "active"
 }
 ```
+
+#### POST `/shifts/:id/proxy-photo`
+
+Upload shift photo on behalf of driver (admin only). **[AUTH REQUIRED - ADMIN]**
+**Use this endpoint for editing shifts in modal.**
+
+**URL Parameters:**
+- `id` - Shift ID
+
+**Content-Type:** `multipart/form-data`
+
+**Request:**
+```
+photo: <file>
+type: "odo_start" | "odo_end" | "invoice"
+```
+
+**Response (200):**
+```json
+{
+  "message": "Фото успешно загружено (odo_end)",
+  "shift": {
+    "id": 50,
+    "status": "finished",
+    "photo_type": "odo_end"
+  }
+}
+```
+
+**State Transitions:**
+- `odo_start` → Sets status to `'active'`, sets `start_time` if null
+- `odo_end` → Transitions to `'awaiting_invoice'` or `'finished'`
+- `invoice` → Finalizes shift to `'finished'` and calculates salary
+
+**Error Response (400):**
+```json
+{
+  "error": "Некорректный тип фото. Укажите: odo_start, odo_end или invoice"
+}
+```
+
+**Important:**
+- This is the correct endpoint for **editing shifts in modal**
+- `POST /shifts/photo` is for **drivers in active shift flow only** (state machine based)
+- For modal editing, always use this proxy-photo endpoint with explicit `type` parameter
+
+#### PATCH `/shifts/:id`
+
+Update shift (add comment, modify times, or force-close). **[AUTH REQUIRED]**
+
+**URL Parameters:**
+- `id` - Shift ID
+
+**Authorization Logic (as of v1.1.2):**
+- **Comment-only updates** (only `comment` field provided):
+  - **Drivers**: Can add comments to their own shifts (any status including "finished")
+  - **Admins**: Can add comments to any shift (any status)
+- **Time changes or force-close** (`start_time`, `end_time` provided):
+  - **Admins only**
+
+**Request Body (Comment only - works for ANY shift status):**
+```json
+{
+  "comment": "Добавлен комментарий к смене"
+}
+```
+
+**Request Body (Force close with times - admin only):**
+```json
+{
+  "start_time": "2024-01-15T08:00:00.000Z",
+  "end_time": "2024-01-15T12:30:00.000Z",
+  "comment": "Пояснение к смене"
+}
+```
+
+**Important Behavior (as of v1.1.2):**
+- **Comment-only mode**: Works on **active AND finished shifts**. Only updates comment, no time validation.
+- **Force-close mode**: Only works on **active shifts**. Validates times, checks overlaps, finalizes shift.
+- **Finished shifts with times**: Returns error "Смена уже завершена. Для добавления комментария используйте только поле comment."
+
+**Response (200) - Comment only (works for finished shifts too):**
+```json
+{
+  "message": "✅ Комментарий добавлен к смене 52",
+  "shift": {
+    "id": 52,
+    "comment": "[01.02 16:45 Driver]: Добавлен комментарий к завершенной смене"
+  }
+}
+```
+
+**Response (200) - Force close (active shift):**
+```json
+{
+  "message": "✅ Смена принудительно закрыта!\nОтработано: 4 ч. 30 мин.",
+  "shift": {
+    "id": 50,
+    "hours_worked": 4.5,
+    "salary": 1800,
+    "start_time": "2024-01-15T08:00:00.000Z",
+    "end_time": "2024-01-15T12:30:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+
+**Finished shift with time changes (400):**
+```json
+{
+  "error": "Смена уже завершена. Для добавления комментария используйте только поле comment."
+}
+```
+
+**Driver commenting on another driver's shift (403):**
+```json
+{
+  "error": "Водитель может добавлять комментарии только к своим сменам"
+}
+```
+
+**Time changes by non-admin (403):**
+```json
+{
+  "error": "Только администратор может изменять время или закрывать смены"
+}
+```
+
+**Overlap detected (400):**
+```json
+{
+  "error": "OVERLAP",
+  "message": "Время смены пересекается с существующей записью\nКонфликт ресурсов: Водитель \"Иван Иванов\"\nСуществующая смена: #45 (08:00 - 12:00)"
+}
+```
+
+**Time validation (400):**
+```json
+{
+  "error": "Время окончания должно быть позже времени начала"
+}
+```
+
+**Future time (400):**
+```json
+{
+  "error": "Время окончания не может быть в будущем"
+}
+```
+
+**Use Cases:**
+- **Add comment to finished shift** (driver/admin): `{ "comment": "text" }`
+- **Add comment to active shift** (driver/admin): `{ "comment": "text" }`
+- **Force-close active shift** (admin only): `{ "start_time", "end_time" }`
+- **Correct shift times** (admin only): `{ "start_time", "end_time" }`
+
+#### POST `/shifts/:id/comments`
+
+Add comment to shift (any role). **[AUTH REQUIRED]**
+
+**URL Parameters:**
+- `id` - Shift ID
+
+**Request Body:**
+```json
+{
+  "text": "Комментарий к смене"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "comment": "[01.02 14:30 Admin]: Комментарий к смене"
+}
+```
+
+**Access Control:**
+- **Drivers**: Can only comment on their own shifts
+- **Admins**: Can comment on any shift in their tenant
+
+#### PATCH `/shifts/:id/times`
+
+Update shift times without closing (admin only). **[AUTH REQUIRED - ADMIN]**
+
+**URL Parameters:**
+- `id` - Shift ID
+
+**Request Body:**
+```json
+{
+  "start_time": "2024-01-15T08:00:00.000Z",
+  "end_time": "2024-01-15T13:30:00.000Z"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "shift": {
+    "id": 50,
+    "start_time": "2024-01-15T08:00:00.000Z",
+    "end_time": "2024-01-15T13:30:00.000Z",
+    "hours_worked": 5.5,
+    "salary": 2200
+  }
+}
+```
+
+**Notes:**
+- This endpoint updates times and recalculates `hours_worked` and `salary` **without changing shift status**
+- Useful for correcting time errors in finished or active shifts
+- Performs overlap validation with other shifts
+
+#### POST `/shifts/manual`
+
+Create a shift manually (admin only). **[AUTH REQUIRED - ADMIN]**
+
+**Request Body:**
+```json
+{
+  "driver_id": 5,
+  "truck_id": 3,
+  "site_id": 7
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": 51,
+  "tenant_id": 10,
+  "user_id": 5,
+  "truck_id": 3,
+  "site_id": 7,
+  "status": "active",
+  "start_time": "2024-02-01T14:30:00.000Z",
+  "end_time": "2024-02-01T14:30:00.000Z",
+  "hours_worked": 0,
+  "salary": 0,
+  "created_at": "2024-02-01T14:30:00.000Z"
+}
+```
+
+**Important Behavior (as of v1.1.1):**
+- Admin-created shifts **bypass pending states** and go directly to `status: "active"`
+- Initial `hours_worked` and `salary` are `0` (admin can edit times later)
+- Both `start_time` and `end_time` are set to `new Date()` initially
+- Use `PATCH /shifts/:id/times` to correct the times after creation
 
 ---
 
@@ -601,6 +920,77 @@ Create a new user (requires admin role). **[AUTH REQUIRED - ADMIN]**
 }
 ```
 
+#### PATCH `/users/:id`
+
+Update user details (requires admin role). **[AUTH REQUIRED - ADMIN]**
+
+**URL Parameters:**
+- `id` - User ID to update
+
+**Request Body:**
+```json
+{
+  "full_name": "Иван Иванов (обновлено)",
+  "role": "driver",
+  "hourly_rate": 450
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": 20,
+  "tenant_id": 10,
+  "role": "driver",
+  "full_name": "Иван Иванов (обновлено)",
+  "email": "ivan@example.com",
+  "current_state": "idle",
+  "hourly_rate": "450.00"
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "error": "Пользователь не найден"
+}
+```
+
+#### DELETE `/users/:id`
+
+Delete a user (requires admin role). **[AUTH REQUIRED - ADMIN]**
+
+**URL Parameters:**
+- `id` - User ID to delete
+
+**Important Behavior:**
+- Cannot delete user with an **active shift** (`status != 'finished'`)
+- User ID must be parsed as Integer
+- Validates tenant ownership before deletion
+
+**Response (200):**
+```json
+{
+  "message": "Пользователь удален",
+  "id": 20
+}
+```
+
+**Error Response (400) - Active shift exists:**
+```json
+{
+  "error": "Нельзя удалить водителя с активной сменой. Сначала завершите смену.",
+  "shift_id": 123
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "error": "Пользователь не найден"
+}
+```
+
 #### POST `/users/set-menu-id`
 
 Update Telegram menu message ID (public endpoint for bot integration).
@@ -716,6 +1106,221 @@ Get audit log entries. **[AUTH REQUIRED - ADMIN]**
     "performed_by": "Иван Иванов",
     "timestamp": "2024-01-15T12:30:00.000Z",
     "details": "{\"shift_id\":45,\"hours\":4.5}"
+  }
+]
+```
+
+---
+
+### Analytics
+
+Usage analytics for resource tracking and plan optimization. **[AUTH REQUIRED]**
+
+#### GET `/analytics/usage`
+
+Get current resource usage vs plan limits.
+
+**Response (200):**
+```json
+{
+  "trucks": {
+    "current": 8,
+    "limit": 10,
+    "utilization_percent": 80
+  },
+  "drivers": {
+    "current": 12,
+    "limit": -1,
+    "utilization_percent": null
+  },
+  "sites": {
+    "current": 5,
+    "limit": 10,
+    "utilization_percent": 50
+  }
+}
+```
+
+**Field descriptions:**
+- `limit: -1` indicates unlimited resources
+- `utilization_percent` is `null` for unlimited plans
+
+#### GET `/analytics/trends`
+
+Get time-series usage trends for specified period.
+
+**Query Parameters:**
+- `days` (optional) - Number of days (1-365, default: 30)
+
+**Example:**
+```
+GET /analytics/trends?days=90
+```
+
+**Response (200):**
+```json
+[
+  {
+    "date": "2024-01-15",
+    "shifts_count": 15,
+    "hours_worked": 67.5,
+    "salary_paid": 27000.00
+  }
+]
+```
+
+#### GET `/analytics/drivers`
+
+Get top drivers ranked by hours worked.
+
+**Query Parameters:**
+- `limit` (optional) - Number of drivers (1-100, default: 10)
+- `days` (optional) - Number of days to look back (1-365, default: 30)
+
+**Example:**
+```
+GET /analytics/drivers?limit=5&days=90
+```
+
+**Response (200):**
+```json
+[
+  {
+    "driver_id": 5,
+    "driver_name": "Иван Иванов",
+    "shifts_count": 45,
+    "hours_worked": 202.5,
+    "salary_paid": 81000.00
+  }
+]
+```
+
+#### GET `/analytics/summary`
+
+Get comprehensive resource summary (active/in-work/available).
+
+**Response (200):**
+```json
+{
+  "trucks": {
+    "total": 10,
+    "active": 8,
+    "in_work": 3,
+    "available": 5
+  },
+  "drivers": {
+    "total": 12,
+    "active": 10,
+    "in_work": 3,
+    "available": 7
+  },
+  "sites": {
+    "total": 5,
+    "active": 5
+  }
+}
+```
+
+**Field descriptions:**
+- `total` – Total count in tenant's dictionary
+- `active` – Active (not deleted) items
+- `in_work` – Currently assigned to active shifts
+- `available` – Active but not in work
+
+#### GET `/analytics/insights`
+
+Get plan optimization insights and recommendations.
+
+**Query Parameters:**
+- `days` (optional) - Analysis period in days (1-365, default: 30)
+
+**Response (200):**
+```json
+{
+  "underutilizedResources": {
+    "trucks": ["МАЗ-533", "КАМАЗ-55111"],
+    "sites": ["Склад №3"]
+  },
+  "nearLimitResources": {
+    "trucks": { "current": 9, "limit": 10, "percent": 90 }
+  },
+  "costPerShift": 2500.00,
+  "recommendedActions": [
+    "Рассмотрите downgrade плана: 2 машины используются редко"
+  ]
+}
+```
+
+#### GET `/analytics/shifts`
+
+Get shift statistics and duration metrics.
+
+**Query Parameters:**
+- `days` (optional) - Analysis period in days (1-365, default: 30)
+
+**Response (200):**
+```json
+{
+  "total_shifts": 150,
+  "finished_shifts": 145,
+  "completion_rate": 96.67,
+  "duration_stats": {
+    "avg_hours": 4.5,
+    "min_hours": 1.0,
+    "max_hours": 12.0,
+    "median_hours": 4.2
+  }
+}
+```
+
+#### GET `/analytics/sites`
+
+Get site utilization metrics.
+
+**Query Parameters:**
+- `days` (optional) - Analysis period in days (1-365, default: 30)
+
+**Response (200):**
+```json
+[
+  {
+    "site_id": 1,
+    "site_name": "Стройплощадка №1",
+    "shifts_count": 50,
+    "unique_drivers": 8,
+    "hours_worked": 225.0
+  }
+]
+```
+
+#### GET `/analytics/export`
+
+Export usage data as JSON or CSV file.
+
+**Query Parameters:**
+- `days` (optional) - Number of days (1-365, default: 30)
+- `format` (optional) - Export format: `json` or `csv` (default: `json`)
+
+**Example:**
+```
+GET /analytics/export?days=90&format=csv
+```
+
+**Response (200) for CSV:**
+- Content-Type: `text/csv; charset=utf-8`
+- Content-Disposition: `attachment; filename="usage_report_2024-01-30.csv"`
+- Body: CSV file with UTF-8 BOM (for Excel compatibility)
+- Headers: Дата; Смен; Часов; Выплачено (date, shifts, hours, salary)
+- Date format: DD.MM.YYYY
+
+**Response (200) for JSON:**
+```json
+[
+  {
+    "date": "2024-01-15",
+    "shifts_count": 15,
+    "hours_worked": 67.5,
+    "salary_paid": 27000.00
   }
 ]
 ```

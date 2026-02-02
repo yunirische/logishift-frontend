@@ -2,8 +2,9 @@
 title: LogiShift Documentation Index
 domain: navigation
 related:
-  - ../ARCHITECTURE.md
-last_updated: 2026-01-27
+  - ./architecture/overview.md
+  - ./frontend/architecture.md
+last_updated: 2026-02-02
 context_priority: high
 ---
 
@@ -33,18 +34,20 @@ Backend API, database, and server-side documentation.
 - [Database Operations](./backend/database-operations.md) - Migrations, CRUD, transactions, and constraints
 - [API Reference](./backend/api-reference.md) - Complete REST API documentation
 
-### 📊 Analytics (v1.5)
+### 🎨 Frontend
 
-Analytics dashboard for resource tracking and business insights.
+Frontend application architecture and design system.
+
+- [Frontend Architecture](./frontend/architecture.md) - Complete frontend architecture with change history
+- [Frontend README](./frontend/README.md) - Frontend tech stack and getting started
+- [Design System](./frontend/design-system.md) - Industrial UI colors, typography, spacing, and components
+- [Analytics Dashboard](./frontend/analytics-dashboard.md) - Analytics feature documentation and implementation
+
+### 📊 Analytics API
+
+Analytics endpoints for resource tracking and business insights.
 
 - [Analytics API](./api/analytics.md) - Analytics endpoints and frontend integration
-- [Analytics Feature Documentation](./analytics.md) - Complete analytics feature guide
-
-### 🎨 Design System
-
-Frontend design system for LogiShift web interface.
-
-- [Design System](./design-system.md) - Industrial UI colors, typography, spacing, and components
 
 ### 🤖 Telegram Bot
 
@@ -80,10 +83,11 @@ Architecture and design decision records.
 
 ### For Frontend Developers
 
-1. **API:** Start with [API Reference](./backend/api-reference.md)
-2. **Authentication:** Review [Security](./architecture/security.md#authentication)
-3. **PWA Flow:** Read [PWA Flow](./workflows/pwa-flow.md) for integration details
-4. **Data Models:** Check [Database Schema](./backend/database-schema.md) for entity relationships
+1. **Start Here:** Read [Frontend Architecture](./frontend/architecture.md) for complete project overview
+2. **API:** Check [API Reference](./backend/api-reference.md) for available endpoints
+3. **Design:** Review [Design System](./frontend/design-system.md) for styling guidelines
+4. **Authentication:** Study [Security](./architecture/security.md#authentication) for auth flow
+5. **Integration:** Read [PWA Flow](./workflows/pwa-flow.md) for integration details
 
 ### For Backend Developers
 
@@ -123,9 +127,9 @@ LogiShift is a multi-tenant SaaS platform for shift management of heavy machiner
 
 For UI/UX implementation guidelines:
 
-1. **Design System** - Read [Design System](./design-system.md) for colors, typography, spacing
-2. **Analytics** - Check [Analytics Documentation](./analytics.md) for component patterns
-3. **Architecture** - Review [Architecture Overview](./architecture/overview.md) for component structure
+1. **Design System** - Read [Design System](./frontend/design-system.md) for colors, typography, spacing
+2. **Analytics** - Check [Analytics Dashboard](./frontend/analytics-dashboard.md) for component patterns
+3. **Architecture** - Review [Frontend Architecture](./frontend/architecture.md) for component structure
 
 ## Documentation Structure
 
@@ -145,6 +149,12 @@ docs/
 │   ├── database-operations.md # Migrations, CRUD, transactions
 │   └── api-reference.md      # REST API documentation
 │
+├── frontend/             # Frontend documentation
+│   ├── README.md              # Frontend overview and tech stack
+│   ├── architecture.md        # Complete frontend architecture
+│   ├── design-system.md       # UI/UX guidelines
+│   └── analytics-dashboard.md # Analytics feature docs
+│
 ├── telegram-bot/         # Telegram Bot integration
 │   ├── gateway-api.md    # Gateway API specification
 │   ├── state-machine.md  # User state machine
@@ -153,12 +163,18 @@ docs/
 ├── workflows/            # User workflows
 │   ├── telegram-bot-flow.md  # Bot workflow
 │   ├── pwa-flow.md           # Web app workflow
-│   └── shift-lifecycle.md    # Shift lifecycle
+│   ├── shift-lifecycle.md    # Shift lifecycle
+│   └── development.md        # Development workflow
 │
 ├── decisions/            # Architecture decisions
-│   ├── architecture-decisions.md # Major decisions
-│   └── data-sync-decisions.md   # Data sync decisions
+│   ├── architecture-decisions.md   # Major decisions
+│   ├── data-sync-decisions.md      # Data sync decisions
+│   └── analytics-fix-2026-02-01.md # Analytics bug fix decision
 │
+├── api/                  # API documentation
+│   └── analytics.md          # Analytics endpoints specification
+│
+├── CONTRIBUTING.md       # Contribution guidelines
 └── README.md             # This file
 ```
 
@@ -272,9 +288,9 @@ When adding new features or making changes:
 
 ## Additional Resources
 
-- [Original ARCHITECTURE.md](../ARCHITECTURE.md.backup) - Archived documentation
-- [Repository](../) - Source code
+- [Frontend Repository](../) - Source code
 - [Deployment Guide](./architecture/deployment.md) - Production deployment
+- [Contribution Guidelines](./CONTRIBUTING.md) - How to contribute
 
 ## Support
 
@@ -287,43 +303,5 @@ For questions or issues:
 
 ---
 
-**Last Updated:** 2025-01-27
-**Documentation Version:** 1.0.0
-
-## 📚 Документация
-
-Документация проекта находится в отдельном репозитории:
-
-- [logishift-docs](https://github.com/yunirische/logishift-docs)
-
-### Синхронизация документации
-
-После обновления документации в этом репо, синхронизируйте с docs:
-
-```powershell
-# Перейдите в репо документации:
-cd C:\logishift-docs
-
-# Запустите синхронизацию:
-.\scripts\sync-from-repos.ps1
-
-# Закоммитьте изменения:
-git add .
-git commit -m "docs: sync from frontend"
-git push
-
-Documentation Files
-ARCHITECTURE-FRONT.md - Frontend architecture overview
-
-AGENTS.md - AI agent instructions
-
-docs/backend/ - API reference
-
-docs/decisions/ - Architecture decisions
-
-docs/telegram-bot/ - Telegram bot integration
-
-docs/workflows/ - Development workflows
-
-
-```
+**Last Updated:** 2026-02-02
+**Documentation Version:** 1.1.0
