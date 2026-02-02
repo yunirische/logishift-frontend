@@ -78,3 +78,4 @@ package-lock.json
 # ARCHITECTURE-FRONT.md
 # AGENTS.md
 .planning/config.json
+.claude/settings.local.json

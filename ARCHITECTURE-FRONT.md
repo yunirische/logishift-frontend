@@ -885,6 +885,7 @@ npm run type-check   # Run TypeScript compiler check
 - **Impact:** Shift registry table now shows complete datetime information, making it easier to identify and track shifts
 - **Impact:** Audit logs are now significantly more readable and useful for admin users tracking system activity
 
+<<<<<<< HEAD
 ## [2026-01-31] - Docs: Sync Frontend Documentation with Backend v2.5
 - **File(s):** `AGENTS.md`, `docs/api/analytics.md`
 - **Change:** Added comprehensive documentation for backend v2.5 Phase 1 (subscription/audit) and Phase 4 (analytics) APIs
@@ -1759,3 +1760,31 @@ npm run type-check   # Run TypeScript compiler check
   - ✅ **ERROR MESSAGES**: Shows specific backend errors instead of generic failures
   - ✅ **SHIFT ID IN URL**: Correctly includes shift ID in endpoint path
 - **Impact:** Photo uploads in EditShiftModal now work correctly for admins editing shifts
+
+## [2025-02-02] - Bugfix: Fix FormData Upload in DriverView
+- **File(s):** `src/views/DriverView.tsx`
+- **Change:** Fixed photo upload to use direct fetch instead of api.post() to properly handle multipart/form-data
+- **Before:**
+  - `handleFileUpload()` used `api.post("/shifts/photo", formData)`
+  - `api.post()` calls `JSON.stringify(body)` on all requests, which converts `FormData` to string `"{}"`
+  - Photo uploads silently failed - empty payload sent to backend
+  - Backend received no file data, causing upload failures
+  - Dashboard.tsx already had correct implementation using direct fetch
+- **After:**
+  - `handleFileUpload()` now uses direct `fetch(API_ENDPOINTS.UPLOAD_PHOTO, ...)`
+  - Sends FormData directly without JSON.stringify
+  - No Content-Type header (browser sets multipart/form-data boundary automatically)
+  - Only Authorization header included via `api.getAuthToken()`
+  - Consistent with Dashboard.tsx implementation (line 581-587)
+  - Also added `getCurrentShift` import from backend agent's fix
+- **Root Cause:**
+  - `api.post()` in `src/services/api.ts:122-127` always calls `JSON.stringify(body)`
+  - This is fine for JSON payloads but breaks FormData uploads
+  - FormData must be passed directly to fetch() body parameter
+- **Benefits:**
+  - ✅ Photo uploads now work correctly in DriverView
+  - ✅ Drivers can upload odometer and invoice photos
+  - ✅ Consistent implementation across Dashboard and DriverView
+  - ✅ Proper multipart/form-data encoding with correct boundaries
+  - ✅ Includes backend agent's getCurrentShift() helper for better error handling
+- **Impact:** Driver photo uploads now function correctly, enabling the full driver shift workflow

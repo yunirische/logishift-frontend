@@ -13,6 +13,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
+import { API_ENDPOINTS } from "../constants";
 
 export const DriverView = () => {
   const { user, logout } = useAuth();
@@ -93,7 +94,14 @@ export const DriverView = () => {
     formData.append("photo", file);
     setLoading(true);
     try {
-      await api.post("/shifts/photo", formData);
+      // Use direct fetch instead of api.post() to avoid JSON.stringify on FormData
+      await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${api.getAuthToken()}`,
+        },
+        body: formData,
+      });
       window.location.reload();
     } catch (err: any) {
       alert(err.response?.data?.error || "Ошибка загрузки фото");
