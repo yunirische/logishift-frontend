@@ -50,20 +50,40 @@ export const clearAuth = () => {
 };
 
 export const loginUser = async (login: string, password: string) => {
-  const response = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ login, password }),
-  });
+  try {
+    const response = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ login, password }),
+    });
 
-  if (!response.ok) throw new Error("Ошибка авторизации");
+    if (!response.ok) {
+      // Try to get error message from response body
+      let errorMessage = "Ошибка авторизации";
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage;
+      } catch {
+        // If response is not JSON, use status text
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
 
-  const data = await response.json();
-  if (data.token) {
-    localStorage.setItem(TOKEN_KEY, data.token);
-    // В твоем бэкенде данные юзера лежат в data.user
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    return data;
+    const data = await response.json();
+    if (data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+      // В твоем бэкенде данные юзера лежат в data.user
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      return data;
+    }
+  } catch (err: any) {
+    // Re-throw Error objects as-is
+    if (err instanceof Error) {
+      throw err;
+    }
+    // Wrap unknown errors
+    throw new Error("Ошибка сети. Проверьте подключение к интернету");
   }
 };
 

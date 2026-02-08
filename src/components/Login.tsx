@@ -59,7 +59,21 @@ const Login: React.FC = () => {
       await login(data.token, data.user);
     } catch (err: any) {
       console.error('Demo login error:', err);
-      setError(err.message || 'Ошибка подключения к демо-режиму');
+
+      // Provide more specific error messages for demo mode
+      let errorMessage = 'Ошибка подключения к демо-режиму';
+
+      if (err.message) {
+        if (err.message.includes('сети') || err.message.includes('network')) {
+          errorMessage = 'Ошибка сети. Проверьте подключение к интернету';
+        } else if (err.message.includes('авторизации') || err.message.includes('401')) {
+          errorMessage = 'Демо-доступ暂时 недоступен. Попробуйте позже.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setIsDemoLoading(false);
     }
