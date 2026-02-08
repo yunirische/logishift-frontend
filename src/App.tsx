@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import RegisterView from "./views/RegisterView";
+import { DriverView } from "./views/DriverView";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Bundle optimization: lazy load heavy components (bundle-dynamic-imports)
@@ -15,9 +16,16 @@ const Objects = lazy(() => import("./components/Objects"));
 const System = lazy(() => import("./components/System"));
 const Analytics = lazy(() => import("./components/Analytics"));
 
+// Demo persona type
+type DemoPersona = 'admin' | 'driver';
+
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const { isAuthenticated, isLoading, error, clearError } = useAuth();
+  const [demoPersona, setDemoPersona] = useState<DemoPersona>('admin');
+  const { isAuthenticated, isLoading, error, clearError, user } = useAuth();
+
+  // Check if user is in demo mode
+  const isDemoMode = user?.tenant_id === 999;
 
   // Check if on register page
   const isRegisterPage = window.location.pathname === '/register';
@@ -135,10 +143,25 @@ const AppContent: React.FC = () => {
 
   if (!isAuthenticated) return <Login />;
 
+  // If demo mode and persona is driver, show DriverView instead of admin interface
+  if (isDemoMode && demoPersona === 'driver') {
+    return (
+      <ErrorBoundary>
+        <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
+          <Layout activeTab="driver" setActiveTab={() => {}} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
+            <ErrorBoundary>
+              <DriverView />
+            </ErrorBoundary>
+          </Layout>
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
-        <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+        <Layout activeTab={activeTab} setActiveTab={setActiveTab} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
           <ErrorBoundary>
             {renderContent()}
           </ErrorBoundary>

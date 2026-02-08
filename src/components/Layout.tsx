@@ -12,25 +12,40 @@ import {
   ScrollText,
   Settings,
   BarChart,
+  UserCog,
   LucideIcon,
 } from "lucide-react";
+
+// Demo persona type
+type DemoPersona = 'admin' | 'driver';
 
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  demoPersona?: DemoPersona;
+  setDemoPersona?: (persona: DemoPersona) => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({
   children,
   activeTab,
   setActiveTab,
+  demoPersona = 'admin',
+  setDemoPersona,
 }) => {
   const user = api.getUserInfo();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
   const isDemoMode = user?.tenant_id === 999;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handlePersonaSwitch = (newPersona: DemoPersona) => {
+    if (setDemoPersona) {
+      setDemoPersona(newPersona);
+      setSidebarOpen(false);
+    }
+  };
 
   const mainItems = [
     {
@@ -187,6 +202,49 @@ const Layout: React.FC<LayoutProps> = ({
               <div className="space-y-1">{adminItems.map(renderButton)}</div>
             </div>
           )}
+
+          {/* Demo Persona Switcher */}
+          {isDemoMode && setDemoPersona && (
+            <div>
+              <p className="px-5 mb-3 text-[10px] font-semibold text-amber-500 uppercase tracking-widest">
+                Переключение режимов
+              </p>
+              <div className="px-5 space-y-2">
+                <button
+                  onClick={() => handlePersonaSwitch('admin')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+                    demoPersona === 'admin'
+                      ? 'bg-amber-500 text-slate-900 font-semibold'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <UserCog className="w-5 h-5" strokeWidth={2} />
+                  <div className="text-left">
+                    <p className="text-xs font-semibold">Администратор</p>
+                    <p className={`text-[9px] uppercase tracking-wider ${demoPersona === 'admin' ? 'text-slate-800' : 'text-slate-500'}`}>
+                  Панель управления
+                </p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => handlePersonaSwitch('driver')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+                    demoPersona === 'driver'
+                      ? 'bg-amber-500 text-slate-900 font-semibold'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <Truck className="w-5 h-5" strokeWidth={2} />
+                  <div className="text-left">
+                    <p className="text-xs font-semibold">Водитель</p>
+                    <p className={`text-[9px] uppercase tracking-wider ${demoPersona === 'driver' ? 'text-slate-800' : 'text-slate-500'}`}>
+                  Мобильное приложение
+                </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="p-6 border-t border-slate-800 mt-auto">
@@ -234,7 +292,12 @@ const Layout: React.FC<LayoutProps> = ({
             </button>
             <div>
               <h2 className="text-xl font-semibold text-[#1B254B] capitalize tracking-tight">
-                {activeTab}
+                {isDemoMode && demoPersona === 'driver' ? 'Водитель' : activeTab}
+                {isDemoMode && demoPersona === 'driver' && (
+                  <span className="ml-2 px-2 py-0.5 bg-amber-500 text-slate-900 text-[10px] font-bold uppercase rounded">
+                    DEMO
+                  </span>
+                )}
               </h2>
             </div>
           </div>
