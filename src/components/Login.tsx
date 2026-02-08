@@ -41,6 +41,20 @@ const Login: React.FC = () => {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const data = await loginUser('demo@logishift.ru', 'demo123');
+      await login(data.token, data.user);
+    } catch (err: any) {
+      setError(err.message || 'Ошибка подключения к демо-режиму');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-lg shadow-2xl p-10 border border-slate-50">
@@ -97,6 +111,18 @@ const Login: React.FC = () => {
             {isLoading ? 'Вход...' : 'Войти в систему'}
           </button>
         </form>
+
+        {/* Demo Mode Button */}
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={isLoading}
+            className="w-full border-2 border-[#0a192f] text-[#0a192f] hover:bg-[#0a192f] hover:text-white font-bold py-3 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 text-sm"
+          >
+            Посмотреть демо
+          </button>
+        </div>
 
         {/* Register Link */}
         <div className="text-center mt-6">

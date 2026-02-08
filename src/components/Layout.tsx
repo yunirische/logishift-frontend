@@ -29,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({
   const user = api.getUserInfo();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
+  const isDemoMode = user?.tenant_id === 999;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const mainItems = [
@@ -149,9 +150,19 @@ const Layout: React.FC<LayoutProps> = ({
         aria-label="Основная навигация"
       >
         <div className="p-8">
-          <h1 className="text-2xl font-semibold text-white">
-            <span className="text-[#3b82f6]">LOGI</span>SHIFT
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-white">
+              <span className="text-[#3b82f6]">LOGI</span>SHIFT
+            </h1>
+            {isDemoMode && (
+              <span
+                className="px-2 py-1 bg-amber-500 text-slate-900 text-[9px] font-bold uppercase tracking-wider rounded"
+                title="В этом режиме все действия имитируются и не сохраняются в базе"
+              >
+                ДЕМО
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2 mt-1">
             <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse"></div>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
@@ -179,10 +190,17 @@ const Layout: React.FC<LayoutProps> = ({
         </nav>
 
         <div className="p-6 border-t border-slate-800 mt-auto">
-          <div className="bg-slate-800 rounded-lg p-4 mb-4">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-tighter">
-              Аккаунт
-            </p>
+          <div className={`rounded-lg p-4 mb-4 ${isDemoMode ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-slate-800'}`}>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-tighter">
+                Аккаунт
+              </p>
+              {isDemoMode && (
+                <span className="px-2 py-0.5 bg-amber-500 text-slate-900 text-[8px] font-bold uppercase rounded">
+                  DEMO
+                </span>
+              )}
+            </div>
             <p className="text-xs font-semibold text-white truncate mt-0.5">
               {user?.full_name}
             </p>
@@ -221,6 +239,14 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-4">
+            {isDemoMode && (
+              <span
+                className="hidden sm:inline-block px-3 py-1 bg-amber-500 text-slate-900 text-[10px] font-bold uppercase tracking-wider rounded"
+                title="В этом режиме все действия имитируются и не сохраняются в базе"
+              >
+                ДЕМО-РЕЖИМ
+              </span>
+            )}
             <div className="w-10 h-10 rounded-lg bg-[#0a192f]/10 text-[#0a192f] flex items-center justify-center font-semibold text-xs border border-[#0a192f]/20">
               {user?.full_name?.charAt(0) || "U"}
             </div>
