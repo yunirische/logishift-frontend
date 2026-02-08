@@ -79,3 +79,10 @@ package-lock.json
 # AGENTS.md
 .planning/config.json
 .claude/settings.local.json
+
+# Playwright / E2E Testing (всё связано с тестированием)
+test-results/
+playwright-report/
+playwright/.cache/
+playwright.config.ts
+e2e/
