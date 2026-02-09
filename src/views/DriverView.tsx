@@ -34,9 +34,9 @@ export const DriverView = () => {
       // 1. Запрашиваем текущую смену (getCurrentShift handles 400/404 gracefully)
       const currentShift = await getCurrentShift();
 
-      if (currentShift?.data) {
+      if (currentShift) {
         // Если смена есть в базе — сохраняем её
-        setActiveShift(currentShift.data);
+        setActiveShift(currentShift);
       } else {
         // Если смены нет — обнуляем стейт и грузим списки выборасч
         setActiveShift(null);
@@ -44,8 +44,8 @@ export const DriverView = () => {
           api.get("/trucks"),
           api.get("/sites"),
         ]);
-        setTrucks(trucksRes.data);
-        setSites(sitesRes.data);
+        setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
+        setSites(Array.isArray(sitesRes) ? sitesRes : []);
       }
     } catch (e) {
       console.error("Ошибка загрузки данных:", e);
