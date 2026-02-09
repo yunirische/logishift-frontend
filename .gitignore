@@ -86,3 +86,5 @@ playwright-report/
 playwright/.cache/
 playwright.config.ts
 e2e/
+BACKEND_INVESTIGATION_REPORT.md
+.gitignore

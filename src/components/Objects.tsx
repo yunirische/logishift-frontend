@@ -90,13 +90,14 @@ const Objects: React.FC = () => {
     } catch (error: any) {
       console.error('Ошибка сохранения:', error);
       let msg = 'Ошибка сохранения объекта';
-      if (error?.response?.status === 403 || error?.response?.status === 400) {
-        msg = error?.response?.data?.message || 'Превышен лимит тарифа или недостаточно прав';
+      // ApiError type has direct 'status' and 'message' properties (from api.ts)
+      if (error?.status === 403 || error?.status === 400) {
+        msg = error?.message || 'Превышен лимит тарифа или недостаточно прав';
       } else if (error?.message) {
         msg = error.message;
       }
       // Обработка лимитов
-      if (error?.response?.data?.error === "LIMIT_REACHED" || msg.includes("LIMIT_REACHED") || msg.includes("лимит")) {
+      if (msg.includes("LIMIT_REACHED") || msg.includes("лимит") || error?.backendCode === "LIMIT_REACHED") {
         msg = "Лимит вашего тарифа исчерпан. Удалите старые записи или обновите план.";
       }
       alert(msg);
