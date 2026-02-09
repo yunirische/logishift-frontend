@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import api from "../services/api";
+import api, { getUserInfo } from "../services/api";
 import { API_ENDPOINTS } from "../constants";
-import { Save, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { User } from "../types";
+import { Save, Loader2, CheckCircle2, AlertCircle, Send, ExternalLink, Check } from "lucide-react";
 
 interface TenantSettings {
   name: string;
@@ -15,12 +16,20 @@ const Settings: React.FC = () => {
     timezone: "Europe/Moscow",
     invoice_required: false,
   });
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tgLinkCode, setTgLinkCode] = useState<string | null>(null);
+  const [tgLoading, setTgLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     fetchSettings();
+    // Load user info from localStorage
+    const userInfo = getUserInfo();
+    if (userInfo) {
+      setUser(userInfo);
+    }
   }, []);
 
   const fetchSettings = async () => {
@@ -69,6 +78,26 @@ const Settings: React.FC = () => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape" && !saving) {
       // Optional: close form or navigate away
+    }
+  };
+
+  const handleGenerateTelegramLink = async () => {
+    setTgLoading(true);
+    setMessage(null);
+    try {
+      const result = await api.getTelegramLinkCode();
+      setTgLinkCode(result.code);
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message || "Ошибка генерации ссылки" });
+    } finally {
+      setTgLoading(false);
+    }
+  };
+
+  const openTelegramBot = () => {
+    if (tgLinkCode) {
+      // Open Telegram bot with the link code
+      window.open(`https://t.me/kontrolsmen_bot?start=link_${tgLinkCode}`, '_blank');
     }
   };
 
@@ -134,6 +163,73 @@ const Settings: React.FC = () => {
             </div>
           </div>
 
+          {/* Telegram Linking Card */}
+          <div className="space-y-3">
+            <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
+              Связь с Telegram
+            </label>
+            <div className="bg-[#F4F7FE] rounded-lg p-6 border border-slate-100">
+              {user?.tg_user_id ? (
+                // Connected state
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-700">Подключено к Telegram</p>
+                    <p className="text-xs text-slate-500 font-mono mt-1">
+                      TG ID: <span className="font-bold text-green-600">{user.tg_user_id}</span>
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                // Not connected state
+                <div className="space-y-4">
+                  <p className="text-sm text-slate-600">
+                    Подключите Telegram-бота для получения уведомлений о сменах, объектах и важных событиях.
+                  </p>
+                  {!tgLinkCode ? (
+                    <button
+                      type="button"
+                      onClick={handleGenerateTelegramLink}
+                      disabled={tgLoading}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#0a192f] hover:bg-[#152238] text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-[#0a192f]/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {tgLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Генерация...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Подключить Telegram-бота
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="bg-white rounded-md p-3 border border-slate-200">
+                        <p className="text-xs text-slate-500 mb-1">Ваш код для связи:</p>
+                        <p className="font-mono text-lg font-bold text-[#0a192f] tracking-wider">{tgLinkCode}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openTelegramBot}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#0088cc] hover:bg-[#0077b5] text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-[#0088cc]/20 active:scale-95"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Открыть Telegram
+                      </button>
+                      <p className="text-xs text-slate-500">
+                        Нажмите кнопку и перейдите в бота для завершения привязки
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Message */}
           {message && (

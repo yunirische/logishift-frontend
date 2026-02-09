@@ -14,15 +14,34 @@ export enum ApiErrorType {
   UNKNOWN = 'UNKNOWN'
 }
 
+// Backend error codes (from response.error.code)
+export enum BackendErrorCode {
+  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
+  INVALID_TOKEN = 'INVALID_TOKEN',
+  MISSING_TOKEN = 'MISSING_TOKEN',
+  AUTH_ERROR = 'AUTH_ERROR',
+  SUBSCRIPTION_EXPIRED = 'SUBSCRIPTION_EXPIRED',
+}
+
+// Backend error response structure
+export interface BackendErrorResponse {
+  error?: string;
+  code?: BackendErrorCode;
+  detail?: string;
+  message?: string;
+}
+
 export interface ApiError extends Error {
   type: ApiErrorType;
   status?: number;
+  backendCode?: BackendErrorCode; // Backend error code if available
 }
 
-const createApiError = (message: string, type: ApiErrorType, status?: number): ApiError => {
+const createApiError = (message: string, type: ApiErrorType, status?: number, backendCode?: BackendErrorCode): ApiError => {
   const error = new Error(message) as ApiError;
   error.type = type;
   error.status = status;
+  error.backendCode = backendCode;
   return error;
 };
 
@@ -106,23 +125,44 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
       signal: AbortSignal.timeout(30000) // 30 seconds
     });
 
-    // Handle authentication errors
+    // Handle authentication errors (401)
+    // Backend now returns 401 with error codes: TOKEN_EXPIRED, INVALID_TOKEN, MISSING_TOKEN
     if (response.status === 401) {
-      clearAuth();
-      window.location.reload();
-      return;
+      let errorData: any = {};
+      try {
+        errorData = await response.json();
+      } catch {
+        // Response is not JSON
+      }
+
+      const errorCode = errorData.code as BackendErrorCode;
+      // Only clear auth for token-related errors, not for other 401s
+      if (errorCode === BackendErrorCode.TOKEN_EXPIRED ||
+          errorCode === BackendErrorCode.INVALID_TOKEN ||
+          errorCode === BackendErrorCode.MISSING_TOKEN) {
+        clearAuth();
+        window.location.reload();
+        return;
+      }
+
+      // For other 401 errors, throw with details
+      const errorMessage = errorData.error || errorData.detail || errorData.message || 'Ошибка авторизации';
+      throw createApiError(errorMessage, ApiErrorType.AUTHENTICATION, 401, errorCode);
     }
 
     // Handle subscription expired (403) - do NOT clear auth, analytics should be read-only
+    // Backend returns 403 with error code: SUBSCRIPTION_EXPIRED
     if (response.status === 403) {
       let errorMessage = 'Подписка истекла';
+      let backendCode: BackendErrorCode | undefined;
       try {
         const errorData = await response.json();
         errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage;
+        backendCode = errorData.code as BackendErrorCode;
       } catch {
         // If response is not JSON, use default message
       }
-      throw createApiError(errorMessage, ApiErrorType.SUBSCRIPTION_EXPIRED, 403);
+      throw createApiError(errorMessage, ApiErrorType.SUBSCRIPTION_EXPIRED, 403, backendCode);
     }
 
     // Handle other HTTP errors
@@ -401,6 +441,14 @@ export const acceptInvite = async (data: {
   await post(`${API_BASE_URL}/invites/accept`, data);
 };
 
+/**
+ * Get Telegram link code for connecting the bot.
+ * GET /telegram/link-code
+ */
+export const getTelegramLinkCode = async (): Promise<{ code: string }> => {
+  return await get(API_ENDPOINTS.TELEGRAM_LINK_CODE);
+};
+
 const api = {
   loginUser,
   apiRequest,
@@ -418,8 +466,12 @@ const api = {
   getSubscription,
   getCurrentShift,
   acceptInvite,
+  getTelegramLinkCode,
   TOKEN_KEY,
   USER_KEY,
+  // Export enums for convenience
+  ApiErrorType,
+  BackendErrorCode,
 };
 
 export default api;

@@ -28,6 +28,7 @@ export interface User {
   tenant_id: number;
   avatar_url?: string;
   must_change_password?: boolean;
+  tg_user_id?: number | null;
 }
 
 export interface Shift {

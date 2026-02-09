@@ -67,4 +67,7 @@ export const API_ENDPOINTS = {
 
   // Subscription
   TENANT_SUBSCRIPTION: `${API_BASE_URL}/tenant/subscription`,
+
+  // Telegram
+  TELEGRAM_LINK_CODE: `${API_BASE_URL}/telegram/link-code`,
 };

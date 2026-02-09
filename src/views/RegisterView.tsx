@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Loader2, CheckCircle2, Check } from 'lucide-react';
+import { UserPlus, Loader2, CheckCircle2, Check, Building, User } from 'lucide-react';
 import { acceptInvite } from '../services/api';
+import api from '../services/api';
+import { API_ENDPOINTS } from '../constants';
+
+type RegisterMode = 'driver' | 'admin';
 
 interface RegisterFormData {
   code: string;
@@ -8,6 +12,7 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
+  company_name: string;
 }
 
 interface PasswordChecks {
@@ -18,12 +23,14 @@ interface PasswordChecks {
 }
 
 const RegisterView: React.FC = () => {
+  const [mode, setMode] = useState<RegisterMode>('driver');
   const [formData, setFormData] = useState<RegisterFormData>({
     code: '',
     full_name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    company_name: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -56,8 +63,14 @@ const RegisterView: React.FC = () => {
   };
 
   const validateForm = (): boolean => {
-    if (!formData.code.trim()) {
+    // Driver mode requires invite code
+    if (mode === 'driver' && !formData.code.trim()) {
       setError('Введите код приглашения');
+      return false;
+    }
+    // Admin mode requires company name
+    if (mode === 'admin' && !formData.company_name.trim()) {
+      setError('Введите название компании');
       return false;
     }
     if (!formData.full_name.trim()) {
@@ -108,12 +121,23 @@ const RegisterView: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await acceptInvite({
-        code: formData.code.trim().toUpperCase(),
-        full_name: formData.full_name.trim(),
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password,
-      });
+      if (mode === 'admin') {
+        // Admin registration - create tenant
+        await api.post(API_ENDPOINTS.AUTH_ONBOARD, {
+          company_name: formData.company_name.trim(),
+          full_name: formData.full_name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+        });
+      } else {
+        // Driver registration - accept invite
+        await acceptInvite({
+          code: formData.code.trim().toUpperCase(),
+          full_name: formData.full_name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+        });
+      }
 
       setSuccess(true);
 
@@ -154,7 +178,9 @@ const RegisterView: React.FC = () => {
             <CheckCircle2 className="w-8 h-8 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-[#1B254B] mb-2">Регистрация успешна!</h2>
-          <p className="text-slate-500 mb-6">Добро пожаловать в команду LogiShift!</p>
+          <p className="text-slate-500 mb-6">
+            {mode === 'admin' ? 'Компания успешно создана!' : 'Добро пожаловать в команду LogiShift!'}
+          </p>
           <p className="text-sm text-slate-400">Перенаправление на страницу входа...</p>
         </div>
       </div>
@@ -168,7 +194,41 @@ const RegisterView: React.FC = () => {
           <h1 className="text-3xl font-semibold text-[#1B254B] flex items-center justify-center gap-2">
             <span className="text-[#3b82f6]">LOGI</span>SHIFT
           </h1>
-          <p className="text-slate-400 text-sm mt-2 font-medium">Регистрация водителя</p>
+          <p className="text-slate-400 text-sm mt-2 font-medium">Регистрация в системе</p>
+        </div>
+
+        {/* Mode Toggle */}
+        <div className="mb-8 bg-[#F4F7FE] rounded-lg p-1 flex">
+          <button
+            type="button"
+            onClick={() => {
+              setMode('driver');
+              setError(null);
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-md text-sm font-bold transition-all ${
+              mode === 'driver'
+                ? 'bg-[#0a192f] text-white shadow-lg'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Водитель
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode('admin');
+              setError(null);
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-md text-sm font-bold transition-all ${
+              mode === 'admin'
+                ? 'bg-[#0a192f] text-white shadow-lg'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Building className="w-4 h-4" />
+            Компания
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -178,33 +238,55 @@ const RegisterView: React.FC = () => {
             </div>
           )}
 
-          {/* Invite Code */}
-          <div className="space-y-1">
-            <label htmlFor="code" className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest">
-              Код приглашения <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <input
-                id="code"
-                name="code"
-                type="text"
-                value={formData.code}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                placeholder="ABC-123"
-                className={`w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm font-mono focus:ring-2 focus:ring-[#0a192f] transition-all uppercase ${
-                  formData.code.length > 0 ? 'ring-2 ring-green-500' : ''
-                }`}
-                maxLength={10}
-                required
-              />
-              {formData.code.length > 0 && (
-                <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                  <Check size={20} className="text-green-500" />
-                </div>
-              )}
+          {/* Invite Code (Driver mode only) */}
+          {mode === 'driver' && (
+            <div className="space-y-1">
+              <label htmlFor="code" className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest">
+                Код приглашения <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="code"
+                  name="code"
+                  type="text"
+                  value={formData.code}
+                  onChange={(e) => handleCodeChange(e.target.value)}
+                  placeholder="ABC-123"
+                  className={`w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm font-mono focus:ring-2 focus:ring-[#0a192f] transition-all uppercase ${
+                    formData.code.length > 0 ? 'ring-2 ring-green-500' : ''
+                  }`}
+                  maxLength={10}
+                  required={mode === 'driver'}
+                />
+                {formData.code.length > 0 && (
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                    <Check size={20} className="text-green-500" />
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 ml-4">Введите код от вашего администратора</p>
             </div>
-            <p className="text-xs text-slate-400 ml-4">Введите код от вашего администратора</p>
-          </div>
+          )}
+
+          {/* Company Name (Admin mode only) */}
+          {mode === 'admin' && (
+            <div className="space-y-1">
+              <label htmlFor="company_name" className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest">
+                Название компании <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="company_name"
+                name="company_name"
+                type="text"
+                value={formData.company_name}
+                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                placeholder="ООО Ваша Компания"
+                className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
+                required={mode === 'admin'}
+              />
+              <p className="text-xs text-slate-400 ml-4">Юридическое название (ООО, ИП и т.д.)</p>
+            </div>
+          )}
 
           {/* Full Name */}
           <div className="space-y-1">
@@ -308,6 +390,11 @@ const RegisterView: React.FC = () => {
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Регистрация...
+              </>
+            ) : mode === 'admin' ? (
+              <>
+                <Building className="w-5 h-5" />
+                Создать компанию
               </>
             ) : (
               <>
