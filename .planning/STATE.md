@@ -139,9 +139,17 @@ Recent decisions affecting current work:
 - [quick-004]: Complete Navy-900 theme application across all buttons (LoginView, ErrorBoundary, App.tsx)
 - [quick-004]: Amber-500 for trial subscription status to distinguish from active (green) and expired (red)
 
+**Quick Task 005 Decisions:**
+- [quick-005]: Fallback to cached user data when /users/me endpoint returns 404 instead of throwing unhandled error
+- [quick-005]: Fetch analytics usage data in parallel with settings using Promise.all for better performance
+- [quick-005]: Match quota display UI pattern from System.tsx for consistency across pages
+
 - [Phase quick]: Navy-900 (#0a192f) established as primary theme color with #152238 hover and #1e293b gradient end
 - [Phase quick]: Amber-500 designated for demo-specific UI elements (persona switcher, badges)
 - [Phase quick]: Focus rings consistently use focus:ring-[#0a192f]/20 pattern across all interactive elements
+- [Phase quick-005]: Fallback to cached user data when /users/me endpoint returns 404 instead of throwing unhandled error
+- [Phase quick-005]: Fetch analytics usage data in parallel with settings using Promise.all for better performance
+- [Phase quick-005]: Match quota display UI pattern from System.tsx for consistency across pages
 
 ### Pending Todos
 
@@ -159,10 +167,11 @@ None yet.
 | 002 | Telegram connection sync with profile refresh | 2026-02-10 | 701db64 | [002-telegram-connection-sync](./quick/2-telegram-connection-sync-with-profile-re/) |
 | 003 | Industrial polish: unified quotas, demo persona, Navy-900 theme | 2026-02-10 | c5c6515 | [003-industrial-polish](./quick/3-industrial-polish-unified-quotas-demo-pe/) |
 | 004 | Deep integration: Telegram alreadyLinked, demo state forcing, sidebar isolation | 2026-02-10 | 5cfd373, 87efe8b, 5e565f3, e6d4a32, d376679 | [004-deep-integration](./quick/4-deep-integration-telegram-interaction-fi/) |
+| 005 | Auth fix & quota sync: 404 fallback, Settings quota display | 2026-02-10 | f213299, 80024de | [005-auth-fix-quota-sync](./quick/5-auth-fix-quota-sync-fix-404-on-users-me-/) |
 
 ## Session Continuity
 
-Last session: 2026-02-10T15:31:00Z
-Stopped at: Completed quick-004 execution with Telegram alreadyLinked handling, demo shift state forcing, sidebar isolation
+Last session: 2026-02-10T16:42:32Z
+Stopped at: Completed quick-005 with auth 404 fix and Settings quota sync
 Resume file: None
 Next: /gsd:new-milestone to plan v1.6 or continue with additional quick tasks
