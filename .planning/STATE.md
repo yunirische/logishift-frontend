@@ -128,6 +128,9 @@ Recent decisions affecting current work:
 - [quick-003]: Navy-900 (#0a192f) established as primary theme color with #152238 hover and #1e293b gradient end
 - [quick-003]: Amber-500 designated for demo-specific UI elements (persona switcher, badges)
 - [quick-003]: Focus rings consistently use focus:ring-[#0a192f]/20 pattern across all interactive elements
+- [Phase quick]: Navy-900 (#0a192f) established as primary theme color with #152238 hover and #1e293b gradient end
+- [Phase quick]: Amber-500 designated for demo-specific UI elements (persona switcher, badges)
+- [Phase quick]: Focus rings consistently use focus:ring-[#0a192f]/20 pattern across all interactive elements
 
 ### Pending Todos
 
