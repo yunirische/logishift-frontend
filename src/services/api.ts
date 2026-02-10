@@ -457,6 +457,18 @@ export const unlinkTelegram = async (): Promise<void> => {
   await del(API_ENDPOINTS.TELEGRAM_UNLINK);
 };
 
+/**
+ * Refresh current user profile from API.
+ * GET /users/me
+ * Updates localStorage and returns the updated User object.
+ */
+export const refreshUser = async (): Promise<User> => {
+  const data = await get(API_ENDPOINTS.USERS_ME);
+  // Update localStorage with fresh user data
+  setUserInfo(data);
+  return data;
+};
+
 const api = {
   loginUser,
   apiRequest,
@@ -476,6 +488,7 @@ const api = {
   acceptInvite,
   getTelegramLinkCode,
   unlinkTelegram,
+  refreshUser,
   TOKEN_KEY,
   USER_KEY,
   // Export enums for convenience

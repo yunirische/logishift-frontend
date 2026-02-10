@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '../types';
-import { TOKEN_KEY, USER_KEY, getUserInfo, setUserInfo } from '../services/api';
+import { TOKEN_KEY, USER_KEY, getUserInfo, setUserInfo, refreshUser as apiRefreshUser } from '../services/api';
 import PasswordChangeModal from '../components/common/PasswordChangeModal';
 
 interface AuthContextType {
@@ -8,6 +8,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string, user: User) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<User>;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -72,6 +73,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false);
     }
   }, [logout]);
+
+  const refreshUser = useCallback(async (): Promise<User> => {
+    try {
+      const updatedUser = await apiRefreshUser();
+      setUser(updatedUser);
+      return updatedUser;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка обновления профиля';
+      setError(errorMessage);
+      throw err;
+    }
+  }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -140,6 +153,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     token,
     login,
     logout,
+    refreshUser,
     isAuthenticated: !!token && !!user,
     isLoading,
     error,

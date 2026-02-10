@@ -48,6 +48,7 @@ export const API_ENDPOINTS = {
   ADMIN_STATS: `${API_BASE_URL}/admin/stats`,
 
   // Users
+  USERS_ME: `${API_BASE_URL}/users/me`,
   USERS_SET_MENU_ID: `${API_BASE_URL}/users/set-menu-id`,
 
   // Reports
