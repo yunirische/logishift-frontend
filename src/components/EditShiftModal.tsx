@@ -447,7 +447,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                               href={getPhotoUrl((shift as any).photo_start_url) || ''}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                              className="text-xs text-[#0a192f] hover:text-[#152238] flex items-center gap-1"
                             >
                               <Image size={12} />
                               Просмотр
@@ -470,7 +470,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                           <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
                             uploadingPhotoType === 'start'
                               ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                              : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
                           }`}>
                             {uploadingPhotoType === 'start' ? 'Загрузка...' : 'Загрузить фото'}
                           </div>
@@ -491,7 +491,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                               href={getPhotoUrl((shift as any).photo_end_url) || ''}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                              className="text-xs text-[#0a192f] hover:text-[#152238] flex items-center gap-1"
                             >
                               <Image size={12} />
                               Просмотр
@@ -514,7 +514,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                           <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
                             uploadingPhotoType === 'end'
                               ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                              : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
                           }`}>
                             {uploadingPhotoType === 'end' ? 'Загрузка...' : 'Загрузить фото'}
                           </div>
@@ -535,7 +535,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                               href={getPhotoUrl((shift as any).photo_invoice_url) || ''}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                              className="text-xs text-[#0a192f] hover:text-[#152238] flex items-center gap-1"
                             >
                               <Image size={12} />
                               Просмотр
@@ -558,7 +558,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                           <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
                             uploadingPhotoType === 'invoice'
                               ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                              : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
                           }`}>
                             {uploadingPhotoType === 'invoice' ? 'Загрузка...' : 'Загрузить фото'}
                           </div>

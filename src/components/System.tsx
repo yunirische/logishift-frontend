@@ -145,14 +145,14 @@ const System: React.FC = () => {
     if (percent === null) return "bg-slate-200";
     if (percent >= 100) return "bg-red-500";
     if (percent >= 80) return "bg-amber-500";
-    return "bg-indigo-500";
+    return "bg-[#0a192f]";
   };
 
   const getUsageBarColor = (percent: number | null): string => {
     if (percent === null) return "bg-slate-200";
     if (percent >= 100) return "bg-red-500";
     if (percent >= 80) return "bg-amber-500";
-    return "bg-indigo-500";
+    return "bg-[#0a192f]";
   };
 
   const renderUsageBar = (current: number, limit: number, percent: number | null, label: string) => {
@@ -164,7 +164,7 @@ const System: React.FC = () => {
         <div className="p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">{label}</span>
-            <span className={`text-sm font-mono font-semibold ${displayPercent >= 100 ? 'text-red-600' : displayPercent >= 80 ? 'text-amber-600' : 'text-indigo-600'}`}>
+            <span className={`text-sm font-mono font-semibold ${displayPercent >= 100 ? 'text-red-600' : displayPercent >= 80 ? 'text-amber-600' : 'text-[#0a192f]'}`}>
               {isUnlimited ? "∞" : `${current} / ${limit}`}
             </span>
           </div>
@@ -303,7 +303,7 @@ const System: React.FC = () => {
 
         {/* Telegram Integration Card */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="bg-gradient-to-r from-[#0088cc] to-[#0077b5] p-5">
+          <div className="bg-gradient-to-r from-[#0a192f] to-[#1e293b] p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/10 rounded-lg">
                 <Send className="w-5 h-5 text-white" />

@@ -504,7 +504,7 @@ const Dashboard: React.FC = () => {
                         Доступна для работы
                       </p>
                     </div>
-                    <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#0a192f] group-hover:text-white transition-colors">
                       <ArrowRight size={16} />
                     </span>
                   </button>
@@ -562,7 +562,7 @@ const Dashboard: React.FC = () => {
                       Активный объект
                     </p>
                   </div>
-                  <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                  <span className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#0a192f] group-hover:text-white transition-colors">
                     <ArrowRight size={16} />
                   </span>
                 </button>
@@ -604,7 +604,7 @@ const Dashboard: React.FC = () => {
             </p>
 
             <label htmlFor="photo-upload" className="block">
-              <div className="w-full py-6 bg-indigo-600 text-white rounded-lg font-semibold uppercase tracking-widest cursor-pointer hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100">
+              <div className="w-full py-6 bg-[#0a192f] text-white rounded-lg font-semibold uppercase tracking-widest cursor-pointer hover:bg-[#152238] transition-all shadow-xl shadow-[#0a192f]/20">
                 {isActionLoading ? "Загрузка..." : "Открыть камеру"}
               </div>
               <input

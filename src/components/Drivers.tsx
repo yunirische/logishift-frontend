@@ -321,7 +321,7 @@ const Drivers: React.FC = () => {
                   value={editForm.full_name}
                   onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
                   spellCheck={false}
-                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20 outline-none"
                 />
               </div>
               <div>
@@ -333,7 +333,7 @@ const Drivers: React.FC = () => {
                   name="driver-role"
                   value={editForm.role}
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
-                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20 outline-none"
                 >
                   <option value={UserRole.DRIVER}>Водитель</option>
                   <option value={UserRole.ADMIN}>Администратор</option>
@@ -352,7 +352,7 @@ const Drivers: React.FC = () => {
                   value={editForm.hourly_rate}
                   onChange={(e) => setEditForm({ ...editForm, hourly_rate: Number(e.target.value) })}
                   spellCheck={false}
-                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  className="w-full p-3 rounded-lg border border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20 outline-none"
                 />
               </div>
             </div>

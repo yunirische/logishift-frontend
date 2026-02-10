@@ -229,7 +229,7 @@ const Analytics: React.FC = () => {
         {/* Top Controls Bar (disabled) */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 opacity-50 pointer-events-none">
           <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-indigo-600" />
+            <Calendar className="w-5 h-5 text-[#0a192f]" />
             <div className="flex bg-slate-100 rounded-lg p-1">
               {timeRangePresets.map((days) => {
                 const isActive = selectedDays === days;
@@ -259,7 +259,7 @@ const Analytics: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         {/* Time Range Selector */}
         <div className="flex items-center gap-3">
-          <Calendar className="w-5 h-5 text-indigo-600" />
+          <Calendar className="w-5 h-5 text-[#0a192f]" />
           <div className="flex bg-slate-100 rounded-lg p-1">
             {timeRangePresets.map((days) => {
               const isActive = selectedDays === days;
@@ -312,7 +312,7 @@ const Analytics: React.FC = () => {
         {isRangeLoading && (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-3xl flex items-center justify-center z-10">
             <div className="flex flex-col items-center">
-              <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-3 border-[#0a192f] border-t-transparent rounded-full animate-spin"></div>
               <p className="mt-2 text-sm text-slate-600">Загрузка данных...</p>
             </div>
           </div>

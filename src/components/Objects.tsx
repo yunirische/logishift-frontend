@@ -211,7 +211,7 @@ const Objects: React.FC = () => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-bold text-[#1B254B]"
+                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20 outline-none transition-all font-bold text-[#1B254B]"
                   placeholder="Например, Стройка №1"
                   spellCheck={false}
                   autoFocus
@@ -229,7 +229,7 @@ const Objects: React.FC = () => {
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   inputMode="text"
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-slate-600"
+                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20 outline-none transition-all text-slate-600"
                   placeholder="Например, ул. Строителей, 10"
                 />
               </div>

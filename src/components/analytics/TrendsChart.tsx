@@ -25,21 +25,21 @@ const METRIC_CONFIG = {
   shifts: {
     label: "Смены",
     key: "shifts_count" as const,
-    color: "fill-indigo-600",
+    color: "fill-[#0a192f]",
     unit: "",
     formatValue: (v: number) => v.toString(),
   },
   hours: {
     label: "Часы",
     key: "hours_worked" as const,
-    color: "fill-indigo-700",
+    color: "fill-[#152238]",
     unit: " ч",
     formatValue: (v: number) => v.toString(),
   },
   salary: {
     label: "Зарплата",
     key: "salary_paid" as const,
-    color: "fill-indigo-800",
+    color: "fill-[#1e293b]",
     unit: " ₽",
     formatValue: (v: number | null | undefined) => (v == null || isNaN(v) ? "0" : v.toLocaleString("ru-RU")),
   },
@@ -238,7 +238,7 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
             <Bar
               dataKey={selectedMetric}
               radius={[0, 0, 0, 0]} // Sharp corners (industrial aesthetic)
-              className="fill-indigo-600"
+              className="fill-[#0a192f]"
               animationDuration={300} // Smooth 300ms transition
             >
               {chartData.map((entry, index) => (
@@ -246,10 +246,10 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
                   key={`cell-${index}`}
                   className={`${
                     selectedMetric === "shifts"
-                      ? "fill-indigo-600"
+                      ? "fill-[#0a192f]"
                       : selectedMetric === "hours"
-                      ? "fill-indigo-700"
-                      : "fill-indigo-800"
+                      ? "fill-[#152238]"
+                      : "fill-[#1e293b]"
                   }`}
                 />
               ))}
