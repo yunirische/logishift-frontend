@@ -38,6 +38,7 @@ const Layout: React.FC<LayoutProps> = ({
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
   const isDemoMode = user?.tenant_id === 999;
+  const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handlePersonaSwitch = (newPersona: DemoPersona) => {
@@ -50,7 +51,7 @@ const Layout: React.FC<LayoutProps> = ({
   const mainItems = [
     {
       id: "dashboard",
-      label: "Главная",
+      label: isDemoDriverMode ? "Приложение водителя" : "Главная",
       icon: Home,
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
     },
@@ -189,12 +190,16 @@ const Layout: React.FC<LayoutProps> = ({
         <nav className="flex-1 px-6 space-y-8 overflow-y-auto">
           <div>
             <p className="px-5 mb-4 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
-              {isAdmin ? "Управление" : "Меню водителя"}
+              {isDemoDriverMode ? "Меню" : (isAdmin ? "Управление" : "Меню водителя")}
             </p>
-            <div className="space-y-1">{mainItems.map(renderButton)}</div>
+            <div className="space-y-1">
+              {mainItems
+                .filter(item => !isDemoDriverMode || item.id === 'dashboard')
+                .map(renderButton)}
+            </div>
           </div>
 
-          {isAdmin && user?.role === UserRole.ADMIN && (
+          {!isDemoDriverMode && isAdmin && user?.role === UserRole.ADMIN && (
             <div>
               <p className="px-5 mb-4 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
                 Контроль
