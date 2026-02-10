@@ -323,7 +323,7 @@ const System: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 bg-[#F4F7FE]">
+          <div className="p-6 bg-white">
             {user?.tg_user_id ? (
               // Connected state
               <div className="flex items-center justify-between">
