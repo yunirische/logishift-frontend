@@ -66,32 +66,45 @@ export const DriverView = () => {
     if (!selectedTruck || !selectedSite) return;
     setLoading(true);
     try {
+      // Demo mode: force state update with mock shift object
+      if (user?.tenant_id === 999) {
+        const selectedSiteData = sites.find(s => s.id === selectedSite);
+        const selectedTruckData = trucks.find(t => t.id === selectedTruck);
+
+        // Create mock shift object
+        const mockShift = {
+          id: 999,
+          status: 'active',
+          start_time: new Date().toISOString(),
+          truck: selectedTruckData || { id: 1, name: 'MAN TGX', plate_number: 'А123БВ' },
+          site: selectedSiteData || { id: 1, name: 'ЖК Северный', address: 'ул. Примерная, 1' }
+        };
+        setActiveShift(mockShift);
+        localStorage.setItem('logishift_active_shift', JSON.stringify(mockShift));
+
+        // Determine next state based on site requirements
+        const nextState = selectedSiteData?.odometer_required
+          ? DriverState.AWAITING_ODO_START
+          : DriverState.ACTIVE;
+
+        // Update user state
+        const updatedUser = { ...user, current_state: nextState };
+        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+
+        setToast({ show: true, message: "✅ Смена открыта" });
+        setTimeout(() => setToast({ show: false, message: '' }), 2000);
+        setLoading(false);
+        return;
+      }
+
+      // Production mode: normal API call
       const response = await api.post("/shifts/start", {
         truck_id: selectedTruck,
         site_id: selectedSite,
       });
 
-      // Demo mode: show success toast and update state
-      if (user?.tenant_id === 999) {
-        setToast({ show: true, message: "✅ Смена открыта" });
-        setTimeout(() => setToast({ show: false, message: '' }), 2000);
-
-        // Determine next state based on site requirements
-        const selectedSiteData = sites.find(s => s.id === selectedSite);
-        const nextState = selectedSiteData?.odometer_required
-          ? DriverState.AWAITING_ODO_START
-          : DriverState.ACTIVE;
-
-        // Update local user state
-        const updatedUser = { ...user, current_state: nextState };
-        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
-
-        // Update context by re-fetching user data
-        await initData();
-      } else {
-        // Production mode: re-fetch data
-        await initData();
-      }
+      // Re-fetch data
+      await initData();
     } catch (e: any) {
       alert(e.response?.data?.error || "Ошибка старта");
       setLoading(false);
@@ -102,15 +115,25 @@ export const DriverView = () => {
     if (!confirm("Завершить смену?")) return;
     setLoading(true);
     try {
-      await api.post("/shifts/end", {});
-
-      // Demo mode: show success toast
+      // Demo mode: force state update
       if (user?.tenant_id === 999) {
+        setActiveShift(null);
+        localStorage.removeItem('logishift_active_shift');
+
+        // Update user state back to idle
+        const updatedUser = { ...user, current_state: DriverState.IDLE };
+        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+
         setToast({ show: true, message: "✅ Смена завершена" });
         setTimeout(() => setToast({ show: false, message: '' }), 2000);
+        setLoading(false);
+        return;
       }
 
-      // Re-fetch data instead of full page reload
+      // Production mode: normal API call
+      await api.post("/shifts/end", {});
+
+      // Re-fetch data
       await initData();
     } catch (e: any) {
       alert(e.response?.data?.error || "Ошибка завершения");
