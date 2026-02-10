@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import api, { unlinkTelegram } from "../services/api";
+import api, { unlinkTelegram, getAnalyticsUsage } from "../services/api";
 import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import { Save, Loader2, CheckCircle2, AlertCircle, Send, ExternalLink, Check } from "lucide-react";
+import { AnalyticsUsage } from "../types";
 
 interface TenantSettings {
   name: string;
@@ -22,6 +23,7 @@ const Settings: React.FC = () => {
   const [tgLinkCode, setTgLinkCode] = useState<string | null>(null);
   const [tgLoading, setTgLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [usage, setUsage] = useState<AnalyticsUsage | null>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -30,7 +32,10 @@ const Settings: React.FC = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const data = await api.get(API_ENDPOINTS.TENANT_SETTINGS);
+      const [data, usageData] = await Promise.all([
+        api.get(API_ENDPOINTS.TENANT_SETTINGS),
+        getAnalyticsUsage().catch(() => null), // Gracefully handle analytics errors
+      ]);
 
       // Add null/undefined check
       if (!data || typeof data !== 'object') {
@@ -42,6 +47,11 @@ const Settings: React.FC = () => {
         timezone: data.timezone || "Europe/Moscow",
         invoice_required: data.invoice_required || false,
       });
+
+      // Set usage data
+      if (usageData) {
+        setUsage(usageData);
+      }
     } catch (error) {
       console.error("Failed to fetch settings:", error);
       setMessage({ type: "error", text: "Не удалось загрузить настройки" });
@@ -74,6 +84,37 @@ const Settings: React.FC = () => {
     if (e.key === "Escape" && !saving) {
       // Optional: close form or navigate away
     }
+  };
+
+  const getUsageBarColor = (percent: number | null): string => {
+    if (percent === null) return "bg-slate-200";
+    if (percent >= 100) return "bg-red-500";
+    if (percent >= 80) return "bg-amber-500";
+    return "bg-[#0a192f]";
+  };
+
+  const renderUsageBar = (current: number, limit: number, percent: number | null, label: string) => {
+    const displayPercent = percent ?? 0;
+    const isUnlimited = limit === -1;
+
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-bold text-slate-700">{label}</span>
+          <span className={`text-sm font-mono font-semibold ${displayPercent >= 100 ? 'text-red-600' : displayPercent >= 80 ? 'text-amber-600' : 'text-[#0a192f]'}`}>
+            {isUnlimited ? "∞" : `${current} / ${limit}`}
+          </span>
+        </div>
+        {!isUnlimited && (
+          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${getUsageBarColor(percent)} transition-all duration-500`}
+              style={{ width: `${Math.min(displayPercent, 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
+    );
   };
 
   const handleGenerateTelegramLink = async () => {
@@ -271,6 +312,24 @@ const Settings: React.FC = () => {
                     </div>
                   )}
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quota Usage Card */}
+          <div className="space-y-3">
+            <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
+              Использование ресурсов
+            </label>
+            <div className="bg-[#F4F7FE] rounded-lg p-6 border border-slate-100 space-y-4">
+              {usage ? (
+                <>
+                  {renderUsageBar(usage.trucks.current, usage.trucks.limit, usage.trucks.utilization_percent, "Грузовики")}
+                  {renderUsageBar(usage.drivers.current, usage.drivers.limit, usage.drivers.utilization_percent, "Водители")}
+                  {renderUsageBar(usage.sites.current, usage.sites.limit, usage.sites.utilization_percent, "Объекты")}
+                </>
+              ) : (
+                <p className="text-sm text-slate-500 text-center">Данные недоступны</p>
               )}
             </div>
           </div>
