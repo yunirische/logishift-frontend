@@ -182,7 +182,7 @@ const Layout: React.FC<LayoutProps> = ({
           <div className="flex items-center gap-2 mt-1">
             <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse"></div>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
-              KONTROLSMEN V2.5 Stable
+              LOGISHIFT V2.5 Stable
             </p>
           </div>
         </div>
