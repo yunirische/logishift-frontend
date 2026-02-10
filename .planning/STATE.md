@@ -10,19 +10,19 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Milestone: v1.5 Analytics Dashboard - SHIPPED 2026-02-01
-Phase: Quick Tasks - Driver UX polish completed
-Plan: 006 (Driver UX Overhaul: State Sync, Visual Hierarchy, Toast Notifications) - Complete
-Status: ✅ Quick task complete, ready for v1.6 planning
-Last activity: 2026-02-10 — Executed quick-006 with driver view state sync fix, visual polish, toast notifications, and Settings loading skeleton
+Phase: Quick Tasks - Dashboard stats fix and driver UI refinement
+Plan: 007 (Dashboard Stats Fix & Driver UI Refinement) - Complete
+Status: ✅ Quick task complete, ready for additional quick tasks or v1.6 planning
+Last activity: 2026-02-10 — Executed quick-007 with AdminView stats fix, Driver UI unification, Navy-900 theme polish, requirements info, and shift history
 
-Progress: [██████████] 100% (v1.5 complete + 6 quick tasks, 3 milestones total shipped)
+Progress: [██████████] 100% (v1.5 complete + 7 quick tasks, 3 milestones total shipped)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 4.5 min
-- Total execution time: 0.75 hours
+- Total plans completed: 18
+- Average duration: 4.3 min
+- Total execution time: 1.3 hours
 
 **By Phase:**
 
@@ -173,6 +173,7 @@ None yet.
 | 004 | Deep integration: Telegram alreadyLinked, demo state forcing, sidebar isolation | 2026-02-10 | 5cfd373, 87efe8b, 5e565f3, e6d4a32, d376679 | [004-deep-integration](./quick/4-deep-integration-telegram-interaction-fi/) |
 | 005 | Auth fix & quota sync: 404 fallback, Settings quota display | 2026-02-10 | f213299, 80024de | [005-auth-fix-quota-sync](./quick/5-auth-fix-quota-sync-fix-404-on-users-me-/) |
 | 006 | Driver UX overhaul: state sync fix, visual polish, toast notifications | 2026-02-10 | 2c3a868, ab07a3f, a561511, 32a32ed | [006-driver-ux-overhaul](./quick/6-driver-ux-overhaul-final-sync-fix-crash-/) |
+| 007 | Dashboard stats fix & driver UI refinement: AdminView API fix, UI unification, Navy-900 theme, requirements info, shift history | 2026-02-10 | dce78ba, 6c7e981, c35f06c, 3369636, 1d1cf6e, 6320631 | [007-fix-dashboard-stats-unify-driver-ui-refi](./quick/7-fix-dashboard-stats-unify-driver-ui-refi/) |
 
 **Quick Task 006 Decisions:**
 - [quick-006]: Replace localStorage manipulation with AuthContext.refreshUser() for single source of truth
@@ -182,9 +183,16 @@ None yet.
 - [quick-006]: Minimum 44px height for all interactive elements on mobile
 - [quick-006]: State sync pattern: After every action, call refreshUser() to sync AuthContext
 
+**Quick Task 007 Decisions:**
+- [quick-007]: Custom api.get() returns data directly (not axios-style .data wrapper)
+- [quick-007]: Single source of truth for driver UI - always use standard DriverView component
+- [quick-007]: Branding consistency - use "LOGISHIFT" across all UI elements
+- [quick-007]: Requirements info block shows photo requirements from site settings before shift start
+- [quick-007]: Shift history provides drivers with visibility into their recent completed work
+
 ## Session Continuity
 
-Last session: 2026-02-10T17:11:00Z
-Stopped at: Completed quick-006 with driver UX overhaul and state sync fixes
+Last session: 2026-02-10T17:33:00Z
+Stopped at: Completed quick-007 with Dashboard stats fix, Driver UI unification, Navy-900 theme polish, requirements info, and shift history
 Resume file: None
 Next: /gsd:new-milestone to plan v1.6 or continue with additional quick tasks
