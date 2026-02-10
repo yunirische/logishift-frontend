@@ -8,43 +8,44 @@ files_modified:
   - src/components/System.tsx
   - src/components/Settings.tsx
   - src/components/Layout.tsx
+  - src/views/Dashboard.tsx
   - src/views/DriverView.tsx
 autonomous: true
 
 must_haves:
   truths:
-    - "Telegram connection is detected within 5 seconds after returning from bot (not just on window focus)"
-    - "Demo state machine resets when switching personas (admin -> driver -> admin)"
-    - "Sidebar closes automatically when switching demo personas"
+    - "Telegram link handles alreadyLinked response with appropriate toast message"
+    - "Demo mode (999) forces shift state updates on start/end with mock objects"
+    - "Sidebar hides all admin tabs when tenant_id=999 AND demoView='driver'"
+    - "All toasts use Navy-900 styling (#0a192f)"
+    - "Open Shift button uses Navy-900 background"
   artifacts:
-    - path: "src/components/System.tsx"
-      provides: "Enhanced Telegram linking with polling detection"
-      exports: ["handleGenerateTelegramLink", "openTelegramBot"]
     - path: "src/components/Settings.tsx"
-      provides: "Enhanced Telegram linking with polling detection"
-      exports: ["handleGenerateTelegramLink", "openTelegramBot"]
+      provides: "Enhanced Telegram linking with alreadyLinked handling"
+      contains: "alreadyLinked.*refreshUser"
     - path: "src/components/Layout.tsx"
-      provides: "Sidebar state reset on persona switch"
-      exports: ["Layout"]
-    - path: "src/views/DriverView.tsx"
-      provides: "Demo state reset on persona switch"
-      exports: ["DriverView"]
+      provides: "Sidebar filtering for demo driver mode"
+      contains: "tenant_id.*999.*demoView.*driver"
+    - path: "src/views/Dashboard.tsx"
+      provides: "Demo mode shift state forcing on start/end"
+      contains: "mock.*shift.*999"
   key_links:
-    - from: "src/components/Layout.tsx"
-      to: "localStorage['logishift_demo_persona']"
-      via: "handlePersonaSwitch sets demo persona flag"
-      pattern: "localStorage.*demo.*persona"
-    - from: "src/views/DriverView.tsx"
-      to: "localStorage['logishift_demo_persona']"
-      via: "useEffect watches demo persona changes"
-      pattern: "demo_persona"
+    - from: "src/components/Settings.tsx"
+      to: "AuthContext"
+      via: "refreshUser() call after Telegram link"
+      pattern: "refreshUser"
+    - from: "src/views/Dashboard.tsx"
+      to: "localStorage['logishift_active_shift']"
+      via: "Force state update for demo mode"
+      pattern: "999.*mock.*shift"
 ---
 
 <objective>
 Deep integration: Telegram interaction fix, demo state machine realism, sidebar isolation
 
-Purpose: Improve Telegram linking UX reliability, ensure demo mode feels realistic when switching personas, and prevent UI state leaking between personas
-Output: Enhanced Telegram connection detection, isolated demo state per persona, clean sidebar transitions
+Purpose: Handle Telegram edge cases, make demo mode feel realistic with immediate state updates, isolate driver view in demo mode, ensure Navy-900 theme consistency.
+
+Output: Robust Telegram linking, realistic demo state transitions, isolated driver mode UI, consistent Navy-900 theming.
 </objective>
 
 <execution_context>
@@ -57,137 +58,238 @@ Output: Enhanced Telegram connection detection, isolated demo state per persona,
 @src/components/System.tsx
 @src/components/Settings.tsx
 @src/components/Layout.tsx
+@src/views/Dashboard.tsx
 @src/views/DriverView.tsx
 @src/types.ts
-@src/constants.ts
+@src/context/AuthContext.tsx
 </context>
 
 <tasks>
 
 <task type="auto">
-  <name>Task 1: Enhance Telegram connection detection with polling</name>
-  <files>src/components/System.tsx, src/components/Settings.tsx</files>
+  <name>Task 1: Fix Telegram interaction to handle alreadyLinked response</name>
+  <files>src/components/Settings.tsx, src/components/System.tsx</files>
   <action>
-    In both System.tsx and Settings.tsx, enhance the Telegram linking flow:
+    In both Settings.tsx and System.tsx, update the handleGenerateTelegramLink function:
 
-    1. Replace the window focus listener approach with a polling-based detection:
-       - After calling openTelegramBot(), start a 30-second interval (every 2 seconds)
-       - Each interval calls refreshUser() to check if tg_user_id is now set
-       - If tg_user_id exists, clear interval and show success message
-       - Clear interval on component unmount
-
-    2. Update the openTelegramBot function to:
-       - Store the polling interval ID in a ref (const pollingRef = useRef<NodeJS.Timeout | null>(null))
-       - Start polling immediately after opening the bot window
-
-    3. Clear any existing polling when:
-       - Component unmounts (useEffect cleanup)
-       - User manually generates a new link code
-       - Connection is detected (tg_user_id becomes truthy)
-
-    4. Show a subtle "Checking connection..." indicator during polling
-
-    Reference existing code in System.tsx lines 123-136 and Settings.tsx lines 115-128 for the current focus listener implementation.
-  </action>
-  <verify>
-    Open browser DevTools Network tab, click "Связать с Telegram", observe that /users/me API is called every 2 seconds until connection is detected
-  </verify>
-  <done>
-    Telegram connection is detected within 5 seconds after user returns from bot, even without clicking back to the tab first
-  </done>
-</task>
-
-<task type="auto">
-  <name>Task 2: Isolate sidebar state and add demo persona tracking</name>
-  <files>src/components/Layout.tsx</files>
-  <action>
-    In Layout.tsx, add demo persona state tracking and isolate sidebar behavior:
-
-    1. Add a localStorage key to track current demo persona:
-       - In handlePersonaSwitch, save the new persona: localStorage.setItem('logishift_demo_persona', newPersona)
-       - Close sidebar after switch: setSidebarOpen(false)
-
-    2. Add useEffect to watch for persona changes from other components:
-       - Listen for storage event (for cross-tab sync) or custom event
-       - When persona changes externally, update local state and close sidebar
-
-    3. Reset sidebar state when persona changes:
-       - In handlePersonaSwitch, ensure setSidebarOpen(false) is called AFTER setDemoPersona
-
-    Reference existing handlePersonaSwitch at lines 43-48 and sidebar state management at line 41.
-  </action>
-  <verify>
-    1. Switch from Admin to Driver persona - sidebar should close automatically
-    2. Open sidebar in Driver mode, switch back to Admin - sidebar should close
-  </verify>
-  <done>
-    Sidebar always closes when switching personas, preventing state leakage between admin and driver modes
-  </done>
-</task>
-
-<task type="auto">
-  <name>Task 3: Reset demo state machine on persona switch</name>
-  <files>src/views/DriverView.tsx</files>
-  <action>
-    In DriverView.tsx, add demo state reset when persona switches:
-
-    1. Add a useEffect that watches for demo persona changes:
+    1. Check the API response for `alreadyLinked: true` flag:
        ```typescript
-       useEffect(() => {
-         const handlePersonaChange = () => {
-           const currentPersona = localStorage.getItem('logishift_demo_persona');
-           // Reset demo state when switching to this view or persona changes
-           if (user?.tenant_id === 999) {
-             setActiveShift(null);
-             setSelectedTruck('');
-             setSelectedSite('');
-             // Reset local storage user state to idle
-             const resetUser = { ...user, current_state: DriverState.IDLE };
-             localStorage.setItem('logishift_user_info', JSON.stringify(resetUser));
-             initData();
-           }
-         };
-
-         window.addEventListener('storage', handlePersonaChange);
-         return () => window.removeEventListener('storage', handlePersonaChange);
-       }, [user]);
+       const response = await linkTelegramCode();
+       if (response.alreadyLinked) {
+         toast.success('Ваш аккаунт уже связан с Telegram.');
+         await refreshUser(); // Immediately update UI
+         return;
+       }
        ```
 
-    2. Also reset state on component mount if in demo mode and current_state is not IDLE:
-       - This ensures that when user switches to Driver persona, they start fresh
+    2. For new code generation, ensure toast says:
+       ```typescript
+       toast.success('Код получен. Перейдите в бот.', {
+         style: { backgroundColor: '#0a192f', color: 'white' }
+       });
+       ```
 
-    Reference existing demo mode logic at lines 75-94 and state machine transitions at lines 143-158.
+    3. Call refreshUser() immediately after detecting alreadyLinked to update the UI state
 
-    IMPORTANT: The state machine should only reset when:
-    - Switching FROM admin TO driver persona
-    - NOT during normal demo usage (completing shift steps should still work)
+    4. Import refreshUser from AuthContext:
+       ```typescript
+       const { refreshUser } = useAuth();
+       ```
+
+    Reference existing handleGenerateTelegramLink implementations in Settings.tsx (around line 120) and System.tsx (around line 130).
   </action>
   <verify>
-    1. In demo mode, start a shift as Driver (click Open Shift)
-    2. Switch to Admin persona
-    3. Switch back to Driver persona
-    4. Driver view should show "Select truck/site" screen (idle state), not the active shift
+    Generate a Telegram link when already linked - should see "Ваш аккаунт уже связан с Telegram." toast and UI should immediately show connected state
   </verify>
   <done>
-    Demo state machine resets to idle when switching personas, giving each demo session a clean slate
+    Telegram link button handles alreadyLinked response with appropriate toast and immediate UI refresh
+  </done>
+</task>
+
+<task type="auto">
+  <name>Task 2: Force demo shift state updates on start/end</name>
+  <files>src/views/Dashboard.tsx, src/views/DriverView.tsx</files>
+  <action>
+    Make demo mode (tenant 999) feel realistic with immediate state forcing:
+
+    1. In Dashboard.tsx or DriverView.tsx, update handleStartShift for demo mode:
+       ```typescript
+       const handleStartShift = async () => {
+         if (user?.tenant_id === 999) {
+           // Demo mode: force state update
+           const mockShift = {
+             id: 999,
+             status: 'active',
+             start_time: new Date().toISOString(),
+             truck: { id: 1, name: 'MAN TGX', plate_number: 'А123БВ' },
+             site: { id: 1, name: 'ЖК Северный', address: 'ул. Примерная, 1' }
+           };
+           setActiveShift(mockShift);
+           localStorage.setItem('logishift_active_shift', JSON.stringify(mockShift));
+
+           // Update user state to active
+           const updatedUser = { ...user, current_state: 'active' };
+           localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+
+           toast.success('✅ Смена началась');
+           return;
+         }
+
+         // Production mode: normal API call
+         // ... existing code
+       };
+       ```
+
+    2. Update handleEndShift for demo mode:
+       ```typescript
+       const handleEndShift = async () => {
+         if (user?.tenant_id === 999) {
+           // Demo mode: force state update
+           setActiveShift(null);
+           localStorage.removeItem('logishift_active_shift');
+
+           // Update user state back to idle
+           const updatedUser = { ...user, current_state: 'idle' };
+           localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+
+           // Show shift summary mock
+           toast.success('✅ Смена завершена');
+           setShowSummary(true);
+           return;
+         }
+
+         // Production mode: normal API call
+         // ... existing code
+       };
+       ```
+
+    3. Ensure these updates trigger UI to switch from "Selection" to "Active Shift" screen with timer
+
+    Reference existing shift handling code in Dashboard.tsx or DriverView.tsx.
+  </action>
+  <verify>
+    In demo mode (999), click "Open Shift" - should immediately show active shift screen with timer. Click "End Shift" - should show shift summary.
+  </verify>
+  <done>
+    Demo mode (999) forces immediate state updates with mock shift objects, creating realistic experience
+  </done>
+</task>
+
+<task type="auto">
+  <name>Task 3: Isolate sidebar in demo driver mode</name>
+  <files>src/components/Layout.tsx</files>
+  <action>
+    Hide admin tabs when in demo driver mode (tenant_id === 999 AND demoView === 'driver'):
+
+    1. Define which tabs to hide:
+       - Analytics
+       - Registry
+       - Personnel
+       - Fleet
+       - Objects
+       - Audit
+       - System
+
+    2. Update sidebar rendering logic:
+       ```typescript
+       const shouldHideAdminTabs = user?.tenant_id === 999 && demoPersona === 'driver';
+
+       // When filtering tabs:
+       const visibleMainItems = shouldHideAdminTabs
+         ? mainItems.filter(item => item.id === 'dashboard')
+         : mainItems;
+
+       const visibleAdminItems = shouldHideAdminTabs
+         ? []
+         : adminItems;
+
+       // Update Dashboard label for demo driver mode
+       const getDashboardLabel = () => {
+         return shouldHideAdminTabs ? 'Приложение водителя' : 'Дашборд';
+       };
+       ```
+
+    3. Ensure Admin/Driver toggle button remains visible:
+       - The persona switcher section should NOT be filtered
+       - Keep it at the bottom of sidebar
+
+    4. Update the Sidebar component to use filtered lists:
+       ```typescript
+       {visibleMainItems.map(item => ...)}
+       {visibleAdminItems.map(item => ...)}
+       ```
+
+    Reference existing sidebar rendering in Layout.tsx (around lines 180-250).
+  </action>
+  <verify>
+    Switch to demo driver mode (999 + driver persona) - sidebar should only show "Приложение водителя" tab and persona switcher. All other tabs hidden.
+  </verify>
+  <done>
+    Demo driver mode shows isolated sidebar with only Dashboard (labeled "Приложение водителя") and persona switcher
+  </done>
+</task>
+
+<task type="auto">
+  <name>Task 4: Apply Navy-900 theme to all toasts and buttons</name>
+  <files>src/views/Dashboard.tsx, src/views/DriverView.tsx, src/components/*.tsx</files>
+  <action>
+    Ensure Navy-900 theme consistency for toasts and buttons:
+
+    1. Update all toast calls to use Navy-900 styling:
+       ```typescript
+       toast.success('message', {
+         style: {
+           backgroundColor: '#0a192f',
+           color: 'white',
+           border: '1px solid #1e293b'
+         }
+       });
+       ```
+
+    2. Find and update "Open Shift" blue button to Navy-900:
+       - Search for: `bg-blue-600`, `bg-indigo-600`, `bg-blue-500`
+       - Replace with: `bg-[#0a192f] hover:bg-[#152238]`
+       - Likely in Dashboard.tsx or DriverView.tsx
+
+    3. Global check with grep:
+       ```bash
+       grep -rn "bg-blue-600\|bg-indigo-600" src/views/ src/components/
+       ```
+       Replace any found with Navy-900 equivalent.
+
+    4. Ensure toast container (if using sonner or similar) uses Navy-900:
+       - Check toast provider configuration
+       - Update default toast styles if needed
+
+    Reference existing button styling in Dashboard.tsx and DriverView.tsx.
+  </action>
+  <verify>
+    grep -rn "bg-blue-600\|bg-indigo-600" src/ returns no results. All toasts appear with Navy-900 background.
+  </verify>
+  <done>
+    All toasts use Navy-900 styling (#0a192f), Open Shift button uses Navy-900 background, no blue/indigo remains
   </done>
 </task>
 
 </tasks>
 
 <verification>
-1. Test Telegram linking: Generate link, open bot, complete linking in Telegram, observe auto-detection within 5 seconds
-2. Test persona isolation: Start demo shift as driver, switch to admin, switch back - driver view should be idle
-3. Test sidebar behavior: Switch personas with sidebar open - sidebar should close in new persona
+1. Test Telegram alreadyLinked: Generate link when already linked - see "Ваш аккаунт уже связан с Telegram." toast
+2. Test demo shift start: In demo mode, click Open Shift - immediate state change to active with mock data
+3. Test demo shift end: Click End Shift - immediate state change to null with summary
+4. Test sidebar isolation: Demo driver mode shows only Dashboard + Switcher
+5. Test theme: All toasts and buttons use Navy-900 (#0a192f)
 </verification>
 
 <success_criteria>
-- Telegram connection polling detects link within 5 seconds of bot completion
-- Demo state resets when switching personas (no carryover state)
-- Sidebar closes automatically on persona switch
-- All changes work in both production mode (tenant_id !== 999) and demo mode (tenant_id === 999)
+- Telegram link handles alreadyLinked with appropriate toast and immediate refreshUser()
+- Demo mode forces realistic state transitions on shift start/end
+- Demo driver mode sidebar shows only Dashboard (labeled "Приложение водителя") + Switcher
+- All toasts use Navy-900 styling
+- Open Shift button uses Navy-900 background
+- No blue/indigo colors remain in UI
 </success_criteria>
 
 <output>
-After completion, create `.planning/quick/4-deep-integration-telegram-interaction-fi/quick-004-SUMMARY.md`
+After completion, create `.planning/quick/4-deep-integration-telegram-interaction-fi/4-SUMMARY.md`
 </output>
