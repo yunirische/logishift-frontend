@@ -125,7 +125,7 @@ const RegisterView: React.FC = () => {
         // Admin registration - create tenant
         await api.post(API_ENDPOINTS.AUTH_ONBOARD, {
           company_name: formData.company_name.trim(),
-          full_name: formData.full_name.trim(),
+          admin_name: formData.full_name.trim(),
           email: formData.email.trim().toLowerCase(),
           password: formData.password,
         });
