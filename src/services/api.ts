@@ -449,6 +449,14 @@ export const getTelegramLinkCode = async (): Promise<{ code: string }> => {
   return await get(API_ENDPOINTS.TELEGRAM_LINK_CODE);
 };
 
+/**
+ * Unlink Telegram account.
+ * DELETE /users/telegram-link
+ */
+export const unlinkTelegram = async (): Promise<void> => {
+  await del(API_ENDPOINTS.TELEGRAM_UNLINK);
+};
+
 const api = {
   loginUser,
   apiRequest,
@@ -467,6 +475,7 @@ const api = {
   getCurrentShift,
   acceptInvite,
   getTelegramLinkCode,
+  unlinkTelegram,
   TOKEN_KEY,
   USER_KEY,
   // Export enums for convenience

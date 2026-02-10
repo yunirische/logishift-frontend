@@ -70,4 +70,5 @@ export const API_ENDPOINTS = {
 
   // Telegram
   TELEGRAM_LINK_CODE: `${API_BASE_URL}/telegram/link-code`,
+  TELEGRAM_UNLINK: `${API_BASE_URL}/users/telegram-link`,
 };

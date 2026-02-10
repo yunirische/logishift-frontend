@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import api, { getUserInfo } from "../services/api";
+import api, { getUserInfo, unlinkTelegram } from "../services/api";
 import { API_ENDPOINTS } from "../constants";
 import { User } from "../types";
 import { Save, Loader2, CheckCircle2, AlertCircle, Send, ExternalLink, Check } from "lucide-react";
@@ -101,6 +101,27 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleDisconnect = async () => {
+    if (!confirm("Отключить Telegram-интеграцию?")) return;
+    setTgLoading(true);
+    setMessage(null);
+    try {
+      await unlinkTelegram();
+      // Update local user state
+      if (user) {
+        const updatedUser = { ...user, tg_user_id: null };
+        setUser(updatedUser);
+        // Update localStorage
+        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+      }
+      setMessage({ type: "success", text: "Telegram отключен" });
+    } catch (error: any) {
+      setMessage({ type: "error", text: error.message || "Ошибка отключения" });
+    } finally {
+      setTgLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -171,16 +192,25 @@ const Settings: React.FC = () => {
             <div className="bg-[#F4F7FE] rounded-lg p-6 border border-slate-100">
               {user?.tg_user_id ? (
                 // Connected state
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-700">
+                        ✅ Ваш аккаунт связан с Telegram (ID: <span className="font-mono">{user.tg_user_id}</span>)
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-700">Подключено к Telegram</p>
-                    <p className="text-xs text-slate-500 font-mono mt-1">
-                      TG ID: <span className="font-bold text-green-600">{user.tg_user_id}</span>
-                    </p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDisconnect}
+                    disabled={tgLoading}
+                    className="px-4 py-2 text-sm font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-all disabled:opacity-50"
+                  >
+                    Отключить
+                  </button>
                 </div>
               ) : (
                 // Not connected state
@@ -203,7 +233,7 @@ const Settings: React.FC = () => {
                       ) : (
                         <>
                           <Send className="w-4 h-4" />
-                          Подключить Telegram-бота
+                          Связать с Telegram
                         </>
                       )}
                     </button>
