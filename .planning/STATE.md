@@ -149,6 +149,8 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 001 | Smart invite links with auto-fill and password UX | 2026-02-01 | d34868f | [001-smart-invite-links](./quick/001-smart-invite-links/) |
 | 002 | Telegram connection sync with profile refresh | 2026-02-10 | 701db64 | [002-telegram-connection-sync](./quick/2-telegram-connection-sync-with-profile-re/) |
+| 003 | Industrial polish: unified quotas, demo persona, Navy-900 theme | 2026-02-10 | c5c6515 | [003-industrial-polish](./quick/3-industrial-polish-unified-quotas-demo-pe/) |
+| 002 | Telegram connection sync with profile refresh | 2026-02-10 | 701db64 | [002-telegram-connection-sync](./quick/2-telegram-connection-sync-with-profile-re/) |
 | 003 | Industrial polish with unified quotas, demo persona, Navy theme | 2026-02-10 | f8a8416, 5819c21 | [003-industrial-polish](./quick/3-industrial-polish-unified-quotas-demo-pe/) |
 
 ## Session Continuity
