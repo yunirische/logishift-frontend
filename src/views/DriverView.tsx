@@ -338,6 +338,38 @@ export const DriverView = () => {
             </div>
           </Card>
 
+          {/* Requirements Info Block */}
+          {selectedSite && (() => {
+            const selectedSiteData = sites.find(s => s.id === selectedSite);
+            const requiresOdometer = selectedSiteData?.odometer_required;
+            const requiresInvoice = selectedSiteData?.invoice_required;
+
+            if (!requiresOdometer && !requiresInvoice) return null;
+
+            return (
+              <Card className="p-4 border border-amber-200 shadow-sm bg-amber-50">
+                <h3 className="text-xs font-semibold text-amber-700 mb-3 uppercase tracking-wider flex items-center gap-2">
+                  <AlertCircle size={14} />
+                  Требования для смены
+                </h3>
+                <div className="space-y-2">
+                  {requiresOdometer && (
+                    <div className="flex items-center gap-2 text-sm text-amber-800">
+                      <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-xs">🏁</div>
+                      <span className="font-medium">Требуется фото одометра</span>
+                    </div>
+                  )}
+                  {requiresInvoice && (
+                    <div className="flex items-center gap-2 text-sm text-amber-800">
+                      <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-xs">📄</div>
+                      <span className="font-medium">Требуется накладная</span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })()}
+
           <Button
             onClick={handleStart}
             disabled={!selectedTruck || !selectedSite}
