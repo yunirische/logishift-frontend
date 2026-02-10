@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import api, { getUserInfo, unlinkTelegram } from "../services/api";
+import api, { unlinkTelegram } from "../services/api";
 import { API_ENDPOINTS } from "../constants";
-import { User } from "../types";
+import { useAuth } from "../context/AuthContext";
 import { Save, Loader2, CheckCircle2, AlertCircle, Send, ExternalLink, Check } from "lucide-react";
 
 interface TenantSettings {
@@ -16,7 +16,7 @@ const Settings: React.FC = () => {
     timezone: "Europe/Moscow",
     invoice_required: false,
   });
-  const [user, setUser] = useState<User | null>(null);
+  const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tgLinkCode, setTgLinkCode] = useState<string | null>(null);
@@ -25,11 +25,6 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     fetchSettings();
-    // Load user info from localStorage
-    const userInfo = getUserInfo();
-    if (userInfo) {
-      setUser(userInfo);
-    }
   }, []);
 
   const fetchSettings = async () => {
@@ -107,13 +102,8 @@ const Settings: React.FC = () => {
     setMessage(null);
     try {
       await unlinkTelegram();
-      // Update local user state
-      if (user) {
-        const updatedUser = { ...user, tg_user_id: null };
-        setUser(updatedUser);
-        // Update localStorage
-        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
-      }
+      // Refresh user profile to get updated tg_user_id
+      await refreshUser();
       setMessage({ type: "success", text: "Telegram отключен" });
     } catch (error: any) {
       setMessage({ type: "error", text: error.message || "Ошибка отключения" });
@@ -121,6 +111,21 @@ const Settings: React.FC = () => {
       setTgLoading(false);
     }
   };
+
+  // Refresh user profile when returning from Telegram bot window
+  useEffect(() => {
+    const handleFocus = () => {
+      // Only refresh if user has generated a link code (indicating they're in linking flow)
+      if (tgLinkCode) {
+        refreshUser().catch(() => {
+          // Silently fail - user will see updated state on next action
+        });
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [tgLinkCode, refreshUser]);
 
   if (loading) {
     return (

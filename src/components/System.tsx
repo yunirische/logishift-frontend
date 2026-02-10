@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import api, { getSubscription, getAnalyticsUsage, getUserInfo, unlinkTelegram } from "../services/api";
+import api, { getSubscription, getAnalyticsUsage, unlinkTelegram } from "../services/api";
 import { API_ENDPOINTS } from "../constants";
+import { useAuth } from "../context/AuthContext";
 import { Save, Loader2, CheckCircle2, AlertCircle, CreditCard, BarChart3, Calendar, ExternalLink, Send } from "lucide-react";
 import SecurityCard from "./common/SecurityCard";
-import { SubscriptionInfo, AnalyticsUsage, User } from "../types";
+import { SubscriptionInfo, AnalyticsUsage } from "../types";
 
 interface TenantSettings {
   name: string;
@@ -22,17 +23,12 @@ const System: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const { user, refreshUser } = useAuth();
   const [tgLinkCode, setTgLinkCode] = useState<string | null>(null);
   const [tgLoading, setTgLoading] = useState(false);
 
   useEffect(() => {
     fetchSystemData();
-    // Load user info from localStorage
-    const userInfo = getUserInfo();
-    if (userInfo) {
-      setUser(userInfo);
-    }
   }, []);
 
   const fetchSystemData = async () => {
@@ -114,11 +110,8 @@ const System: React.FC = () => {
     setMessage(null);
     try {
       await unlinkTelegram();
-      if (user) {
-        const updatedUser = { ...user, tg_user_id: null };
-        setUser(updatedUser);
-        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
-      }
+      // Refresh user profile to get updated tg_user_id
+      await refreshUser();
       setMessage({ type: "success", text: "Telegram отключен" });
     } catch (error: any) {
       setMessage({ type: "error", text: error.message || "Ошибка отключения" });
@@ -126,6 +119,21 @@ const System: React.FC = () => {
       setTgLoading(false);
     }
   };
+
+  // Refresh user profile when returning from Telegram bot window
+  useEffect(() => {
+    const handleFocus = () => {
+      // Only refresh if user has generated a link code (indicating they're in linking flow)
+      if (tgLinkCode) {
+        refreshUser().catch(() => {
+          // Silently fail - user will see updated state on next action
+        });
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [tgLinkCode, refreshUser]);
 
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return "Не ограничено";
