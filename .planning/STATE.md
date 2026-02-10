@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Milestone: v1.5 Analytics Dashboard - SHIPPED 2026-02-01
-Phase: Quick Tasks - Theme polish completed
-Plan: 003 (Industrial Polish Unified Quotas Demo PE) - Complete
+Phase: Quick Tasks - Integration polish completed
+Plan: 004 (Deep Integration: Telegram, Demo State, Sidebar Isolation) - Complete
 Status: ✅ Quick task complete, ready for v1.6 planning
-Last activity: 2026-02-10 — Executed quick-003 with interactive demo feedback and Navy-900 theme consistency
+Last activity: 2026-02-10 — Executed quick-004 with Telegram alreadyLinked handling, demo shift state forcing, sidebar isolation, Navy-900 theme
 
-Progress: [██████████] 100% (v1.5 complete + 3 quick tasks, 3 milestones total shipped)
+Progress: [██████████] 100% (v1.5 complete + 4 quick tasks, 3 milestones total shipped)
 
 ## Performance Metrics
 
@@ -131,6 +131,14 @@ Recent decisions affecting current work:
 - [quick-003]: Demo mode uses state machine transitions: idle → awaiting_odo_start → active → awaiting_odo_end → awaiting_invoice → finished
 - [quick-003]: Toast notifications positioned at bottom-20 for mobile-friendly visibility with 2-second auto-dismiss
 - [quick-003]: Tenant ID 999 triggers demo mode behavior with state-driven UI and interactive feedback
+
+**Quick Task 004 Decisions:**
+- [quick-004]: Check API response for alreadyLinked flag before assuming new code generation in Telegram linking
+- [quick-004]: Demo mode forces immediate state updates with mock shift objects stored in localStorage
+- [quick-004]: Sidebar filters tabs based on isDemoDriverMode (tenant 999 + driver persona)
+- [quick-004]: Complete Navy-900 theme application across all buttons (LoginView, ErrorBoundary, App.tsx)
+- [quick-004]: Amber-500 for trial subscription status to distinguish from active (green) and expired (red)
+
 - [Phase quick]: Navy-900 (#0a192f) established as primary theme color with #152238 hover and #1e293b gradient end
 - [Phase quick]: Amber-500 designated for demo-specific UI elements (persona switcher, badges)
 - [Phase quick]: Focus rings consistently use focus:ring-[#0a192f]/20 pattern across all interactive elements
@@ -150,12 +158,11 @@ None yet.
 | 001 | Smart invite links with auto-fill and password UX | 2026-02-01 | d34868f | [001-smart-invite-links](./quick/001-smart-invite-links/) |
 | 002 | Telegram connection sync with profile refresh | 2026-02-10 | 701db64 | [002-telegram-connection-sync](./quick/2-telegram-connection-sync-with-profile-re/) |
 | 003 | Industrial polish: unified quotas, demo persona, Navy-900 theme | 2026-02-10 | c5c6515 | [003-industrial-polish](./quick/3-industrial-polish-unified-quotas-demo-pe/) |
-| 002 | Telegram connection sync with profile refresh | 2026-02-10 | 701db64 | [002-telegram-connection-sync](./quick/2-telegram-connection-sync-with-profile-re/) |
-| 003 | Industrial polish with unified quotas, demo persona, Navy theme | 2026-02-10 | f8a8416, 5819c21 | [003-industrial-polish](./quick/3-industrial-polish-unified-quotas-demo-pe/) |
+| 004 | Deep integration: Telegram alreadyLinked, demo state forcing, sidebar isolation | 2026-02-10 | 5cfd373, 87efe8b, 5e565f3, e6d4a32, d376679 | [004-deep-integration](./quick/4-deep-integration-telegram-interaction-fi/) |
 
 ## Session Continuity
 
-Last session: 2026-02-10T15:12:00Z
-Stopped at: Completed quick-003 execution with demo feedback and Navy-900 theme
+Last session: 2026-02-10T15:31:00Z
+Stopped at: Completed quick-004 execution with Telegram alreadyLinked handling, demo shift state forcing, sidebar isolation
 Resume file: None
 Next: /gsd:new-milestone to plan v1.6 or continue with additional quick tasks
