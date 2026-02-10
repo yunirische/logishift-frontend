@@ -91,10 +91,8 @@ const Dashboard: React.FC = () => {
   // Track if getCurrentShift has completed (for sync state detection)
   // Start as false so loading state shows first, then recovery if needed
   const [shiftCheckComplete, setShiftCheckComplete] = useState(false);
-  const [needsRecovery, setNeedsRecovery] = useState(false);
 
   // Loading state: show spinner until shift check is complete
-  // Then show recovery state if needed, or normal UI
   const isLoading = loading || !shiftCheckComplete;
 
   // Use ref to store start time and prevent timer re-creation
@@ -163,12 +161,10 @@ const Dashboard: React.FC = () => {
         if (shiftRes) {
           // If we have a shift, use its status
           realStateInDb = shiftRes.status as DriverState;
-          setNeedsRecovery(false);
         } else {
           // No shift found - API returned 200 OK with null (valid state, no active shift)
           // Immediately reset to idle, no recovery needed
           realStateInDb = DriverState.IDLE;
-          setNeedsRecovery(false);
         }
 
         // Sync state to localStorage if different
@@ -423,29 +419,6 @@ const Dashboard: React.FC = () => {
   const renderDriverUI = () => {
     const state = currentUser?.current_state || DriverState.IDLE;
 
-    // Show recovery state if:
-    // - Shift check is complete
-    // - We detected a state mismatch (needsRecovery=true)
-    // - No active shift exists
-    if (shiftCheckComplete && needsRecovery && !activeShift) {
-      return (
-        <div className="text-center py-10 animate-in zoom-in-95">
-          <div className="w-32 h-32 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-8 shadow-inner">
-            <Clock size={64} className="text-amber-500 animate-spin-slow" />
-          </div>
-          <h2 className="text-2xl font-semibold text-[#1B254B] mb-4">
-            Синхронизация...
-          </h2>
-          <p className="text-slate-400 mb-10 max-w-xs mx-auto font-medium">
-            Обнаружено рассинхрон. Состояние сбрасывается в режим отдыха.
-          </p>
-          <div className="flex justify-center">
-            <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </div>
-      );
-    }
-
     if (state === DriverState.IDLE) {
       if (step === "idle") {
         return (
@@ -549,7 +522,6 @@ const Dashboard: React.FC = () => {
                       // Wait for refreshStatus to confirm the shift before resetting step
                       await refreshStatus();
                       setStep("idle");
-                      setNeedsRecovery(false);
                     })
                   }
                   className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm hover:border-[#0a192f] text-left flex items-center justify-between group transition-all"
