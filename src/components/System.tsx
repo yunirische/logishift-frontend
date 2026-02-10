@@ -90,6 +90,15 @@ const System: React.FC = () => {
     setMessage(null);
     try {
       const result = await api.get(API_ENDPOINTS.AUTH_LINK_TOKEN);
+
+      // Check if already linked
+      if (result.alreadyLinked) {
+        setMessage({ type: "success", text: "Ваш аккаунт уже связан с Telegram." });
+        // Immediately refresh user profile to update UI
+        await refreshUser();
+        return;
+      }
+
       setTgLinkCode(result.code);
     } catch (error: any) {
       setMessage({ type: "error", text: error.message || "Ошибка генерации ссылки" });
