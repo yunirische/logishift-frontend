@@ -16,6 +16,7 @@ import {
   Camera,
   Flag,
 } from "lucide-react";
+import { DriverView } from "../views/DriverView";
 
 // Dynamic import for manual shift modal
 const ManualShiftModal = React.lazy(() => import("./ManualShiftModal"));
@@ -416,6 +417,13 @@ const Dashboard: React.FC = () => {
   }
 
   // === DRIVER VIEW ===
+  // For drivers, use standard DriverView component (single source of truth)
+  if (!isAdminView) {
+    return <DriverView />;
+  }
+
+  // Legacy driver UI removed - use standard DriverView component
+  // This ensures single source of truth for driver experience across all modes
   const renderDriverUI = () => {
     const state = currentUser?.current_state || DriverState.IDLE;
 
