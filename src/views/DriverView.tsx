@@ -17,13 +17,13 @@ import { API_ENDPOINTS } from "../constants";
 import { DriverState } from "../types";
 
 export const DriverView = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [activeShift, setActiveShift] = useState<any>(null);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
-  const [toast, setToast] = useState<{show: boolean; message: string}>({show: false, message: ''});
+  const [toast, setToast] = useState<{show: boolean; message: string; type?: 'success' | 'error'}>({show: false, message: '', type: 'success'});
 
   const [selectedTruck, setSelectedTruck] = useState<string>("");
   const [selectedSite, setSelectedSite] = useState<string>("");
@@ -87,26 +87,30 @@ export const DriverView = () => {
           ? DriverState.AWAITING_ODO_START
           : DriverState.ACTIVE;
 
-        // Update user state
+        // Update user state via refreshUser to sync with AuthContext
         const updatedUser = { ...user, current_state: nextState };
         localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+        await refreshUser();
 
-        setToast({ show: true, message: "✅ Смена открыта" });
-        setTimeout(() => setToast({ show: false, message: '' }), 2000);
+        setToast({ show: true, message: "✅ Смена открыта", type: 'success' });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2000);
         setLoading(false);
         return;
       }
 
       // Production mode: normal API call
-      const response = await api.post("/shifts/start", {
+      await api.post("/shifts/start", {
         truck_id: selectedTruck,
         site_id: selectedSite,
       });
 
-      // Re-fetch data
+      // Re-fetch data and refresh user state
       await initData();
+      await refreshUser();
     } catch (e: any) {
-      alert(e.response?.data?.error || "Ошибка старта");
+      const errorMsg = e.response?.data?.error || e.message || "Ошибка старта";
+      setToast({ show: true, message: `❌ ${errorMsg}`, type: 'error' });
+      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
       setLoading(false);
     }
   };
@@ -120,12 +124,13 @@ export const DriverView = () => {
         setActiveShift(null);
         localStorage.removeItem('logishift_active_shift');
 
-        // Update user state back to idle
+        // Update user state back to idle via refreshUser
         const updatedUser = { ...user, current_state: DriverState.IDLE };
         localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+        await refreshUser();
 
-        setToast({ show: true, message: "✅ Смена завершена" });
-        setTimeout(() => setToast({ show: false, message: '' }), 2000);
+        setToast({ show: true, message: "✅ Смена завершена", type: 'success' });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2000);
         setLoading(false);
         return;
       }
@@ -133,10 +138,13 @@ export const DriverView = () => {
       // Production mode: normal API call
       await api.post("/shifts/end", {});
 
-      // Re-fetch data
+      // Re-fetch data and refresh user state
       await initData();
+      await refreshUser();
     } catch (e: any) {
-      alert(e.response?.data?.error || "Ошибка завершения");
+      const errorMsg = e.response?.data?.error || e.message || "Ошибка завершения";
+      setToast({ show: true, message: `❌ ${errorMsg}`, type: 'error' });
+      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
       setLoading(false);
     }
   };
@@ -144,6 +152,12 @@ export const DriverView = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
     const formData = new FormData();
     formData.append("photo", file);
     setLoading(true);
@@ -157,12 +171,8 @@ export const DriverView = () => {
         body: formData,
       });
 
-      // Demo mode: show success toast and advance state
+      // Demo mode: advance state machine
       if (user?.tenant_id === 999) {
-        setToast({ show: true, message: "✅ Действие выполнено" });
-        setTimeout(() => setToast({ show: false, message: '' }), 2000);
-
-        // Advance state machine
         const currentState = user?.current_state;
         let nextState: DriverState;
 
@@ -180,15 +190,28 @@ export const DriverView = () => {
             nextState = DriverState.ACTIVE;
         }
 
-        // Update local user state
+        // Update user state via refreshUser to sync with AuthContext
         const updatedUser = { ...user, current_state: nextState };
         localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+        await refreshUser();
+
+        setToast({ show: true, message: "✅ Фото загружено", type: 'success' });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2000);
+      } else {
+        // Production mode
+        setToast({ show: true, message: "✅ Фото загружено", type: 'success' });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2000);
       }
 
       // Re-fetch data instead of full page reload
       await initData();
+      if (!user?.tenant_id || user.tenant_id !== 999) {
+        await refreshUser();
+      }
     } catch (err: any) {
-      alert(err.response?.data?.error || "Ошибка загрузки фото");
+      const errorMsg = err.response?.data?.error || err.message || "Ошибка загрузки фото";
+      setToast({ show: true, message: `❌ ${errorMsg}`, type: 'error' });
+      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
       setLoading(false);
     }
   };
@@ -425,8 +448,14 @@ export const DriverView = () => {
       {/* Toast Notification */}
       {toast.show && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4">
-          <div className="bg-[#0a192f] text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
-            <CheckCircle2 size={18} className="text-green-400" />
+          <div className={`px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+            toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-[#0a192f] text-white'
+          }`}>
+            {toast.type === 'error' ? (
+              <AlertCircle size={18} className="text-white" />
+            ) : (
+              <CheckCircle2 size={18} className="text-green-400" />
+            )}
             <span className="text-sm font-medium">{toast.message}</span>
           </div>
         </div>
