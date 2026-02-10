@@ -13,7 +13,7 @@ Milestone: v1.5 Analytics Dashboard - SHIPPED 2026-02-01
 Phase: Quick Tasks - Theme polish completed
 Plan: 003 (Industrial Polish Unified Quotas Demo PE) - Complete
 Status: ✅ Quick task complete, ready for v1.6 planning
-Last activity: 2026-02-10 — Completed quick-003 industrial polish with unified navy-900 theme consistency
+Last activity: 2026-02-10 — Executed quick-003 with interactive demo feedback and Navy-900 theme consistency
 
 Progress: [██████████] 100% (v1.5 complete + 3 quick tasks, 3 milestones total shipped)
 
@@ -128,6 +128,9 @@ Recent decisions affecting current work:
 - [quick-003]: Navy-900 (#0a192f) established as primary theme color with #152238 hover and #1e293b gradient end
 - [quick-003]: Amber-500 designated for demo-specific UI elements (persona switcher, badges)
 - [quick-003]: Focus rings consistently use focus:ring-[#0a192f]/20 pattern across all interactive elements
+- [quick-003]: Demo mode uses state machine transitions: idle → awaiting_odo_start → active → awaiting_odo_end → awaiting_invoice → finished
+- [quick-003]: Toast notifications positioned at bottom-20 for mobile-friendly visibility with 2-second auto-dismiss
+- [quick-003]: Tenant ID 999 triggers demo mode behavior with state-driven UI and interactive feedback
 - [Phase quick]: Navy-900 (#0a192f) established as primary theme color with #152238 hover and #1e293b gradient end
 - [Phase quick]: Amber-500 designated for demo-specific UI elements (persona switcher, badges)
 - [Phase quick]: Focus rings consistently use focus:ring-[#0a192f]/20 pattern across all interactive elements
@@ -146,11 +149,11 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 001 | Smart invite links with auto-fill and password UX | 2026-02-01 | d34868f | [001-smart-invite-links](./quick/001-smart-invite-links/) |
 | 002 | Telegram connection sync with profile refresh | 2026-02-10 | 701db64 | [002-telegram-connection-sync](./quick/2-telegram-connection-sync-with-profile-re/) |
-| 003 | Industrial polish with unified navy-900 theme consistency | 2026-02-10 | N/A | [003-industrial-polish](./quick/3-industrial-polish-unified-quotas-demo-pe/) |
+| 003 | Industrial polish with unified quotas, demo persona, Navy theme | 2026-02-10 | f8a8416, 5819c21 | [003-industrial-polish](./quick/3-industrial-polish-unified-quotas-demo-pe/) |
 
 ## Session Continuity
 
-Last session: 2026-02-10T14:57:49Z
-Stopped at: Completed quick-003 Industrial Polish Unified Quotas Demo PE
+Last session: 2026-02-10T15:12:00Z
+Stopped at: Completed quick-003 execution with demo feedback and Navy-900 theme
 Resume file: None
 Next: /gsd:new-milestone to plan v1.6 or continue with additional quick tasks
