@@ -23,6 +23,7 @@ export const DriverView = () => {
   const [activeShift, setActiveShift] = useState<any>(null);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
+  const [shiftHistory, setShiftHistory] = useState<any[]>([]);
   const [toast, setToast] = useState<{show: boolean; message: string; type?: 'success' | 'error'}>({show: false, message: '', type: 'success'});
 
   const [selectedTruck, setSelectedTruck] = useState<string>("");
@@ -42,12 +43,15 @@ export const DriverView = () => {
       } else {
         // Если смены нет — обнуляем стейт и грузим списки выборасч
         setActiveShift(null);
-        const [trucksRes, sitesRes] = await Promise.all([
+        const [trucksRes, sitesRes, historyRes] = await Promise.all([
           api.get("/trucks"),
           api.get("/sites"),
+          // Fetch shift history: completed shifts for current user, limit 10
+          api.get("/shifts?driver_id=" + user?.id + "&status=completed&limit=10").catch(() => []),
         ]);
         setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
         setSites(Array.isArray(sitesRes) ? sitesRes : []);
+        setShiftHistory(Array.isArray(historyRes) ? historyRes : []);
       }
     } catch (e) {
       console.error("Ошибка загрузки данных:", e);
@@ -369,6 +373,40 @@ export const DriverView = () => {
               </Card>
             );
           })()}
+
+          {/* Shift History */}
+          {shiftHistory.length > 0 && (
+            <Card className="p-5 border border-slate-200 shadow-sm bg-white">
+              <h3 className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+                <Clock size={16} />
+                Мои последние смены
+              </h3>
+              <div className="space-y-3">
+                {shiftHistory.slice(0, 5).map((shift) => (
+                  <div key={shift.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Truck size={14} className="text-slate-400" />
+                        <span className="text-sm font-bold text-slate-700">
+                          {shift.truck?.name || shift.truck_name || '—'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        {shift.created_at ? new Date(shift.created_at).toLocaleDateString('ru-RU', {
+                          day: 'numeric',
+                          month: 'short'
+                        }) : '—'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <MapPin size={12} />
+                      <span>{shift.site?.name || shift.site_name || '—'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
           <Button
             onClick={handleStart}
