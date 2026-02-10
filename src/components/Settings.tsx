@@ -85,7 +85,7 @@ const Settings: React.FC = () => {
     setTgLoading(true);
     setMessage(null);
     try {
-      const result = await api.getTelegramLinkCode();
+      const result = await api.get(API_ENDPOINTS.AUTH_LINK_TOKEN);
       setTgLinkCode(result.code);
     } catch (error: any) {
       setMessage({ type: "error", text: error.message || "Ошибка генерации ссылки" });
@@ -96,8 +96,8 @@ const Settings: React.FC = () => {
 
   const openTelegramBot = () => {
     if (tgLinkCode) {
-      // Open Telegram bot with the link code
-      window.open(`https://t.me/kontrolsmen_bot?start=link_${tgLinkCode}`, '_blank');
+      // Open Telegram bot with the link code (GSD spec format)
+      window.open(`https://t.me/kontrol_smen_bot?start=${tgLinkCode}`, '_blank');
     }
   };
 
@@ -199,7 +199,7 @@ const Settings: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-700">
-                        ✅ Ваш аккаунт связан с Telegram (ID: <span className="font-mono">{user.tg_user_id}</span>)
+                        ✅ Связано с Telegram (ID: <span className="font-mono">{user.tg_user_id}</span>)
                       </p>
                     </div>
                   </div>

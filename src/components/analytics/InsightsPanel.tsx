@@ -222,7 +222,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
               {underutilizedResources.trucks.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-amber-800 mb-1">
-                    Грузовики:
+                    Грузовики (простаивает более 70% парка):
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {underutilizedResources.trucks.map((truck, idx) => (
@@ -239,7 +239,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ days }) => {
               {underutilizedResources.sites.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-amber-800 mb-1">
-                    Объекты:
+                    Объекты (простаивает более 70% парка):
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {underutilizedResources.sites.map((site, idx) => (

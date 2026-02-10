@@ -6,7 +6,8 @@
       "Bash(npm run build:*)",
       "Bash(git push)",
       "Bash(npx vite-bundle-visualizer:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

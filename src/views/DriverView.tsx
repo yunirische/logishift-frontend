@@ -64,12 +64,22 @@ export const DriverView = () => {
     if (!selectedTruck || !selectedSite) return;
     setLoading(true);
     try {
-      await api.post("/shifts/start", {
+      const response = await api.post("/shifts/start", {
         truck_id: selectedTruck,
         site_id: selectedSite,
       });
-      // Re-fetch data instead of full page reload
-      await initData();
+
+      // Demo mode: immediately update user state to active for tenant_id === 999
+      if (user?.tenant_id === 999) {
+        // Update local user state
+        const updatedUser = { ...user, current_state: 'active' };
+        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+        // Update context by re-fetching user data
+        await initData();
+      } else {
+        // Production mode: re-fetch data
+        await initData();
+      }
     } catch (e: any) {
       alert(e.response?.data?.error || "Ошибка старта");
       setLoading(false);
