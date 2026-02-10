@@ -233,14 +233,14 @@ const System: React.FC = () => {
                   subscription?.status === 'active'
                     ? 'bg-green-100 text-green-800'
                     : subscription?.status === 'trial'
-                    ? 'bg-blue-100 text-blue-800'
+                    ? 'bg-amber-100 text-amber-800'
                     : 'bg-red-100 text-red-800'
                 }`}>
                   <div className={`w-2 h-2 rounded-full ${
                     subscription?.status === 'active'
                       ? 'bg-green-500'
                       : subscription?.status === 'trial'
-                      ? 'bg-blue-500'
+                      ? 'bg-amber-500'
                       : 'bg-red-500'
                   }`} />
                   <span className="text-sm font-bold">

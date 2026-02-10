@@ -222,7 +222,7 @@ export const DriverView = () => {
             className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
               !activeShift || user?.current_state === "idle"
                 ? "bg-slate-200 text-slate-500"
-                : "bg-blue-100 text-blue-700"
+                : "bg-[#0a192f]/10 text-[#0a192f]"
             }`}
           >
             {!activeShift || user?.current_state === "idle"
@@ -253,7 +253,7 @@ export const DriverView = () => {
                   onClick={() => setSelectedTruck(t.id)}
                   className={`p-3 rounded-lg border-2 transition-all ${
                     selectedTruck === t.id
-                      ? "border-blue-500 bg-blue-50"
+                      ? "border-[#0a192f] bg-[#0a192f]/5"
                       : "border-slate-100"
                   }`}
                 >
@@ -261,7 +261,7 @@ export const DriverView = () => {
                     size={18}
                     className={`mb-1 ${
                       selectedTruck === t.id
-                        ? "text-blue-600"
+                        ? "text-[#0a192f]"
                         : "text-slate-400"
                     }`}
                   />
@@ -287,14 +287,14 @@ export const DriverView = () => {
                   onClick={() => setSelectedSite(s.id)}
                   className={`p-4 rounded-lg border flex items-center gap-3 transition-all ${
                     selectedSite === s.id
-                      ? "border-blue-500 bg-blue-50"
+                      ? "border-[#0a192f] bg-[#0a192f]/5"
                       : "border-slate-100"
                   }`}
                 >
                   <MapPin
                     size={18}
                     className={
-                      selectedSite === s.id ? "text-blue-600" : "text-slate-400"
+                      selectedSite === s.id ? "text-[#0a192f]" : "text-slate-400"
                     }
                   />
                   <span className="text-sm font-bold text-slate-700">
@@ -308,7 +308,7 @@ export const DriverView = () => {
           <Button
             onClick={handleStart}
             disabled={!selectedTruck || !selectedSite}
-            className="w-full py-4 bg-blue-600 text-white font-semibold text-lg shadow-xl shadow-blue-100 disabled:opacity-30"
+            className="w-full py-4 bg-[#0a192f] text-white font-semibold text-lg shadow-xl shadow-[#0a192f]/20 disabled:opacity-30"
             isLoading={loading}
           >
             <Play size={20} fill="currentColor" className="mr-2" />
@@ -320,7 +320,7 @@ export const DriverView = () => {
         <div className="space-y-4">
           <Card className="p-5 border-none shadow-sm bg-white">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-blue-600">
+              <div className="flex items-center gap-2 text-[#0a192f]">
                 <Clock size={18} />
                 <span className="font-semibold text-sm uppercase">
                   Смена #{activeShift.id}
