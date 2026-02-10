@@ -41,7 +41,8 @@ All 7 phases of the analytics dashboard have been successfully implemented:
 | 003 | Industrial polish: unified quotas, demo persona, Navy-900 theme | ✅ Complete | [003-industrial-polish](./quick/3-industrial-polish-unified-quotas-demo-pe/) |
 | 004 | Deep integration: Telegram interaction fix, demo state machine realism, sidebar isolation | ✅ Complete | [4-PLAN.md](./quick/4-deep-integration-telegram-interaction-fi/4-PLAN.md) |
 | 005 | Auth Fix & Quota Sync - Fix 404 on /users/me endpoint and sync Settings.tsx quota with Analytics | ✅ Complete | [005-PLAN.md](./quick/5-auth-fix-quota-sync-fix-404-on-users-me-/005-PLAN.md) |
-| 006 | Driver UX Overhaul & Final Sync: Fix crash & quota sync, professional driver view, demo mode realism, visual cleanup | 📋 Planned | [6-PLAN.md](./quick/6-driver-ux-overhaul-final-sync-fix-crash-/6-PLAN.md) |
+| 006 | Driver UX Overhaul & Final Sync: Fix crash & quota sync, professional driver view, demo mode realism, visual cleanup | ✅ Complete | [6-PLAN.md](./quick/6-driver-ux-overhaul-final-sync-fix-crash-/6-PLAN.md) |
+| 007 | Fix Dashboard stats, unify Navy-900 theme, verify version string | 📋 Planned | [7-PLAN.md](./quick/7-fix-dashboard-stats-unify-driver-ui-refi/7-PLAN.md) |
 
 *For detailed archive of completed milestones, see `.planning/milestones/`*
 *For current project status, see `.planning/PROJECT.md` and `.planning/STATE.md`*
