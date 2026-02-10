@@ -236,91 +236,101 @@ export const DriverView = () => {
       />
 
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800">
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             Привет, {user?.full_name}
           </h1>
-          <span
-            className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
-              !activeShift || user?.current_state === "idle"
-                ? "bg-slate-200 text-slate-500"
-                : "bg-[#0a192f]/10 text-[#0a192f]"
-            }`}
-          >
-            {!activeShift || user?.current_state === "idle"
-              ? "Вне смены"
-              : "В процессе"}
-          </span>
+          <div className="mt-2">
+            <span
+              className={`inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full ${
+                !activeShift || user?.current_state === "idle"
+                  ? "bg-slate-100 text-slate-500"
+                  : "bg-emerald-50 text-emerald-600"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full mr-2 ${
+                !activeShift || user?.current_state === "idle"
+                  ? "bg-slate-400"
+                  : "bg-emerald-500 animate-pulse"
+              }`}></span>
+              {!activeShift || user?.current_state === "idle"
+                ? "Вне смены"
+                : "В процессе"}
+            </span>
+          </div>
         </div>
         <button
           onClick={logout}
-          className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+          className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+          aria-label="Выйти"
         >
-          <LogOut size={20} />
+          <LogOut size={22} />
         </button>
       </div>
 
       {/* ГЛАВНАЯ ЛОГИКА ЭКРАНОВ */}
       {!activeShift || user?.current_state === "idle" ? (
         // --- ЭКРАН 1: ВЫБОР (Если смены нет в БД или статус idle) ---
-        <div className="space-y-4">
-          <Card className="p-4 border-none shadow-sm">
-            <h3 className="text-[10px] font-semibold text-slate-400 mb-3 uppercase tracking-widest">
+        <div className="space-y-5">
+          <Card className="p-5 border border-slate-200 shadow-sm bg-white">
+            <h3 className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+              <Truck size={16} />
               Выберите транспорт
             </h3>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {trucks.map((t) => (
                 <div
                   key={t.id}
                   onClick={() => setSelectedTruck(t.id)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all active:scale-95 min-h-[88px] flex flex-col justify-center ${
                     selectedTruck === t.id
-                      ? "border-[#0a192f] bg-[#0a192f]/5"
-                      : "border-slate-100"
+                      ? "border-[#0a192f] bg-[#0a192f]/5 shadow-md shadow-[#0a192f]/10"
+                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
                   <Truck
-                    size={18}
-                    className={`mb-1 ${
+                    size={20}
+                    className={`mb-2 ${
                       selectedTruck === t.id
                         ? "text-[#0a192f]"
                         : "text-slate-400"
                     }`}
                   />
-                  <div className="font-bold text-sm text-slate-700">
+                  <div className="font-bold text-base text-slate-800">
                     {t.name}
                   </div>
-                  <div className="text-[10px] text-slate-400">
-                    {t.plate || "Без номера"}
+                  <div className="text-xs text-slate-500 font-medium">
+                    {t.plate || t.plate_number || "Без номера"}
                   </div>
                 </div>
               ))}
             </div>
           </Card>
 
-          <Card className="p-4 border-none shadow-sm">
-            <h3 className="text-[10px] font-semibold text-slate-400 mb-3 uppercase tracking-widest">
+          <Card className="p-5 border border-slate-200 shadow-sm bg-white">
+            <h3 className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+              <MapPin size={16} />
               Выберите объект
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {sites.map((s) => (
                 <div
                   key={s.id}
                   onClick={() => setSelectedSite(s.id)}
-                  className={`p-4 rounded-lg border flex items-center gap-3 transition-all ${
+                  className={`p-4 rounded-xl border flex items-center gap-3 cursor-pointer transition-all active:scale-[0.98] min-h-[60px] ${
                     selectedSite === s.id
-                      ? "border-[#0a192f] bg-[#0a192f]/5"
-                      : "border-slate-100"
+                      ? "border-[#0a192f] bg-[#0a192f]/5 shadow-md shadow-[#0a192f]/10"
+                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
                   <MapPin
-                    size={18}
+                    size={20}
                     className={
                       selectedSite === s.id ? "text-[#0a192f]" : "text-slate-400"
                     }
                   />
-                  <span className="text-sm font-bold text-slate-700">
+                  <span className="text-base font-bold text-slate-800">
                     {s.name}
                   </span>
                 </div>
@@ -331,25 +341,25 @@ export const DriverView = () => {
           <Button
             onClick={handleStart}
             disabled={!selectedTruck || !selectedSite}
-            className="w-full py-4 bg-[#0a192f] text-white font-semibold text-lg shadow-xl shadow-[#0a192f]/20 disabled:opacity-30"
+            className="w-full py-5 bg-[#0a192f] hover:bg-[#152238] text-white font-bold text-xl shadow-xl shadow-[#0a192f]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
             isLoading={loading}
           >
-            <Play size={20} fill="currentColor" className="mr-2" />
+            <Play size={24} fill="currentColor" className="mr-3" />
             ОТКРЫТЬ СМЕНУ
           </Button>
         </div>
       ) : (
         // --- ЭКРАН 2: СМЕНА ОТКРЫТА (Работа или Фото) ---
-        <div className="space-y-4">
-          <Card className="p-5 border-none shadow-sm bg-white">
-            <div className="flex items-center justify-between mb-4">
+        <div className="space-y-5">
+          <Card className="p-6 border border-slate-200 shadow-md bg-white">
+            <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2 text-[#0a192f]">
-                <Clock size={18} />
-                <span className="font-semibold text-sm uppercase">
+                <Clock size={20} />
+                <span className="font-bold text-base uppercase tracking-tight">
                   Смена #{activeShift.id}
                 </span>
               </div>
-              <div className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+              <div className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
                 {activeShift.start_time
                   ? new Date(activeShift.start_time).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -359,29 +369,29 @@ export const DriverView = () => {
               </div>
             </div>
 
-            <div className="space-y-3 border-t border-slate-50 pt-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
-                  <Truck size={20} />
+            <div className="space-y-4 border-t border-slate-100 pt-5">
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 shrink-0">
+                  <Truck size={22} />
                 </div>
-                <div>
-                  <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-tighter">
+                <div className="flex-1">
+                  <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider mb-0.5">
                     Машина
                   </div>
-                  <div className="text-sm font-bold text-slate-700">
+                  <div className="text-base font-bold text-slate-800">
                     {activeShift.truck?.name || "---"}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400">
-                  <MapPin size={20} />
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 shrink-0">
+                  <MapPin size={22} />
                 </div>
-                <div>
-                  <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-tighter">
+                <div className="flex-1">
+                  <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider mb-0.5">
                     Объект
                   </div>
-                  <div className="text-sm font-bold text-slate-700">
+                  <div className="text-base font-bold text-slate-800">
                     {activeShift.site?.name || "---"}
                   </div>
                 </div>
@@ -392,33 +402,33 @@ export const DriverView = () => {
           {user?.current_state === "active" ? (
             // ПОД-ЭКРАН: ПРОСТО РАБОТА
             <div className="space-y-4">
-              <div className="p-4 bg-green-50 border border-green-100 rounded-lg flex items-center gap-3 text-green-700">
-                <CheckCircle2 size={24} />
-                <div>
-                  <div className="font-bold text-sm">Смена активна</div>
-                  <div className="text-[11px] opacity-80">
+              <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-4 text-emerald-800">
+                <CheckCircle2 size={28} className="shrink-0" />
+                <div className="flex-1">
+                  <div className="font-bold text-base">Смена активна</div>
+                  <div className="text-sm opacity-80 mt-0.5">
                     Вы можете завершить её в любой момент
                   </div>
                 </div>
               </div>
               <Button
                 onClick={handleEnd}
-                className="w-full py-5 bg-red-500 text-white font-semibold text-lg shadow-xl shadow-red-100"
+                className="w-full py-6 bg-red-500 hover:bg-red-600 text-white font-bold text-lg shadow-xl shadow-red-100 transition-all active:scale-[0.98]"
                 isLoading={loading}
               >
-                <Square size={18} fill="currentColor" className="mr-2" />
+                <Square size={20} fill="currentColor" className="mr-3" />
                 ЗАВЕРШИТЬ РАБОТУ
               </Button>
             </div>
           ) : (
             // ПОД-ЭКРАН: ТРЕБУЕТСЯ ФОТО
             <div className="space-y-4">
-              <div className="p-6 bg-orange-50 border border-orange-100 rounded-lg text-center">
-                <Camera size={40} className="mx-auto mb-3 text-orange-500" />
-                <h3 className="font-semibold text-orange-800 uppercase tracking-tight">
+              <div className="p-6 bg-orange-50 border border-orange-200 rounded-xl text-center">
+                <Camera size={48} className="mx-auto mb-4 text-orange-500" />
+                <h3 className="font-bold text-lg text-orange-900 uppercase tracking-tight mb-2">
                   Нужна фотография
                 </h3>
-                <p className="text-xs text-orange-600 mt-1 font-bold">
+                <p className="text-sm text-orange-700 font-medium leading-relaxed">
                   {user?.current_state === "awaiting_odo_start" &&
                     "Сфотографируйте одометр ПЕРЕД началом"}
                   {user?.current_state === "awaiting_odo_end" &&
@@ -429,16 +439,18 @@ export const DriverView = () => {
               </div>
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-8 bg-orange-500 text-white text-2xl font-semibold animate-pulse shadow-2xl shadow-orange-200 flex flex-col items-center gap-1"
+                className="w-full py-10 bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold animate-pulse shadow-2xl shadow-orange-200 flex flex-col items-center gap-2 transition-all active:scale-[0.98]"
                 isLoading={loading}
               >
-                <Camera size={32} />
+                <Camera size={36} />
                 ОТКРЫТЬ КАМЕРУ
               </Button>
-              <div className="flex items-start gap-2 p-4 text-slate-400 text-[10px] bg-white rounded-lg shadow-sm italic">
-                <AlertCircle size={14} className="shrink-0 text-orange-400" />
-                Убедитесь, что все данные на фото видны четко. Плохое качество
-                фото может стать причиной отклонения смены.
+              <div className="flex items-start gap-3 p-4 text-slate-500 text-xs bg-white rounded-lg border border-slate-200 shadow-sm">
+                <AlertCircle size={16} className="shrink-0 text-orange-500 mt-0.5" />
+                <span className="leading-relaxed">
+                  Убедитесь, что все данные на фото видны четко. Плохое качество
+                  фото может стать причиной отклонения смены.
+                </span>
               </div>
             </div>
           )}
