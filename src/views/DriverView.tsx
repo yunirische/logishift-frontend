@@ -14,6 +14,7 @@ import { Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
 import { API_ENDPOINTS } from "../constants";
+import { DriverState } from "../types";
 
 export const DriverView = () => {
   const { user, logout } = useAuth();
@@ -22,6 +23,7 @@ export const DriverView = () => {
   const [activeShift, setActiveShift] = useState<any>(null);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
+  const [toast, setToast] = useState<{show: boolean; message: string}>({show: false, message: ''});
 
   const [selectedTruck, setSelectedTruck] = useState<string>("");
   const [selectedSite, setSelectedSite] = useState<string>("");
@@ -69,11 +71,21 @@ export const DriverView = () => {
         site_id: selectedSite,
       });
 
-      // Demo mode: immediately update user state to active for tenant_id === 999
+      // Demo mode: show success toast and update state
       if (user?.tenant_id === 999) {
+        setToast({ show: true, message: "✅ Смена открыта" });
+        setTimeout(() => setToast({ show: false, message: '' }), 2000);
+
+        // Determine next state based on site requirements
+        const selectedSiteData = sites.find(s => s.id === selectedSite);
+        const nextState = selectedSiteData?.odometer_required
+          ? DriverState.AWAITING_ODO_START
+          : DriverState.ACTIVE;
+
         // Update local user state
-        const updatedUser = { ...user, current_state: 'active' };
+        const updatedUser = { ...user, current_state: nextState };
         localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+
         // Update context by re-fetching user data
         await initData();
       } else {
@@ -91,6 +103,13 @@ export const DriverView = () => {
     setLoading(true);
     try {
       await api.post("/shifts/end", {});
+
+      // Demo mode: show success toast
+      if (user?.tenant_id === 999) {
+        setToast({ show: true, message: "✅ Смена завершена" });
+        setTimeout(() => setToast({ show: false, message: '' }), 2000);
+      }
+
       // Re-fetch data instead of full page reload
       await initData();
     } catch (e: any) {
@@ -114,6 +133,35 @@ export const DriverView = () => {
         },
         body: formData,
       });
+
+      // Demo mode: show success toast and advance state
+      if (user?.tenant_id === 999) {
+        setToast({ show: true, message: "✅ Действие выполнено" });
+        setTimeout(() => setToast({ show: false, message: '' }), 2000);
+
+        // Advance state machine
+        const currentState = user?.current_state;
+        let nextState: DriverState;
+
+        switch (currentState) {
+          case DriverState.AWAITING_ODO_START:
+            nextState = DriverState.ACTIVE;
+            break;
+          case DriverState.AWAITING_ODO_END:
+            nextState = DriverState.AWAITING_INVOICE;
+            break;
+          case DriverState.AWAITING_INVOICE:
+            nextState = DriverState.IDLE;
+            break;
+          default:
+            nextState = DriverState.ACTIVE;
+        }
+
+        // Update local user state
+        const updatedUser = { ...user, current_state: nextState };
+        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+      }
+
       // Re-fetch data instead of full page reload
       await initData();
     } catch (err: any) {
@@ -348,6 +396,16 @@ export const DriverView = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4">
+          <div className="bg-[#0a192f] text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-green-400" />
+            <span className="text-sm font-medium">{toast.message}</span>
+          </div>
         </div>
       )}
     </div>
