@@ -322,14 +322,29 @@ const Settings: React.FC = () => {
               Использование ресурсов
             </label>
             <div className="bg-[#F4F7FE] rounded-lg p-6 border border-slate-100 space-y-4">
-              {usage ? (
+              {loading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="flex justify-between mb-2">
+                        <div className="h-4 bg-slate-200 rounded w-24"></div>
+                        <div className="h-4 bg-slate-200 rounded w-16"></div>
+                      </div>
+                      <div className="h-2 bg-slate-200 rounded-full w-full"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : usage ? (
                 <>
                   {renderUsageBar(usage.trucks.current, usage.trucks.limit, usage.trucks.utilization_percent, "Грузовики")}
                   {renderUsageBar(usage.drivers.current, usage.drivers.limit, usage.drivers.utilization_percent, "Водители")}
                   {renderUsageBar(usage.sites.current, usage.sites.limit, usage.sites.utilization_percent, "Объекты")}
                 </>
               ) : (
-                <p className="text-sm text-slate-500 text-center">Данные недоступны</p>
+                <div className="text-center py-4">
+                  <p className="text-sm text-slate-500">Данные недоступны</p>
+                  <p className="text-xs text-slate-400 mt-1">Возможно, аналитика отключена для вашего тарифа</p>
+                </div>
               )}
             </div>
           </div>
