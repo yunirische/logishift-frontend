@@ -5,46 +5,48 @@ type: execute
 wave: 1
 depends_on: []
 files_modified:
-  - src/components/Layout.tsx
   - src/components/System.tsx
-  - src/App.tsx
+  - src/components/Settings.tsx
+  - src/components/Layout.tsx
+  - src/pages/DriverView.tsx
+  - src/services/api.ts
 autonomous: true
 user_setup: []
 
 must_haves:
   truths:
-    - "Demo persona switcher uses consistent styling with amber-500 for active state"
-    - "Quota display uses unified navy-900 (#0a192f) theme across all components"
-    - "Header cards use from-[#0a192f] to-[#1e293b] gradient consistently"
-    - "Loading states use text-[#0a192f] or border-[#0a192f] consistently"
-    - "All focus rings use focus:ring-[#0a192f]/20 pattern"
+    - "Settings uses real-time /api/v1/analytics/usage for quota display"
+    - "Demo mode hides all Admin tabs except Dashboard and Switcher"
+    - "DriverView shows success toasts and advances state machine on demo actions"
+    - "Telegram card uses Navy-900 gradient instead of blue"
+    - "Sidebar shows 'v2.5 Stable' version"
   artifacts:
+    - path: "src/components/Settings.tsx"
+      provides: "Real-time quota usage from analytics API"
+      contains: "getAnalyticsUsage"
     - path: "src/components/Layout.tsx"
-      provides: "Demo persona switcher with consistent styling"
-      contains: "bg-amber-500 text-slate-900"
-    - path: "src/components/System.tsx"
-      provides: "Quota display with navy-900 theme"
-      contains: "from-[#0a192f] to-[#1e293b]"
-    - path: "src/App.tsx"
-      provides: "Selection styling with navy-900 theme"
-      contains: "selection:bg-[#0a192f]/10"
+      provides: "Conditional tab rendering for demo mode"
+      contains: "demoPersona.*admin tabs"
+    - path: "src/pages/DriverView.tsx"
+      provides: "Demo action feedback with toasts and state transitions"
+      contains: "toast.*success.*demo"
   key_links:
-    - from: "src/components/Layout.tsx"
-      to: "src/App.tsx"
-      via: "demoPersona state sharing"
-      pattern: "demoPersona.*setDemoPersona"
-    - from: "src/components/System.tsx"
+    - from: "src/components/Settings.tsx"
       to: "api.ts"
       via: "getAnalyticsUsage API call"
       pattern: "getAnalyticsUsage"
+    - from: "src/pages/DriverView.tsx"
+      to: "ui/toast"
+      via: "Success notifications"
+      pattern: "toast.*success"
 ---
 
 <objective>
-Industrial polish: unified navy-900 (#0a192f) theme consistency, demo persona switcher refinement, and quota display standardization.
+Industrial polish: unified quota data source, demo persona switcher with sidebar filtering, interactive demo feedback, Navy-900 theme consistency.
 
-Purpose: Ensure consistent visual branding across the application with navy-900 as the primary color, amber-500 for demo-specific elements, and unified header/card styling.
+Purpose: Fix quota data discrepancies, refine demo mode UX, ensure theme consistency across all components.
 
-Output: Polished UI with consistent theme colors, refined demo persona switcher, and standardized quota display.
+Output: Unified data source, polished demo mode with hidden admin tabs, interactive feedback, consistent Navy-900 branding.
 </objective>
 
 <execution_context>
@@ -54,9 +56,10 @@ Output: Polished UI with consistent theme colors, refined demo persona switcher,
 
 <context>
 @.planning/STATE.md
-@src/components/Layout.tsx
 @src/components/System.tsx
-@src/App.tsx
+@src/components/Settings.tsx
+@src/components/Layout.tsx
+@src/pages/DriverView.tsx
 @src/services/api.ts
 @src/types.ts
 </context>
@@ -64,85 +67,173 @@ Output: Polished UI with consistent theme colors, refined demo persona switcher,
 <tasks>
 
 <task type="auto">
-  <name>Task 1: Unify Navy-900 theme colors across System component</name>
-  <files>src/components/System.tsx</files>
+  <name>Task 1: Unify quota data source in Settings.tsx</name>
+  <files>src/components/Settings.tsx, src/services/api.ts</files>
   <action>
-    Review and standardize all navy-900 (#0a192f) theme colors in System.tsx:
+    Fix the quota data discrepancy by using real-time analytics data instead of static tenant info:
 
-    1. Header gradients: Ensure all use `from-[#0a192f] to-[#1e293b]`
-    2. Primary buttons: Use `bg-[#0a192f] hover:bg-[#152238]`
-    3. Focus rings: Use `focus:ring-[#0a192f]/20`
-    4. Text accents: Use `text-[#0a192f]` for emphasis
-    5. Shadows: Use `shadow-[#0a192f]/20` or `shadow-[#0a192f]/30`
+    1. In `src/services/api.ts`:
+       - Ensure `getAnalyticsUsage()` function exists and calls `GET /api/v1/analytics/usage`
+       - Returns usage data with trucks, drivers, sites counts
 
-    Specific changes:
-    - Line 187: Loader2 spin color should be `text-[#0a192f]`
-    - Lines 195, 208, 269, 391: Headers use `from-[#0a192f] to-[#1e293b]`
-    - Lines 259, 351, 465: Primary buttons use `bg-[#0a192f] hover:bg-[#152238]`
-    - Lines 369, 414, 430: Focus rings use `focus:ring-[#0a192f]/20`
+    2. In `src/components/Settings.tsx`:
+       - Add state for analytics usage: `const [usage, setUsage] = useState<UsageData | null>(null)`
+       - Add useEffect to fetch analytics usage on mount:
+         ```typescript
+         useEffect(() => {
+           const fetchUsage = async () => {
+             try {
+               const data = await getAnalyticsUsage();
+               setUsage(data);
+             } catch (error) {
+               console.error('Failed to fetch usage:', error);
+             }
+           };
+           fetchUsage();
+         }, []);
+         ```
+       - Replace static tenant.quota_trucks with `usage?.trucks?.count || 0`
+       - Replace static tenant.quota_drivers with `usage?.drivers?.count || 0`
+       - Replace static tenant.quota_sites with `usage?.sites?.count || 0`
+       - Keep limits from tenant.quota_trucks_max, etc.
 
-    Do NOT change the Telegram gradient (from-[#0088cc] to-[#0077b5]) as it uses brand colors.
+    This ensures Settings shows the same real-time data as Analytics dashboard.
   </action>
-  <verify>grep -n "#0a192f\|#152238\|#1e293b" src/components/System.tsx | wc -l shows consistent usage</verify>
-  <done>All navy-900 theme colors follow consistent pattern: #0a192f (primary), #152238 (hover), #1e293b (gradient end)</done>
+  <verify>Settings.tsx shows usage counts from analytics API matching Analytics dashboard</verify>
+  <done>Quota display uses real-time /api/v1/analytics/usage data source</done>
 </task>
 
 <task type="auto">
-  <name>Task 2: Refine demo persona switcher styling in Layout.tsx</name>
+  <name>Task 2: Implement demo persona sidebar logic in Layout.tsx</name>
   <files>src/components/Layout.tsx</files>
   <action>
-    Polish the demo persona switcher section (lines 206-247):
+    Hide Admin tabs when in Driver View (Demo Mode):
 
-    1. Active state: `bg-amber-500 text-slate-900 font-semibold`
-    2. Inactive state: `text-slate-400 hover:text-white hover:bg-slate-800`
-    3. Section label: Keep amber-500 for visibility (line 209)
-    4. Ensure transitions use `duration-200` for smooth switching
+    1. Define admin tab list that should be hidden in demo mode:
+       - Analytics
+       - Registry
+       - Personnel
+       - Fleet
+       - Objects
+       - System
 
-    The implementation already exists - verify and ensure:
-    - Active persona button uses amber-500 background
-    - Icons (UserCog, Truck) have consistent `w-5 h-5` sizing
-    - Secondary text uses uppercase tracking-wider styling
-    - No inconsistent colors or hover states
+    2. Modify sidebar rendering logic:
+       - When `demoPersona === 'driver'`, only render:
+         * Dashboard tab (renders DriverView)
+         * Demo Persona Switcher section
+       - When `demoPersona === 'admin'`, render all tabs normally
 
-    Keep existing implementation if it matches these patterns.
+    3. Style the Switcher button properly:
+       - Background: `bg-[#0a192f]` (Navy-900)
+       - Text/border: `text-amber-500 border-amber-500`
+       - Font: `font-mono` (JetBrains Mono)
+       - Size: Proportionate to other sidebar buttons
+       - Prevent overlap with Logout on small screens (add margin-bottom)
+
+    4. Update version label to "v2.5 Stable"
+
+    Implementation approach:
+    ```typescript
+    const adminTabs = ['analytics', 'registry', 'personnel', 'fleet', 'objects', 'system'];
+
+    // In sidebar render:
+    {demoPersona === 'driver' ? (
+      // Only show Dashboard + Switcher
+    ) : (
+      // Show all tabs including admin tabs
+    )}
+    ```
   </action>
-  <verify>grep -A 30 "Demo Persona Switcher" src/components/Layout.tsx shows consistent amber-500 and slate-800 usage</verify>
-  <done>Demo persona switcher has consistent amber-500 active state with proper transitions</done>
+  <verify>When demoPersona='driver', only Dashboard and Switcher are visible in sidebar</verify>
+  <done>Demo mode hides Admin tabs, shows only Dashboard and Persona Switcher</done>
 </task>
 
 <task type="auto">
-  <name>Task 3: Standardize loading and selection states in App.tsx</name>
-  <files>src/App.tsx</files>
+  <name>Task 3: Add interactive feedback to DriverView.tsx demo actions</name>
+  <files>src/pages/DriverView.tsx</files>
   <action>
-    Ensure consistent navy-900 theme for loading and selection states:
+    Add success toasts and state transitions for demo actions (tenant 999):
 
-    1. Selection styling (lines 159, 172): Keep `selection:bg-[#0a192f]/10 selection:text-[#0a192f]`
-    2. Loading spinners (lines 84, 146): Keep `border-[#0a192f] border-t-transparent`
-    3. Placeholder badge (line 75): Keep `bg-[#0a192f]/10 text-[#0a192f]`
+    1. When user performs a demo action (e.g., start shift, upload photo):
+       - Check if tenant_id is 999 (demo mode)
+       - If demo action succeeds:
+         * Show success toast: "✅ Действие выполнено"
+         * Manually advance state machine to next step
+         * Example: if currentState is 'idle', set to 'awaiting_odo_start'
 
-    Verify these patterns are consistent across the file.
-    No changes needed if already consistent - this is a verification task.
+    2. Use toast from UI library:
+       ```typescript
+       import { toast } from 'sonner' or similar
+
+       const handleDemoAction = async () => {
+         // ... perform action
+         if (user.tenant_id === 999) {
+           toast.success('✅ Действие выполнено');
+           setCurrentState(nextState);
+         }
+       };
+       ```
+
+    3. Ensure state transitions follow the shift state machine:
+       - idle → awaiting_odo_start
+       - awaiting_odo_start → active
+       - active → awaiting_odo_end
+       - awaiting_odo_end → awaiting_invoice
+       - awaiting_invoice → finished
+
+    This provides immediate feedback and simulates realistic workflow progression.
   </action>
-  <verify>grep -n "#0a192f" src/App.tsx shows consistent usage for loading spinners and selection</verify>
-  <done>Loading spinners and selection states use navy-900 consistently</done>
+  <verify>Demo actions show success toast and advance state machine correctly</verify>
+  <done>DriverView demo actions provide interactive feedback with toasts and state transitions</done>
+</task>
+
+<task type="auto">
+  <name>Task 4: Apply Navy-900 theme to Telegram card and verify consistency</name>
+  <files>src/components/System.tsx, src/components/Settings.tsx</files>
+  <action>
+    Ensure Navy-900 theme consistency:
+
+    1. In System.tsx Telegram card:
+       - Change header gradient from blue to Navy-900:
+         `from-[#0a192f] to-[#1e293b]`
+       - Remove any remaining `bg-indigo-600` or `text-indigo-600`
+       - Keep Telegram brand colors for the icon/logo only
+
+    2. Global check (use grep):
+       - Search for any remaining `bg-indigo-600` in components
+       - Search for any remaining `text-indigo-600` in components
+       - Replace with Navy-900 equivalents:
+         * `bg-indigo-600` → `bg-[#0a192f]`
+         * `text-indigo-600` → `text-[#0a192f]`
+         * `hover:bg-indigo-700` → `hover:bg-[#152238]`
+
+    3. Update sidebar version in Layout.tsx:
+       - Ensure version displays as "v2.5 Stable"
+
+    This completes the "Navy-900 Rule" - all branding uses consistent industrial navy palette.
+  </action>
+  <verify>grep -r "indigo-600" src/components/ returns no results (except comments)</verify>
+  <done>All components use Navy-900 theme, Telegram card updated, no indigo-600 remains</done>
 </task>
 
 </tasks>
 
 <verification>
-1. All navy-900 (#0a192f) theme colors follow consistent naming
-2. Hover states use #152238 (darker navy)
-3. Gradient ends use #1e293b (slate-800)
-4. Demo persona switcher uses amber-500 consistently
-5. Loading states use text-[#0a192f] or border-[#0a192f]
+1. Settings quota counts match Analytics dashboard (real-time data source)
+2. Demo mode (driver persona) hides all Admin tabs from sidebar
+3. DriverView demo actions show success toasts and advance state machine
+4. Telegram card uses Navy-900 gradient instead of blue
+5. No indigo-600 colors remain in components
+6. Sidebar shows "v2.5 Stable" version
+7. Persona Switcher button doesn't overlap with Logout on mobile
 </verification>
 
 <success_criteria>
-- Navy-900 theme is consistent across all components
-- Demo persona switcher has polished, consistent styling
-- Quota display uses unified header gradients
-- All focus rings follow the focus:ring-[#0a192f]/20 pattern
-- No inconsistent color variations remain
+- Quota data unified between Settings and Analytics views
+- Demo mode provides focused driver-only experience
+- Demo actions have clear visual feedback
+- Navy-900 theme is 100% consistent across all components
+- Version label correctly shows "v2.5 Stable"
 </success_criteria>
 
 <output>
