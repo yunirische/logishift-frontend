@@ -23,7 +23,7 @@ const DefaultErrorFallback: React.FC<{error: Error; resetError: () => void}> = (
       <div className="space-y-2">
         <button
           onClick={resetError}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="w-full px-4 py-2 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238] transition-colors"
         >
           Попробовать снова
         </button>

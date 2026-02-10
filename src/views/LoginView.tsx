@@ -59,8 +59,8 @@ export const LoginView = () => {
               <AlertCircle className="h-4 w-4" /> {error}
             </div>
           )}
-          <Button 
-            className="w-full bg-blue-600 text-white hover:bg-blue-700"
+          <Button
+            className="w-full bg-[#0a192f] text-white hover:bg-[#152238]"
             isLoading={loading}
           >
             Войти

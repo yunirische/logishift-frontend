@@ -56,7 +56,7 @@ const AppContent: React.FC = () => {
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={clearError}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full px-4 py-2 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238] transition-colors"
           >
             Попробовать снова
           </button>
