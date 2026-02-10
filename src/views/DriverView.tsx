@@ -68,7 +68,8 @@ export const DriverView = () => {
         truck_id: selectedTruck,
         site_id: selectedSite,
       });
-      window.location.reload();
+      // Re-fetch data instead of full page reload
+      await initData();
     } catch (e: any) {
       alert(e.response?.data?.error || "Ошибка старта");
       setLoading(false);
@@ -80,7 +81,8 @@ export const DriverView = () => {
     setLoading(true);
     try {
       await api.post("/shifts/end", {});
-      window.location.reload();
+      // Re-fetch data instead of full page reload
+      await initData();
     } catch (e: any) {
       alert(e.response?.data?.error || "Ошибка завершения");
       setLoading(false);
@@ -102,7 +104,8 @@ export const DriverView = () => {
         },
         body: formData,
       });
-      window.location.reload();
+      // Re-fetch data instead of full page reload
+      await initData();
     } catch (err: any) {
       alert(err.response?.data?.error || "Ошибка загрузки фото");
       setLoading(false);

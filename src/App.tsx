@@ -21,8 +21,17 @@ type DemoPersona = 'admin' | 'driver';
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [demoPersona, setDemoPersona] = useState<DemoPersona>('admin');
+  // Initialize from localStorage or default to 'admin'
+  const [demoPersona, setDemoPersona] = useState<DemoPersona>(() => {
+    const saved = localStorage.getItem('demoPersona');
+    return (saved === 'driver' || saved === 'admin') ? saved : 'admin';
+  });
   const { isAuthenticated, isLoading, error, clearError, user } = useAuth();
+
+  // Persist to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('demoPersona', demoPersona);
+  }, [demoPersona]);
 
   // Check if user is in demo mode
   const isDemoMode = user?.tenant_id === 999;
