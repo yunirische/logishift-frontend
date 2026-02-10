@@ -16,8 +16,8 @@ export const AdminView = () => {
           api.get('/dashboard/stats'),
           api.get('/shifts')
         ]);
-        setStats(statsRes.data);
-        setShifts(shiftsRes.data);
+        setStats(statsRes);
+        setShifts(shiftsRes);
       } catch (e) {
         console.error(e);
       }
