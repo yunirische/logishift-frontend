@@ -461,12 +461,26 @@ export const unlinkTelegram = async (): Promise<void> => {
  * Refresh current user profile from API.
  * GET /users/me
  * Updates localStorage and returns the updated User object.
+ * Falls back to cached user data if endpoint returns 404.
  */
 export const refreshUser = async (): Promise<User> => {
-  const data = await get(API_ENDPOINTS.USERS_ME);
-  // Update localStorage with fresh user data
-  setUserInfo(data);
-  return data;
+  try {
+    const data = await get(API_ENDPOINTS.USERS_ME);
+    // Update localStorage with fresh user data
+    setUserInfo(data);
+    return data;
+  } catch (err) {
+    const error = err as ApiError;
+    // If endpoint doesn't exist (404), return cached user data
+    if (error.status === 404) {
+      const cachedUser = getUserInfo();
+      if (cachedUser) {
+        return cachedUser;
+      }
+    }
+    // Re-throw other errors
+    throw err;
+  }
 };
 
 const api = {
