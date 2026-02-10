@@ -6,6 +6,8 @@ wave: 1
 depends_on: []
 files_modified:
   - src/views/AdminView.tsx
+  - src/views/Dashboard.tsx
+  - src/components/DriverView.tsx
   - src/components/System.tsx
   - src/components/Layout.tsx
 autonomous: true
@@ -14,12 +16,21 @@ user_setup: []
 must_haves:
   truths:
     - "AdminView displays active shifts and drivers counts correctly"
+    - "Driver view uses standard DriverView component (no mock/demo screens)"
+    - "Requirements info block shows odometer/photo requirements before shift start"
+    - "Shift history section shows user's completed shifts"
     - "Telegram card uses Navy-900 theme color for consistency"
     - "Sidebar displays correct version string"
   artifacts:
     - path: "src/views/AdminView.tsx"
       provides: "Admin dashboard with working stats"
       contains: "statsRes (not statsRes.data)"
+    - path: "src/views/Dashboard.tsx"
+      provides: "Driver dashboard with standard DriverView and shift history"
+      contains: "DriverView component, requirements info, shift history"
+    - path: "src/components/DriverView.tsx"
+      provides: "Requirements info block with odometer/invoice requirements"
+      contains: "Требуется фото одометра, Требуется накладная"
     - path: "src/components/System.tsx"
       provides: "System settings with Navy-900 themed Telegram card"
       contains: "bg-[#0a192f]"
@@ -31,14 +42,27 @@ must_haves:
       to: "/dashboard/stats"
       via: "api.get('/dashboard/stats')"
       pattern: "api\\.get\\('/dashboard/stats'\\)"
+    - from: "src/views/Dashboard.tsx"
+      to: "DriverView"
+      via: "import and use DriverView component"
+      pattern: "DriverView"
+    - from: "src/views/Dashboard.tsx"
+      to: "Shift history"
+      via: "api.getShifts({ userId })"
+      pattern: "api\\.getShifts"
 ---
 
 <objective>
-Fix Dashboard stats display, unify Navy-900 theme across System page, verify sidebar version display.
+Fix Dashboard stats display, unify Driver UI with standard components, add shift history and requirements info, apply Navy-900 theme polish.
 
-Purpose: AdminView stats display broken due to incorrect API response handling (using .data when api.get returns data directly), Telegram card needs Navy-900 theme for visual consistency with rest of app.
+Purpose:
+1. AdminView stats display broken due to incorrect API response handling
+2. Driver view has multiple mock/demo screens - need to unify to single DriverView
+3. Missing requirements info (odometer/invoice) before shift start
+4. Missing shift history for drivers
+5. Telegram card needs Navy-900 theme for visual consistency
 
-Output: Working admin stats display, unified Navy-900 theme on Telegram card, verified version string.
+Output: Working admin stats, unified driver UI with standard components, requirements info block, shift history, Navy-900 theme polish.
 </objective>
 
 <execution_context>
@@ -108,19 +132,77 @@ Output: Working admin stats display, unified Navy-900 theme on Telegram card, ve
   <done>Sidebar displays correct and consistent product name and version</done>
 </task>
 
+<task type="auto">
+  <name>Task 4: Unify Driver UI - use standard DriverView component</name>
+  <files>src/views/Dashboard.tsx</files>
+  <action>
+    Remove all mock/demo driver screens and use standard DriverView component:
+    1. In Dashboard.tsx driver mode, ensure it uses the standard DriverView component
+    2. Remove any conditional rendering for "demo" or "simplified" driver views
+    3. Ensure demo persona switcher only changes the role/UI context, not the component implementation
+    4. The backend demoGuard will handle demo mode - frontend should use same code path
+
+    This ensures single source of truth for driver experience across all modes.
+  </action>
+  <verify>
+    Check Dashboard.tsx - driver role should render standard DriverView without special demo/mode conditionals.
+  </verify>
+  <done>Driver dashboard uses standard DriverView component for all modes (real and demo)</done>
+</task>
+
+<task type="auto">
+  <name>Task 5: Add requirements info block before shift start</name>
+  <files>src/components/DriverView.tsx</files>
+  <action>
+    Add an info block that displays when vehicle and site are selected but shift hasn't started:
+    - "Требуется фото одометра: [Да/Нет]" - based on site settings
+    - "Требуется накладная: [Да/Нет]" - based on site settings
+
+    Get requirements from the selected site's settings (site.requiresOdometerPhoto, site.requiresInvoice).
+    Display this info in a clear, visually distinct block above the "Начать смену" button.
+  </action>
+  <verify>
+    In driver mode, select a vehicle and site - verify requirements info appears before starting shift.
+  </verify>
+  <done>Requirements info block shows odometer and invoice requirements from site settings</done>
+</task>
+
+<task type="auto">
+  <name>Task 6: Add shift history for current driver</name>
+  <files>src/components/DriverView.tsx, src/views/Dashboard.tsx</files>
+  <action>
+    Add a "Мои последние смены" section below the "Начать смену" button:
+    1. Fetch completed shifts using `api.getShifts({ userId: currentUser.id, status: 'completed' })`
+    2. Display list of recent completed shifts (limit to 5-10)
+    3. Show basic info: date, vehicle, site, duration
+    4. Use standard shift card component or table for display
+
+    This helps drivers see their recent work history.
+  </action>
+  <verify>
+    As a driver, after completing shifts, verify "Мои последние смены" section appears with completed shift history.
+  </verify>
+  <done>Shift history section displays driver's completed shifts with key information</done>
+</task>
+
 </tasks>
 
 <verification>
-1. Login as admin/foreman user
-2. Navigate to Dashboard - verify stats display correctly (non-zero if shifts exist)
-3. Navigate to System - verify Telegram card has Navy-900 header matching other cards
-4. Check sidebar version display is consistent
+1. Login as admin/foreman - verify Dashboard stats display correctly
+2. Login as driver - verify standard DriverView is used (no mock screens)
+3. As driver, select vehicle/site - verify requirements info block appears
+4. As driver, complete a shift - verify it appears in shift history
+5. Navigate to System - verify Telegram card has Navy-900 header
+6. Check sidebar version display is consistent
 </verification>
 
 <success_criteria>
-- AdminView shows activeShifts and activeDrivers values (not undefined/0 when data exists)
-- Telegram card header matches Navy-900 theme of other cards
-- Version string is documented and consistent
+- AdminView shows activeShifts and activeDrivers values correctly
+- Driver dashboard uses standard DriverView for all modes
+- Requirements info block displays before shift start
+- Shift history section shows completed shifts
+- Telegram card header matches Navy-900 theme
+- Version string is consistent
 </success_criteria>
 
 <output>
