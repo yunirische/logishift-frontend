@@ -174,6 +174,7 @@ None yet.
 | 005 | Auth fix & quota sync: 404 fallback, Settings quota display | 2026-02-10 | f213299, 80024de | [005-auth-fix-quota-sync](./quick/5-auth-fix-quota-sync-fix-404-on-users-me-/) |
 | 006 | Driver UX overhaul: state sync fix, visual polish, toast notifications | 2026-02-10 | 2c3a868, ab07a3f, a561511, 32a32ed | [006-driver-ux-overhaul](./quick/6-driver-ux-overhaul-final-sync-fix-crash-/) |
 | 007 | Dashboard stats fix & driver UI refinement: AdminView API fix, UI unification, Navy-900 theme, requirements info, shift history | 2026-02-10 | dce78ba, 6c7e981, c35f06c, 3369636, 1d1cf6e, 6320631 | [007-fix-dashboard-stats-unify-driver-ui-refi](./quick/7-fix-dashboard-stats-unify-driver-ui-refi/) |
+| 008 | Adopt Upgraded AI Directives: CLAUDE.md with Context Management, MDP rules, Dense Context Report | 2026-02-11 | f1e33f1, cc5ea3d | [008-adopt-upgraded-ai-directives-update-clau](./quick/8-adopt-upgraded-ai-directives-update-clau/) |
 
 **Quick Task 006 Decisions:**
 - [quick-006]: Replace localStorage manipulation with AuthContext.refreshUser() for single source of truth
@@ -189,6 +190,13 @@ None yet.
 - [quick-007]: Branding consistency - use "LOGISHIFT" across all UI elements
 - [quick-007]: Requirements info block shows photo requirements from site settings before shift start
 - [quick-007]: Shift history provides drivers with visibility into their recent completed work
+
+**Quick Task 008 Decisions:**
+- [quick-008]: CLAUDE.md created with Context Management rules (task isolation, JIT loading)
+- [quick-008]: MDP (Minimalist Dense Prompting) adopted for 50-70% token reduction target
+- [quick-008]: GSD configuration enforces atomic task planning (2-3 tasks per plan)
+- [quick-008]: Automated summaries configured via SUMMARY.md frontmatter pattern
+- [quick-008]: Dense Context Report created for continuous token efficiency monitoring
 
 ## Session Continuity
 
