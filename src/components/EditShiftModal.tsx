@@ -661,29 +661,49 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                               <Image size={12} />
                               Просмотр
                             </a>
-                          ) : (
-                            <span className="text-xs text-slate-400">Не загружено</span>
-                          )}
+                          ) : null}
                         </div>
-                        <label className="block">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            disabled={uploadingPhotoType === 'start'}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handlePhotoUpload('start', file);
-                            }}
-                          />
-                          <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
-                            uploadingPhotoType === 'start'
-                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                              : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
-                          }`}>
-                            {uploadingPhotoType === 'start' ? 'Загрузка...' : 'Загрузить фото'}
-                          </div>
-                        </label>
+                        {!(shift as any).photo_start_url ? (
+                          <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 bg-slate-50 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-colors">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingPhotoType === 'start'}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handlePhotoUpload('start', file);
+                              }}
+                            />
+                            <Image size={24} className="text-slate-400 mx-auto mb-2" />
+                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider block">
+                              Одометр (старт)
+                            </span>
+                            <span className="text-xs text-slate-400 block mt-1">
+                              Перетащите или нажмите для загрузки
+                            </span>
+                          </label>
+                        ) : (
+                          <label className="block">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingPhotoType === 'start'}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handlePhotoUpload('start', file);
+                              }}
+                            />
+                            <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
+                              uploadingPhotoType === 'start'
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
+                            }`}>
+                              {uploadingPhotoType === 'start' ? 'Загрузка...' : 'Загрузить фото'}
+                            </div>
+                          </label>
+                        )}
                       </div>
                     )}
 
@@ -714,29 +734,49 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                               <Image size={12} />
                               Просмотр
                             </a>
-                          ) : (
-                            <span className="text-xs text-slate-400">Не загружено</span>
-                          )}
+                          ) : null}
                         </div>
-                        <label className="block">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            disabled={uploadingPhotoType === 'end'}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handlePhotoUpload('end', file);
-                            }}
-                          />
-                          <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
-                            uploadingPhotoType === 'end'
-                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                              : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
-                          }`}>
-                            {uploadingPhotoType === 'end' ? 'Загрузка...' : 'Загрузить фото'}
-                          </div>
-                        </label>
+                        {!(shift as any).photo_end_url ? (
+                          <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 bg-slate-50 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-colors">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingPhotoType === 'end'}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handlePhotoUpload('end', file);
+                              }}
+                            />
+                            <Image size={24} className="text-slate-400 mx-auto mb-2" />
+                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider block">
+                              Одометр (финиш)
+                            </span>
+                            <span className="text-xs text-slate-400 block mt-1">
+                              Перетащите или нажмите для загрузки
+                            </span>
+                          </label>
+                        ) : (
+                          <label className="block">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingPhotoType === 'end'}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handlePhotoUpload('end', file);
+                              }}
+                            />
+                            <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
+                              uploadingPhotoType === 'end'
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
+                            }`}>
+                              {uploadingPhotoType === 'end' ? 'Загрузка...' : 'Загрузить фото'}
+                            </div>
+                          </label>
+                        )}
                       </div>
                     )}
 
@@ -767,29 +807,49 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                               <Image size={12} />
                               Просмотр
                             </a>
-                          ) : (
-                            <span className="text-xs text-slate-400">Не загружено</span>
-                          )}
+                          ) : null}
                         </div>
-                        <label className="block">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            disabled={uploadingPhotoType === 'invoice'}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handlePhotoUpload('invoice', file);
-                            }}
-                          />
-                          <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
-                            uploadingPhotoType === 'invoice'
-                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                              : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
-                          }`}>
-                            {uploadingPhotoType === 'invoice' ? 'Загрузка...' : 'Загрузить фото'}
-                          </div>
-                        </label>
+                        {!(shift as any).photo_invoice_url ? (
+                          <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 bg-slate-50 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-colors">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingPhotoType === 'invoice'}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handlePhotoUpload('invoice', file);
+                              }}
+                            />
+                            <Image size={24} className="text-slate-400 mx-auto mb-2" />
+                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider block">
+                              Накладная
+                            </span>
+                            <span className="text-xs text-slate-400 block mt-1">
+                              Перетащите или нажмите для загрузки
+                            </span>
+                          </label>
+                        ) : (
+                          <label className="block">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingPhotoType === 'invoice'}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handlePhotoUpload('invoice', file);
+                              }}
+                            />
+                            <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
+                              uploadingPhotoType === 'invoice'
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
+                            }`}>
+                              {uploadingPhotoType === 'invoice' ? 'Загрузка...' : 'Загрузить фото'}
+                            </div>
+                          </label>
+                        )}
                       </div>
                     )}
                   </div>
