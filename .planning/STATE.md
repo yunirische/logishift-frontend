@@ -5,17 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** Drivers can start, track, and complete shifts with photo documentation, while admins/foremen have real-time visibility into fleet operations, resource utilization, and business insights.
-**Current focus:** Planning next milestone after v1.5 completion
+**Current focus:** v2.5 Stabilization & Audit - system-wide regression fixes
 
 ## Current Position
 
-Milestone: v1.5 Analytics Dashboard - SHIPPED 2026-02-01
-Phase: Quick Tasks - Dashboard stats fix and driver UI refinement
-Plan: 007 (Dashboard Stats Fix & Driver UI Refinement) - Complete
-Status: ✅ Quick task complete, ready for additional quick tasks or v1.6 planning
-Last activity: 2026-02-10 — Executed quick-007 with AdminView stats fix, Driver UI unification, Navy-900 theme polish, requirements info, and shift history
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-12 — Milestone v2.5 started
 
-Progress: [██████████] 100% (v1.5 complete + 7 quick tasks, 3 milestones total shipped)
+Progress: [░░░░░░░░░░] 0% (v2.5 starting - requirements definition phase)
 
 ## Performance Metrics
 
@@ -207,7 +206,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-11T17:25:00Z
-Stopped at: Completed quick-009 with Dashboard.tsx dead code removal (422 lines removed)
+Last session: 2026-02-12T00:00:00Z
+Stopped at: Milestone v2.5 initiated, defining requirements
 Resume file: None
-Next: /gsd:new-milestone to plan v1.6 or continue with additional quick tasks
+Next: Continue with requirements gathering or research

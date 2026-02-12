@@ -8,27 +8,15 @@ LogiShift is a Progressive Web App (PWA) for logistics/driver shift management. 
 
 Drivers can start, track, and complete shifts with photo documentation, while admins/foremen have real-time visibility into fleet operations, resource utilization, and business insights.
 
-## Current State: v1.5 Analytics Dashboard (Shipped 2026-02-01)
+## Current Milestone: v2.5 Stabilization & Audit
 
-**Latest Release:** Comprehensive analytics dashboard with 34 requirements delivered
+**Goal:** System-wide audit and fix of core regressions across driver UI, state machine, modal history, and exports.
 
-**Shipped Features:**
-- Responsive analytics layout with time range filtering (7/30/90 days) and CSV export
-- Usage overview cards for trucks/drivers/sites with color-coded progress bars
-- Interactive trends chart with Recharts (shifts/hours/salary with metric toggle)
-- Driver performance rankings table with sortable columns and medal icons (🥇🥈🥉)
-- Insights panel with optimization recommendations and resource warnings
-- Comprehensive error handling with typed API errors and React ErrorBoundary
-- Professional styling with JetBrains Mono typography and indigo color palette
-
-## Next Milestone Goals
-
-**Status:** Planning phase - requirements TBD
-
-Potential directions:
-- v1.6: Additional analytics features (custom date ranges, period comparison)
-- v1.6: Performance optimizations and technical debt cleanup
-- v1.6: Production deployment and monitoring setup
+**Target areas:**
+- State Machine & Driver UI (unified interface, real-time sync)
+- Shift Modal Logic (history/comments data mapping)
+- Dashboard Analytics & Quotas (stats discrepancies)
+- Export System (file format/corruption issues)
 
 ## Requirements
 
@@ -89,7 +77,7 @@ Potential directions:
 
 <!-- Current scope. Building toward these. -->
 
-None - next milestone requirements TBD after v1.5 completion
+Requirements TBD - Defining v2.5 scope (phased approach: critical fixes first)
 
 ### Out of Scope
 
@@ -122,8 +110,27 @@ None - next milestone requirements TBD after v1.5 completion
 - Subscription middleware (checkSubscription) allows GET requests even when subscription expired
 - CSV export available via backend, UTF-8 BOM for Excel compatibility
 
-**Known Issues:**
-- Minor: Double API fetching on time range changes (optimization opportunity, not blocking)
+**Known Issues (v2.5 Audit Targets):**
+
+**State Machine & Driver UI (High Priority):**
+- Critical: "Start Shift" triggers toast but doesn't update UI to 'Active' state (Timer/Finish button missing)
+- Critical: Demo Driver mode (Tenant 999) doesn't show real driver interface or shift history
+- Requirement: Unify DriverView across all roles with real-time state sync
+
+**Shift Modal Logic (Data Integrity):**
+- High: "History" and "Comments" tabs empty in EditShiftModal
+- Requirement: Verify API integration with GET /api/v1/audit/shift/:id and data mapping
+
+**Dashboard Analytics & Quotas:**
+- High: Discrepancy in stats - real account shows "0" active shifts when they exist
+- Requirement: Audit data mapping in Dashboard.tsx against current Backend API response
+
+**Export System:**
+- High: Exported shift file corrupted or formatted incorrectly
+- Requirement: Fix Blob handling and headers in api.ts for clean Excel/CSV output
+
+**Legacy Issues:**
+- Minor: Double API fetching on time range changes (optimization opportunity)
 - Medium: DriverRankings empty state time range shortcuts not wired (CustomEvents)
 - Minor: Unused globalError state (cleanup needed)
 
@@ -150,4 +157,4 @@ None - next milestone requirements TBD after v1.5 completion
 | 403 without auth clear | Read-only analytics for expired subscriptions | ✓ Good - v1.5 |
 
 ---
-*Last updated: 2026-02-01 after v1.5 Analytics Dashboard milestone completion*
+*Last updated: 2026-02-12 after v2.5 milestone initiation*
