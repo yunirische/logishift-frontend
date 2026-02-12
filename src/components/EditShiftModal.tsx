@@ -49,6 +49,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   // Comments (chat style)
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [showCommentsSkeleton, setShowCommentsSkeleton] = useState(false);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [showAuditSkeleton, setShowAuditSkeleton] = useState(false);
@@ -73,9 +76,6 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         shift.end_time ? fromTenantISO(shift.end_time, timezone) : ""
       );
 
-      // Load comments history
-      loadComments();
-
       // Load tenant settings for invoice requirement
       loadTenantSettings();
 
@@ -97,27 +97,64 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   }, [activeTab]);
 
-  // Load comment history using new GET /shifts/:id endpoint
+  // Load comments when Comments tab becomes active (lazy loading)
+  useEffect(() => {
+    if (activeTab === 'comments' && comments.length === 0 && !loadingComments) {
+      loadComments();
+    }
+  }, [activeTab]);
+
+  // Load audit logs when History tab becomes active (lazy loading)
+  useEffect(() => {
+    if (activeTab === 'history' && auditLogs.length === 0 && !loadingAudit) {
+      loadAuditLogs();
+    }
+  }, [activeTab]);
+
+  // Load comment history using GET /shifts/:id endpoint with tab-specific loading
   const loadComments = async () => {
+    setLoadingComments(true);
+    setCommentsError(null);
+    setShowCommentsSkeleton(false);
+
+    // Show skeleton after 200ms delay
+    const skeletonTimer = setTimeout(() => {
+      if (loadingComments) {
+        setShowCommentsSkeleton(true);
+      }
+    }, 200);
+
     try {
-      // Use new endpoint to fetch full shift details with comments
+      // Use endpoint to fetch full shift details with comments
       const data = await api.get(API_ENDPOINTS.GET_SHIFT(shift.id));
 
+      // Normalize API response to Comment interface
+      let normalizedComments: Comment[] = [];
       if (data && data.comments && Array.isArray(data.comments)) {
-        setComments(data.comments);
+        normalizedComments = data.comments.map((c: any) => ({
+          id: c.id,
+          text: c.text || c.comment || '',
+          author: c.author || c.user || c.user_name || 'Неизвестно',
+          author_role: c.author_role || c.user_role || c.role || undefined,
+          created_at: c.created_at || c.timestamp || new Date().toISOString(),
+          reply_to: c.reply_to || c.in_reply_to || undefined,
+          mentions: c.mentions || undefined,
+        }));
+        setComments(normalizedComments);
       } else {
         setComments([]);
       }
     } catch (err) {
       console.error("Failed to load shift comments:", err);
-      // If GET /shifts/:id fails, fall back to shift object
-      if ((shift as any).comments && Array.isArray((shift as any).comments)) {
-        setComments((shift as any).comments);
-      } else {
-        setComments([]);
-      }
+      setCommentsError("Ошибка загрузки комментариев");
+      setComments([]);
+    } finally {
+      clearTimeout(skeletonTimer);
+      setLoadingComments(false);
+      setShowCommentsSkeleton(false);
     }
   };
+
 
   // Load tenant settings for invoice requirement
   const loadTenantSettings = async () => {
@@ -414,6 +451,48 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     } catch {
       return dateString;
     }
+  };
+
+  // Format comment header with Technical Header format
+  const formatCommentHeader = (comment: Comment) => {
+    // Format: [Name] • [Role Tag] • [DD.MM HH:mm]
+    const date = new Date(comment.created_at);
+    const dayMonth = date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit'
+    }); // "14.02"
+    const time = date.toLocaleTimeString('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }); // "12:30"
+
+    // Role tag mapping (Russian labels per user decision)
+    const roleLabels: Record<string, string> = {
+      'admin': 'АДМИН',
+      'driver': 'ВОДИТЕЛЬ',
+      'foreman': 'ПРОРАБ'
+    };
+    const roleTag = comment.author_role
+      ? roleLabels[comment.author_role] || comment.author_role.toUpperCase()
+      : null;
+
+    return {
+      name: comment.author,
+      roleTag,
+      timestamp: `${dayMonth} ${time}`
+    };
+  };
+
+  // Format @mentions in comment text
+  const formatCommentText = (text: string) => {
+    // Detect @mentions and wrap in styled spans
+    const parts = text.split(/(@\w+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('@')) {
+        return <span key={index} className="text-[#0a192f] font-semibold">{part}</span>;
+      }
+      return part;
+    });
   };
 
   // Map action types to icons
@@ -840,30 +919,75 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 </label>
               </div>
 
-              {/* Chat History (Read-only) */}
-              <div className="mb-3 p-4 bg-slate-50 rounded-lg border border-slate-100 max-h-48 overflow-y-auto">
-                {comments.length > 0 ? (
+              {/* Loading Skeleton */}
+              {showCommentsSkeleton && (
+                <div className="mb-3 p-4 bg-slate-50 rounded-lg border border-slate-100">
                   <div className="space-y-3">
-                    {comments.map((comment) => (
-                      <div key={comment.id} className="border-b border-slate-200 pb-2 last:border-0 last:pb-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-semibold text-slate-700">
-                            {comment.author}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            {formatCommentTime(comment.created_at)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-600">{comment.text}</p>
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="p-4 bg-white rounded-lg border border-slate-100">
+                        <div className="h-4 w-1/3 bg-slate-200 rounded animate-pulse mb-2"></div>
+                        <div className="h-16 bg-slate-200 rounded animate-pulse"></div>
                       </div>
                     ))}
                   </div>
-                ) : (
+                </div>
+              )}
+
+              {/* Comments List (Chronological) */}
+              {!loadingComments && !showCommentsSkeleton && comments.length > 0 && (
+                <div className="mb-3 space-y-4 max-h-64 overflow-y-auto">
+                  {comments.map((comment) => {
+                    const header = formatCommentHeader(comment);
+                    return (
+                      <div key={comment.id} className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                        {/* Technical Header */}
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="text-sm font-semibold text-slate-700">{header.name}</span>
+                          {header.roleTag && (
+                            <>
+                              <span className="text-slate-400">•</span>
+                              <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold rounded">
+                                {header.roleTag}
+                              </span>
+                            </>
+                          )}
+                          <span className="text-slate-400">•</span>
+                          <span className="text-xs text-slate-400 font-mono">{header.timestamp}</span>
+                        </div>
+                        {/* Comment Content (plain text, line breaks preserved) */}
+                        <p className="text-sm text-slate-600 whitespace-pre-wrap">
+                          {formatCommentText(comment.text)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!loadingComments && !showCommentsSkeleton && comments.length === 0 && !commentsError && (
+                <div className="mb-3 p-4 bg-slate-50 rounded-lg border border-slate-100">
                   <p className="text-sm text-slate-400 text-center py-4">
-                    История комментариев пуста
+                    Комментарии отсутствуют
                   </p>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* Error state */}
+              {commentsError && (
+                <div className="mb-3 p-4 bg-red-50 rounded-lg border border-red-100">
+                  <p className="text-sm text-red-600 text-center">
+                    {commentsError}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={loadComments}
+                    className="mt-2 w-full px-4 py-2 text-sm font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                  >
+                    Повторить попытку
+                  </button>
+                </div>
+              )}
 
               {/* Add New Comment */}
               <div>
@@ -885,6 +1009,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               </div>
             </div>
             )}
+
 
             {/* History Tab - only show in history tab */}
             {activeTab === 'history' && (
