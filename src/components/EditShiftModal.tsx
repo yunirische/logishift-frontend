@@ -491,7 +491,21 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               const site = (shift as any).site || {};
               const needsOdometer = site.odometer_required === true;
               const needsInvoice = site.invoice_required === true || tenantSettings?.invoice_required === true;
-              const hasAnyRequirements = needsOdometer || needsInvoice;
+
+              // Smart Hybrid visibility: show if Required OR if Data Exists
+              const shouldShowZone = (isRequired: boolean, hasData: boolean) => {
+                return isRequired || hasData;
+              };
+
+              const hasStartPhoto = !!(shift as any).photo_start_url;
+              const hasEndPhoto = !!(shift as any).photo_end_url;
+              const hasInvoicePhoto = !!(shift as any).photo_invoice_url;
+
+              const showStartZone = shouldShowZone(needsOdometer, hasStartPhoto);
+              const showEndZone = shouldShowZone(needsOdometer, hasEndPhoto);
+              const showInvoiceZone = shouldShowZone(needsInvoice, hasInvoicePhoto);
+
+              const hasAnyVisibleZones = showStartZone || showEndZone || showInvoiceZone;
 
               // Loading skeleton for photo zones
               if (showSettingsSkeleton) {
@@ -512,7 +526,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 );
               }
 
-              if (!hasAnyRequirements) {
+              if (!hasAnyVisibleZones) {
                 return (
                   <div>
                     <div className="flex items-center gap-2 mb-3">
@@ -539,7 +553,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
                   <div className="space-y-3">
                     {/* Start Odometer Photo */}
-                    {needsOdometer && (
+                    {showStartZone && (
                       <div className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -583,7 +597,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                     )}
 
                     {/* End Odometer Photo */}
-                    {needsOdometer && (
+                    {showEndZone && (
                       <div className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -627,7 +641,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                     )}
 
                     {/* Invoice Photo */}
-                    {needsInvoice && (
+                    {showInvoiceZone && (
                       <div className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
