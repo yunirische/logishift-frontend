@@ -71,17 +71,26 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       // Load comments history
       loadComments();
 
-      // Load audit history
-      loadAuditLogs();
-
       // Load tenant settings for invoice requirement
       loadTenantSettings();
+
+      // Reset tab to details on modal open
+      setActiveTab('details');
 
       setError(null);
       setOverlapError(false);
       setNewComment("");
+      setAuditLogs([]);
+      setAuditError(null);
     }
   }, [isOpen, shift, timezone]);
+
+  // Load audit logs when History tab becomes active (lazy loading)
+  useEffect(() => {
+    if (activeTab === 'history' && auditLogs.length === 0 && !loadingAudit) {
+      loadAuditLogs();
+    }
+  }, [activeTab]);
 
   // Load comment history using new GET /shifts/:id endpoint
   const loadComments = async () => {
