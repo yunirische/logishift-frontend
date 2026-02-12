@@ -34,6 +34,19 @@ export const DriverView = () => {
   const initData = async () => {
     setLoading(true);
     try {
+      // Demo mode: restore active shift from localStorage
+      if (user?.tenant_id === 999) {
+        const storedShift = localStorage.getItem('logishift_active_shift');
+        if (storedShift) {
+          try {
+            setActiveShift(JSON.parse(storedShift));
+          } catch (e) {
+            console.error("Failed to parse stored shift:", e);
+            localStorage.removeItem('logishift_active_shift');
+          }
+        }
+      }
+
       // 1. Запрашиваем текущую смену (getCurrentShift handles 400/404 gracefully)
       const currentShift = await getCurrentShift();
 
@@ -42,7 +55,9 @@ export const DriverView = () => {
         setActiveShift(currentShift);
       } else {
         // Если смены нет — обнуляем стейт и грузим списки выборасч
-        setActiveShift(null);
+        if (!user || user.tenant_id !== 999) {
+          setActiveShift(null);
+        }
         const [trucksRes, sitesRes, historyRes] = await Promise.all([
           api.get("/trucks"),
           api.get("/sites"),
