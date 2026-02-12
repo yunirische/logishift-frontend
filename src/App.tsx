@@ -90,6 +90,8 @@ const AppContent: React.FC = () => {
     switch (activeTab) {
       case "dashboard":
         return <Dashboard />;
+      case "my-shifts":
+        return <DriverView />;
       case "analytics":
         return (
           <Suspense fallback={loadingFallback}>

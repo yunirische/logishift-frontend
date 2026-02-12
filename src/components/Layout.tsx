@@ -56,6 +56,12 @@ const Layout: React.FC<LayoutProps> = ({
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
     },
     {
+      id: "my-shifts",
+      label: "Мой рабочий день",
+      icon: Clock,
+      roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
+    },
+    {
       id: "analytics",
       label: "Аналитика",
       icon: BarChart,
@@ -64,7 +70,7 @@ const Layout: React.FC<LayoutProps> = ({
     {
       id: "shifts",
       label: isAdmin ? "Реестр смен" : "Мои смены",
-      icon: Clock,
+      icon: ScrollText,
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
     },
     {
