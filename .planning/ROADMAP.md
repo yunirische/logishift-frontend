@@ -93,12 +93,12 @@
   2. Driver UI shows Timer/Finish button immediately after "Start Shift" is clicked (no page reload required)
   3. Demo Driver mode (Tenant 999) displays production DriverView UI with appropriate safety guards
   4. Drivers can view their shift history within the driver interface
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 08-01: Unify DriverView across all roles with real-time state sync
-- [ ] 08-02: Implement Demo Driver mode with production UI and safety guards
-- [ ] 08-03: Add shift history visibility to driver interface
+- [ ] 08-01-PLAN.md — Unify DriverView across all roles with real-time state sync
+- [ ] 08-02-PLAN.md — Verify Demo Driver mode with production UI (no safety guards)
+- [ ] 08-03-PLAN.md — Add shift history visibility with View More modal
 
 #### Phase 9: Shift Modal Data Integrity
 **Goal**: Shift modal displays complete and accurate data across history, comments, and conditional photo upload zones
@@ -169,7 +169,7 @@ Phases execute in numeric order: 8 → 9 → 10 → 11
 | 5. Insights Panel | v1.5 | 1/1 | Complete | 2026-02-01 |
 | 6. Error Handling & Loading | v1.5 | 1/1 | Complete | 2026-02-01 |
 | 7. Styling & Theming | v1.5 | 1/1 | Complete | 2026-02-01 |
-| 8. Driver UI Unification | v2.5 | 0/3 | Not started | - |
+| 8. Driver UI Unification | v2.5 | 0/3 | Ready | - |
 | 9. Shift Modal Data Integrity | v2.5 | 0/3 | Not started | - |
 | 10. Dashboard Analytics Audit | v2.5 | 0/3 | Not started | - |
 | 11. Export System Fixes | v2.5 | 0/3 | Not started | - |
