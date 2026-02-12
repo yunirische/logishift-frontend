@@ -568,8 +568,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               </div>
             )}
 
-            {/* Proxy Photo Upload Section - Smart Filtering */}
-            {(() => {
+            {/* Proxy Photo Upload Section - Smart Filtering - Details Tab Only */}
+            {activeTab === 'details' && (() => {
               const site = (shift as any).site || {};
               const needsOdometer = site.odometer_required === true;
               const needsInvoice = site.invoice_required === true || tenantSettings?.invoice_required === true;
