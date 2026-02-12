@@ -641,6 +641,15 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                           <div className="flex items-center gap-2">
                             <span className="text-sm">🏁</span>
                             <span className="text-sm font-semibold text-slate-700">Одометр (старт)</span>
+                            {needsOdometer ? (
+                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 border border-emerald-200 rounded">
+                                [ОБЯЗАТЕЛЬНО]
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-slate-100 text-slate-600 border border-slate-200 rounded">
+                                [ОПЦИОНАЛЬНО]
+                              </span>
+                            )}
                           </div>
                           {(shift as any).photo_start_url ? (
                             <a
@@ -685,6 +694,15 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                           <div className="flex items-center gap-2">
                             <span className="text-sm">🏁</span>
                             <span className="text-sm font-semibold text-slate-700">Одометр (финиш)</span>
+                            {needsOdometer ? (
+                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 border border-emerald-200 rounded">
+                                [ОБЯЗАТЕЛЬНО]
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-slate-100 text-slate-600 border border-slate-200 rounded">
+                                [ОПЦИОНАЛЬНО]
+                              </span>
+                            )}
                           </div>
                           {(shift as any).photo_end_url ? (
                             <a
@@ -729,6 +747,15 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                           <div className="flex items-center gap-2">
                             <span className="text-sm">📄</span>
                             <span className="text-sm font-semibold text-slate-700">Накладная</span>
+                            {needsInvoice ? (
+                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 border border-emerald-200 rounded">
+                                [ОБЯЗАТЕЛЬНО]
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-slate-100 text-slate-600 border border-slate-200 rounded">
+                                [ОПЦИОНАЛЬНО]
+                              </span>
+                            )}
                           </div>
                           {(shift as any).photo_invoice_url ? (
                             <a
