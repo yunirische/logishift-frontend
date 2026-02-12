@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 ## Current Position
 
 Phase: 9 of 11 (Shift Modal Data Integrity)
-Plan: 3a of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In Progress
-Last activity: 2026-02-13T20:15:00Z — Completed 09-03a: Smart Hybrid visibility & loading states
+Last activity: 2026-02-13T00:03:00Z — Completed 09-02: Comments Formatting & Display
 
-Progress: [█████░░░░] 50% (2 of 4 plans complete)
+Progress: [████░░░░] 50% (2 of 4 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 31 (18 from v1.5, 9 from quick tasks, 4 from v2.5)
+- Total plans completed: 32 (18 from v1.5, 9 from quick tasks, 5 from v2.5)
 - Average duration: 4.1 min
 - Total execution time: 2.2 hours
 
@@ -35,14 +35,14 @@ Progress: [█████░░░░] 50% (2 of 4 plans complete)
 | 06-error-handling-loading | 1 | 4 min | 4 min |
 | 07-styling-and-theming | 1 | 1 min | 1 min |
 | 08-driver-ui-unification | 3 | 7 min | 2.3 min avg |
-| 09-shift-modal-data-integrity | 1 | 6 min | 6 min |
+| 09-shift-modal-data-integrity | 2 | 11 min | 5.5 min avg |
 | quick-001 through quick-009 | 9 | ~3 min each | 3 min avg |
 
 **Recent Trend:**
-- Last 5 plans: 09-01 (6 min), 08-03 (1 min), 08-02 (1 min), 08-01 (5 min), quick-009 (1 min)
+- Last 5 plans: 09-02 (5 min), 09-01 (6 min), 08-03 (1 min), 08-02 (1 min), 08-01 (5 min)
 - Trend: Stable velocity with consistent execution
 - Total v1.5 execution time: 0.57 hours (34 minutes) for all 7 phases
-- Total v2.5 execution time: 0.18 hours (13 minutes) for four plans
+- Total v2.5 execution time: 0.22 hours (18 minutes) for five plans
 
 *Updated after each plan completion*
 
@@ -96,6 +96,10 @@ Recent decisions affecting current work:
 - [09-03a]: 200ms delayed skeleton loading for tenant settings to avoid flicker
 - [09-03a]: Content-aware skeleton mimics actual photo zone structure (3 h-24 blocks)
 - [09-03a]: Photo zones persist independently - start, end, invoice zones track requirement + data separately
+- [Phase 09]: Comments use Technical Header format: [Name] • [Role Tag] • [DD.MM HH:mm (Mono)]
+- [Phase 09]: Role tag labels use Russian: АДМИН/ВОДИТЕЛЬ/ПРОРАБ per CONTEXT.md
+- [Phase 09]: Loading skeleton with 200ms delay prevents flicker for fast API responses
+- [Phase 09]: Lazy loading: comments fetch when Comments tab activates (not modal open)
 
 ### Pending Todos
 
