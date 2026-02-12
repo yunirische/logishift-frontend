@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 ## Current Position
 
 Phase: 9 of 11 (Shift Modal Data Integrity)
-Plan: 1 of 4 in current phase
+Plan: 3a of 4 in current phase
 Status: In Progress
-Last activity: 2026-02-12T19:03:00Z — Completed 09-01: Tabbed interface with History tab
+Last activity: 2026-02-13T20:15:00Z — Completed 09-03a: Smart Hybrid visibility & loading states
 
-Progress: [███░░░░░░] 25% (1 of 4 plans complete)
+Progress: [█████░░░░] 50% (2 of 4 plans complete)
 
 ## Performance Metrics
 
@@ -92,6 +92,10 @@ Recent decisions affecting current work:
 - [09-01]: Loading skeleton with 200ms delay prevents flicker for fast API responses
 - [09-01]: Lazy loading for audit data - only fetches when History tab becomes active
 - [09-01]: Icon mapping for action types: Pencil (edit), Trash2 (delete), ArrowRightLeft (status), Image (photo), MessageSquare (comment)
+- [09-03a]: Smart Hybrid visibility for photo zones: show if Required OR if Data Exists
+- [09-03a]: 200ms delayed skeleton loading for tenant settings to avoid flicker
+- [09-03a]: Content-aware skeleton mimics actual photo zone structure (3 h-24 blocks)
+- [09-03a]: Photo zones persist independently - start, end, invoice zones track requirement + data separately
 
 ### Pending Todos
 
@@ -103,7 +107,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-12T19:03:00Z
-Stopped at: Completed 09-01 Tabbed Interface with History Tab - EditShiftModal now has three tabs
+Last session: 2026-02-13T20:15:00Z
+Stopped at: Completed 09-03a Smart Hybrid Visibility & Loading States - Photo zones now use Smart Hybrid logic
 Resume file: None
-Next: Plan 09-02 (Comments Formatting & Display) - implement comment header format, improve readability per CONTEXT.md decisions
+Next: Plan 09-03b (Comments Formatting & Display) - implement comment header format, improve readability per CONTEXT.md decisions
