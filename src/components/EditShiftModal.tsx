@@ -40,6 +40,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'comments'>('details');
+
   // Comments (chat style)
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -570,7 +573,45 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               );
             })()}
 
-            {/* Time fields */}
+            {/* Tab Navigation */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('details')}
+                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                  activeTab === 'details'
+                    ? 'bg-[#0a192f] text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Редактирование
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('history')}
+                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                  activeTab === 'history'
+                    ? 'bg-[#0a192f] text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                История
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('comments')}
+                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                  activeTab === 'comments'
+                    ? 'bg-[#0a192f] text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Комментарии
+              </button>
+            </div>
+
+            {/* Time fields - only show in details tab */}
+            {activeTab === 'details' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* v1.1.2: Finished shifts warning */}
               {shift.status === 'finished' && (
@@ -666,13 +707,15 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 ) : null}
               </div>
             </div>
+            )}
 
-            {/* Comments Section (Chat Style) */}
+            {/* Comments Section - only show in comments tab */}
+            {activeTab === 'comments' && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <MessageSquare size={16} className="text-slate-500" />
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Комментарии и история
+                  Комментарии
                   {shift.status === 'finished' && (
                     <span className="text-amber-600 font-normal ml-2">(добавление комментариев разрешено)</span>
                   )}
@@ -704,26 +747,6 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 )}
               </div>
 
-              {/* Audit History (Compact) */}
-              {auditLogs.length > 0 && (
-                <div className="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-100 max-h-40 overflow-y-auto">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">История действий</p>
-                  <div className="space-y-1">
-                    {auditLogs.map((log, index) => (
-                      <div key={index} className="flex items-start gap-2 text-xs">
-                        <span className="text-[10px] text-slate-400 font-mono shrink-0">
-                          {formatCommentTime(log.created_at || log.timestamp)}
-                        </span>
-                        <span className="text-slate-400">—</span>
-                        <span className="font-semibold text-slate-600">{log.user_name || log.user || 'Система'}</span>
-                        <span className="text-slate-400">—</span>
-                        <span className="text-slate-500">{log.action || log.action_name || log.action_type}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Add New Comment */}
               <div>
                 <label htmlFor="new-comment" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
@@ -743,6 +766,16 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 />
               </div>
             </div>
+            )}
+
+            {/* History Tab - only show in history tab */}
+            {activeTab === 'history' && (
+              <div>
+                <p className="text-sm text-slate-400 text-center py-4">
+                  История изменений будет здесь
+                </p>
+              </div>
+            )}
           </form>
         </div>
 
