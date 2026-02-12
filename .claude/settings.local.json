@@ -8,7 +8,8 @@
       "Bash(npx vite-bundle-visualizer:*)",
       "Bash(git pull:*)",
       "Bash(git checkout:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git -C ~/.claude diff --no-index /dev/null hooks/load-custom-instructions.js)"
     ]
   }
 }
