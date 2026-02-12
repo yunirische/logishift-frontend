@@ -11,7 +11,10 @@ interface Comment {
   id: number;
   text: string;
   author: string;
+  author_role?: string; // Role tag (admin/driver/foreman) for Technical Header
   created_at: string;
+  reply_to?: number; // For @mentions - ID of comment being replied to
+  mentions?: string[]; // Array of mentioned usernames
 }
 
 interface EditShiftModalProps {
