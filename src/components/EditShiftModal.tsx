@@ -4,7 +4,7 @@ import api, { getPhotoUrl } from "../services/api";
 import { Shift } from "../types";
 import { toTenantISO, fromTenantISO } from "../utils/dateUtils";
 import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
-import { AlertCircle, MessageSquare, Send, X, Lock, Upload, Check, Image } from "lucide-react";
+import { AlertCircle, MessageSquare, Send, X, Lock, Upload, Check, Image, Pencil, Trash2, ArrowRightLeft, FileText } from "lucide-react";
 import { getUserInfo } from "../services/api";
 
 interface Comment {
@@ -47,6 +47,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+  const [showAuditSkeleton, setShowAuditSkeleton] = useState(false);
+  const [auditError, setAuditError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +117,17 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
   // Load audit logs for this shift
   const loadAuditLogs = async () => {
+    setLoadingAudit(true);
+    setAuditError(null);
+    setShowAuditSkeleton(false);
+
+    // Show skeleton after 200ms delay
+    const skeletonTimer = setTimeout(() => {
+      if (loadingAudit) {
+        setShowAuditSkeleton(true);
+      }
+    }, 200);
+
     try {
       const data = await api.get(API_ENDPOINTS.AUDIT_SHIFT(shift.id));
       if (Array.isArray(data)) {
@@ -125,7 +139,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       }
     } catch (err) {
       console.error("Failed to load audit logs:", err);
+      setAuditError("Ошибка загрузки истории");
       setAuditLogs([]);
+    } finally {
+      clearTimeout(skeletonTimer);
+      setLoadingAudit(false);
+      setShowAuditSkeleton(false);
     }
   };
 
@@ -350,6 +369,43 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     } catch {
       return dateString;
     }
+  };
+
+  // Format audit timestamp for timeline
+  const formatAuditTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Map action types to icons
+  const getAuditIcon = (action: string) => {
+    const actionLower = action.toLowerCase();
+    if (actionLower.includes('edit') || actionLower.includes('изменен') || actionLower.includes('обновлен')) {
+      return Pencil;
+    }
+    if (actionLower.includes('delete') || actionLower.includes('remove') || actionLower.includes('удален')) {
+      return Trash2;
+    }
+    if (actionLower.includes('статус') || actionLower.includes('status') || actionLower.includes('завершен') || actionLower.includes('запущен')) {
+      return ArrowRightLeft;
+    }
+    if (actionLower.includes('фото') || actionLower.includes('photo') || actionLower.includes('image')) {
+      return Image;
+    }
+    if (actionLower.includes('комментарий') || actionLower.includes('comment')) {
+      return MessageSquare;
+    }
+    return FileText;
   };
 
   if (!isOpen) return null;
@@ -771,9 +827,91 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             {/* History Tab - only show in history tab */}
             {activeTab === 'history' && (
               <div>
-                <p className="text-sm text-slate-400 text-center py-4">
-                  История изменений будет здесь
-                </p>
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText size={16} className="text-slate-500" />
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    История изменений
+                  </label>
+                </div>
+
+                {/* Loading Skeleton */}
+                {showAuditSkeleton && (
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex gap-3">
+                          <div className="h-4 w-16 bg-slate-200 rounded animate-pulse"></div>
+                          <div className="flex-1">
+                            <div className="h-3 w-3/4 bg-slate-200 rounded animate-pulse mb-1"></div>
+                            <div className="h-3 w-1/2 bg-slate-200 rounded animate-pulse"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Timeline */}
+                {!loadingAudit && !showAuditSkeleton && auditLogs.length > 0 && (
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 max-h-64 overflow-y-auto">
+                    <div className="border-l-2 border-slate-200 pl-4 space-y-3">
+                      {auditLogs.map((log, index) => {
+                        const IconComponent = getAuditIcon(log.action || log.action_name || log.action_type);
+                        return (
+                          <div key={index} className="relative">
+                            {/* Timeline dot */}
+                            <div className="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-slate-400"></div>
+
+                            <div className="flex gap-3">
+                              {/* Timestamp - left aligned */}
+                              <div className="text-[10px] font-mono text-slate-400 shrink-0">
+                                {formatAuditTime(log.created_at || log.timestamp)}
+                              </div>
+
+                              {/* Description - right aligned */}
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <IconComponent size={12} className="text-slate-400" />
+                                  <span className="font-semibold text-slate-600">
+                                    {log.user_name || log.user || 'Система'}
+                                  </span>
+                                  <span className="text-slate-500">
+                                    {log.action || log.action_name || log.action_type}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!loadingAudit && !showAuditSkeleton && auditLogs.length === 0 && !auditError && (
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                    <p className="text-sm text-slate-400 text-center py-4">
+                      История изменений пуста
+                    </p>
+                  </div>
+                )}
+
+                {/* Error state */}
+                {auditError && (
+                  <div className="p-4 bg-red-50 rounded-lg border border-red-100">
+                    <p className="text-sm text-red-600 text-center">
+                      {auditError}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={loadAuditLogs}
+                      className="mt-2 w-full px-4 py-2 text-sm font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                    >
+                      Повторить попытку
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </form>
