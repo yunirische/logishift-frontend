@@ -56,6 +56,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [overlapError, setOverlapError] = useState(false);
   const [uploadingPhotoType, setUploadingPhotoType] = useState<string | null>(null);
   const [tenantSettings, setTenantSettings] = useState<any>(null);
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [showSettingsSkeleton, setShowSettingsSkeleton] = useState(false);
 
   // Pre-fill time fields when modal opens
   useEffect(() => {
@@ -116,11 +118,26 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
   // Load tenant settings for invoice requirement
   const loadTenantSettings = async () => {
+    setLoadingSettings(true);
+    setShowSettingsSkeleton(false);
+
+    // Start 200ms delay for skeleton
+    const skeletonTimer = setTimeout(() => {
+      if (loadingSettings) {
+        setShowSettingsSkeleton(true);
+      }
+    }, 200);
+
     try {
       const data = await api.get(API_ENDPOINTS.TENANT_SETTINGS);
       setTenantSettings(data);
     } catch (err) {
       console.error("Failed to load tenant settings:", err);
+      setTenantSettings(null);
+    } finally {
+      clearTimeout(skeletonTimer);
+      setLoadingSettings(false);
+      setShowSettingsSkeleton(false);
     }
   };
 
@@ -475,6 +492,25 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               const needsOdometer = site.odometer_required === true;
               const needsInvoice = site.invoice_required === true || tenantSettings?.invoice_required === true;
               const hasAnyRequirements = needsOdometer || needsInvoice;
+
+              // Loading skeleton for photo zones
+              if (showSettingsSkeleton) {
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Upload size={16} className="text-slate-500" />
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Загрузка фото
+                      </label>
+                    </div>
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-24 bg-slate-100 border border-slate-200 rounded-lg animate-pulse"></div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
 
               if (!hasAnyRequirements) {
                 return (
