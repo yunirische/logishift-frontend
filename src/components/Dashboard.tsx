@@ -148,28 +148,43 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [refreshStatus]);
 
-  useEffect(() => {
-    // Загрузка статистики для админа
-    if (isAdminView) {
-      api
-        .get(API_ENDPOINTS.DASHBOARD_STATS)
-        .then((res) => {
-          setStats({
-            activeShifts: res.activeShifts || 0,
-            activeDrivers: res.activeDrivers || 0,
-            trucksInWork: res.trucksInWork,
-            usage: res.usage || {
-              trucks: { current: 0, limit: 0 },
-              drivers: { current: 0, limit: 0 },
-              sites: { current: 0, limit: 0 },
-            },
-            currentPlan: res.currentPlan || { name: '', billingUrl: '' },
-            activeShiftsDetails: res.activeShiftsDetails || [],
-          });
-        })
-        .catch(console.error);
+  const fetchDashboardStats = useCallback(async () => {
+    if (!isAdminView) return;
+    try {
+      const res = await api.get(API_ENDPOINTS.DASHBOARD_STATS);
+      setStats({
+        activeShifts: res.activeShifts || 0,
+        activeDrivers: res.activeDrivers || 0,
+        trucksInWork: res.trucksInWork,
+        usage: res.usage || {
+          trucks: { current: 0, limit: 0 },
+          drivers: { current: 0, limit: 0 },
+          sites: { current: 0, limit: 0 },
+        },
+        currentPlan: res.currentPlan || { name: '', billingUrl: '' },
+        activeShiftsDetails: res.activeShiftsDetails || [],
+      });
+    } catch (e) {
+      console.error("Failed to fetch dashboard stats:", e);
     }
   }, [isAdminView]);
+
+  useEffect(() => {
+    // Initial fetch
+    fetchDashboardStats();
+
+    // Polling every 60 seconds for dashboard stats
+    const interval = setInterval(fetchDashboardStats, 60000);
+
+    // Window focus refresh
+    const handleFocus = () => fetchDashboardStats();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchDashboardStats]);
 
   if (isLoading) {
     return (
