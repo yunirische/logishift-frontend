@@ -15,6 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
 import { API_ENDPOINTS } from "../constants";
 import { DriverState } from "../types";
+import ShiftHistoryModal from "../components/ShiftHistoryModal";
 
 export const DriverView = () => {
   const { user, logout, refreshUser } = useAuth();
@@ -24,6 +25,7 @@ export const DriverView = () => {
   const [trucks, setTrucks] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
   const [shiftHistory, setShiftHistory] = useState<any[]>([]);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [toast, setToast] = useState<{show: boolean; message: string; type?: 'success' | 'error'}>({show: false, message: '', type: 'success'});
 
   const [selectedTruck, setSelectedTruck] = useState<string>("");
@@ -420,6 +422,12 @@ export const DriverView = () => {
                   </div>
                 ))}
               </div>
+              <Button
+                onClick={() => setShowHistoryModal(true)}
+                className="w-full mt-3 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all active:scale-[0.98]"
+              >
+                Показать все смены
+              </Button>
             </Card>
           )}
 
@@ -556,6 +564,15 @@ export const DriverView = () => {
             <span className="text-sm font-medium">{toast.message}</span>
           </div>
         </div>
+      )}
+
+      {/* Shift History Modal */}
+      {showHistoryModal && (
+        <ShiftHistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          shifts={shiftHistory}
+        />
       )}
     </div>
   );
