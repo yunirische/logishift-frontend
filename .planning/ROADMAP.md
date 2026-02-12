@@ -96,9 +96,9 @@
 **Plans**: 3 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — Unify DriverView across all roles with real-time state sync
-- [ ] 08-02-PLAN.md — Verify Demo Driver mode with production UI (no safety guards)
-- [ ] 08-03-PLAN.md — Add shift history visibility with View More modal
+- [x] 08-01-PLAN.md — Unify DriverView across all roles with real-time state sync
+- [x] 08-02-PLAN.md — Verify Demo Driver mode with production UI (no safety guards)
+- [x] 08-03-PLAN.md — Add shift history visibility with View More modal
 
 #### Phase 9: Shift Modal Data Integrity
 **Goal**: Shift modal displays complete and accurate data across history, comments, and conditional photo upload zones
@@ -109,12 +109,12 @@ Plans:
   2. Comments tab displays shift comments with proper JetBrains Mono formatting
   3. Modal shows loading skeletons while fetching async data (history, comments)
   4. Photo upload zones display only those required by site settings (odometer before/after, invoice - conditionally shown)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 09-01: Integrate audit trail API for shift history tab
-- [ ] 09-02: Implement comments tab display with proper formatting
-- [ ] 09-03: Add loading skeletons and conditional photo upload zones
+- [ ] 09-01-PLAN.md — Integrate audit trail API for shift history tab
+- [ ] 09-02-PLAN.md — Implement comments tab display with proper formatting
+- [ ] 09-03-PLAN.md — Add loading skeletons and conditional photo upload zones
 
 #### Phase 10: Dashboard Analytics Audit
 **Goal**: Dashboard statistics accurately reflect backend data with synchronized quota limits and manual refresh capability
@@ -169,8 +169,8 @@ Phases execute in numeric order: 8 → 9 → 10 → 11
 | 5. Insights Panel | v1.5 | 1/1 | Complete | 2026-02-01 |
 | 6. Error Handling & Loading | v1.5 | 1/1 | Complete | 2026-02-01 |
 | 7. Styling & Theming | v1.5 | 1/1 | Complete | 2026-02-01 |
-| 8. Driver UI Unification | v2.5 | 0/3 | Ready | - |
-| 9. Shift Modal Data Integrity | v2.5 | 0/3 | Not started | - |
+| 8. Driver UI Unification | v2.5 | 3/3 | Complete | 2026-02-12 |
+| 9. Shift Modal Data Integrity | v2.5 | 0/3 | Ready | - |
 | 10. Dashboard Analytics Audit | v2.5 | 0/3 | Not started | - |
 | 11. Export System Fixes | v2.5 | 0/3 | Not started | - |
 
