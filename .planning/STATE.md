@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 ## Current Position
 
 Phase: 8 of 11 (Driver UI Unification)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-12T18:31:00Z — Completed 08-01: Driver UI access for all roles with state sync
+Last activity: 2026-02-12T18:30:04Z — Completed 08-02: Demo mode simulation with localStorage persistence
 
-Progress: [███░░░░░░░] 33% (Plan 1 complete, 2 remaining)
+Progress: [█████░░░░░] 67% (Plan 2 complete, 1 remaining)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 28 (18 from v1.5, 9 from quick tasks, 1 from v2.5)
-- Average duration: 4.3 min
-- Total execution time: 2.0 hours
+- Total plans completed: 29 (18 from v1.5, 9 from quick tasks, 2 from v2.5)
+- Average duration: 4.2 min
+- Total execution time: 2.1 hours
 
 **By Phase:**
 
@@ -34,14 +34,14 @@ Progress: [███░░░░░░░] 33% (Plan 1 complete, 2 remaining)
 | 05-insights-panel | 1 | 2 min | 2 min |
 | 06-error-handling-loading | 1 | 4 min | 4 min |
 | 07-styling-and-theming | 1 | 1 min | 1 min |
-| 08-driver-ui-unification | 1 | 5 min | 5 min |
+| 08-driver-ui-unification | 2 | 6 min | 3 min avg |
 | quick-001 through quick-009 | 9 | ~3 min each | 3 min avg |
 
 **Recent Trend:**
-- Last 5 plans: 08-01 (5 min), quick-009 (1 min), quick-008 (2 min), quick-007 (3 min), quick-006 (2 min)
+- Last 5 plans: 08-02 (1 min), 08-01 (5 min), quick-009 (1 min), quick-008 (2 min), quick-007 (3 min)
 - Trend: Stable velocity with consistent lightweight execution
 - Total v1.5 execution time: 0.57 hours (34 minutes) for all 7 phases
-- Total v2.5 execution time: 0.08 hours (5 minutes) for first plan
+- Total v2.5 execution time: 0.10 hours (6 minutes) for first two plans
 
 *Updated after each plan completion*
 
@@ -80,6 +80,9 @@ Recent decisions affecting current work:
 - [08-01]: Navigation entry "Мой рабочий день" provides DriverView access for all roles
 - [08-01]: Hybrid state sync: 60s polling + window focus trigger for dashboard stats
 - [08-01]: Verified state sync pattern (initData + refreshUser) already implemented correctly
+- [08-02]: Demo mode (tenant_id === 999) uses same DriverView as production with localStorage shift persistence
+- [08-02]: Demo shifts persist in localStorage across page refreshes for session continuity
+- [08-02]: Fixed bug - demo shift now restores from localStorage on component mount
 
 ### Pending Todos
 
@@ -91,7 +94,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-12T18:31:00Z
-Stopped at: Completed 08-01 Driver UI Unification - navigation entry added, polling implemented
+Last session: 2026-02-12T18:30:04Z
+Stopped at: Completed 08-02 Demo Mode Driver Simulation - verified and fixed localStorage persistence
 Resume file: None
-Next: Execute plan 08-02 (Shift History Modal) or 08-03 (Mobile Performance Optimization)
+Next: Execute plan 08-03 (Mobile Performance Optimization)
