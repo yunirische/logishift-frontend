@@ -153,12 +153,31 @@ const Dashboard: React.FC = () => {
         getAnalyticsUsage().catch(() => null), // Gracefully handle analytics errors
       ]);
 
+      // Debug: Log API response structure to identify field naming
+      console.log("[Dashboard] DASHBOARD_STATS API response:", statsRes);
+      console.log("[Dashboard] Response fields:", Object.keys(statsRes));
+
+      // Handle both camelCase (frontend) and snake_case (backend) field names
+      const activeShifts = statsRes.activeShifts ?? statsRes.active_shifts ?? 0;
+      const activeDrivers = statsRes.activeDrivers ?? statsRes.active_drivers ?? 0;
+      const trucksInWork = statsRes.trucksInWork ?? statsRes.trucks_in_work;
+      const currentPlan = statsRes.currentPlan ?? statsRes.current_plan ?? { name: '', billingUrl: '' };
+      const activeShiftsDetails = statsRes.activeShiftsDetails ?? statsRes.active_shifts_details ?? [];
+
+      console.log("[Dashboard] Mapped values:", {
+        activeShifts,
+        activeDrivers,
+        trucksInWork,
+        currentPlan,
+        activeShiftsDetailsCount: activeShiftsDetails.length
+      });
+
       setStats({
-        activeShifts: statsRes.activeShifts || statsRes.active_shifts || 0,
-        activeDrivers: statsRes.activeDrivers || statsRes.active_drivers || 0,
-        trucksInWork: statsRes.trucksInWork || statsRes.trucks_in_work,
-        currentPlan: statsRes.currentPlan || statsRes.current_plan || { name: '', billingUrl: '' },
-        activeShiftsDetails: statsRes.activeShiftsDetails || statsRes.active_shifts_details || [],
+        activeShifts,
+        activeDrivers,
+        trucksInWork,
+        currentPlan,
+        activeShiftsDetails,
       });
 
       // Set usage from Analytics API (single source of truth across all views)
@@ -338,12 +357,22 @@ const Dashboard: React.FC = () => {
                   getAnalyticsUsage().catch(() => null),
                 ]);
 
+                // Debug: Log API response structure
+                console.log("[Dashboard] Manual refresh - DASHBOARD_STATS API response:", statsRes);
+
+                // Handle both camelCase (frontend) and snake_case (backend) field names
+                const activeShifts = statsRes.activeShifts ?? statsRes.active_shifts ?? 0;
+                const activeDrivers = statsRes.activeDrivers ?? statsRes.active_drivers ?? 0;
+                const trucksInWork = statsRes.trucksInWork ?? statsRes.trucks_in_work;
+                const currentPlan = statsRes.currentPlan ?? statsRes.current_plan ?? { name: '', billingUrl: '' };
+                const activeShiftsDetails = statsRes.activeShiftsDetails ?? statsRes.active_shifts_details ?? [];
+
                 setStats({
-                  activeShifts: statsRes.activeShifts || statsRes.active_shifts || 0,
-                  activeDrivers: statsRes.activeDrivers || statsRes.active_drivers || 0,
-                  trucksInWork: statsRes.trucksInWork || statsRes.trucks_in_work,
-                  currentPlan: statsRes.currentPlan || statsRes.current_plan || { name: '', billingUrl: '' },
-                  activeShiftsDetails: statsRes.activeShiftsDetails || statsRes.active_shifts_details || [],
+                  activeShifts,
+                  activeDrivers,
+                  trucksInWork,
+                  currentPlan,
+                  activeShiftsDetails,
                 });
 
                 if (usageRes) {
