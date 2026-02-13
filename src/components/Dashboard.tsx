@@ -86,11 +86,6 @@ const Dashboard: React.FC = () => {
     activeShifts: number;
     activeDrivers: number;
     trucksInWork?: number;
-    usage: {
-      trucks: { current: number; limit: number };
-      drivers: { current: number; limit: number };
-      sites: { current: number; limit: number };
-    };
     currentPlan: { name: string; billingUrl: string };
     activeShiftsDetails: Array<{
       driver_name: string;
@@ -101,14 +96,12 @@ const Dashboard: React.FC = () => {
   }>({
     activeShifts: 0,
     activeDrivers: 0,
-    usage: {
-      trucks: { current: 0, limit: 0 },
-      drivers: { current: 0, limit: 0 },
-      sites: { current: 0, limit: 0 },
-    },
     currentPlan: { name: '', billingUrl: '' },
     activeShiftsDetails: [],
   });
+
+  // Usage limits from Analytics API (/api/v1/analytics/usage) - single source of truth
+  const [usage, setUsage] = useState<AnalyticsUsage | null>(null);
 
   const isAdminView =
     currentUser?.role === UserRole.ADMIN ||
@@ -153,19 +146,25 @@ const Dashboard: React.FC = () => {
   const fetchDashboardStats = useCallback(async () => {
     if (!isAdminView) return;
     try {
-      const res = await api.get(API_ENDPOINTS.DASHBOARD_STATS);
+      // Fetch dashboard stats and analytics usage in parallel
+      // Usage data from Analytics API (/api/v1/analytics/usage) - single source of truth
+      const [statsRes, usageRes] = await Promise.all([
+        api.get(API_ENDPOINTS.DASHBOARD_STATS),
+        getAnalyticsUsage().catch(() => null), // Gracefully handle analytics errors
+      ]);
+
       setStats({
-        activeShifts: res.activeShifts || 0,
-        activeDrivers: res.activeDrivers || 0,
-        trucksInWork: res.trucksInWork,
-        usage: res.usage || {
-          trucks: { current: 0, limit: 0 },
-          drivers: { current: 0, limit: 0 },
-          sites: { current: 0, limit: 0 },
-        },
-        currentPlan: res.currentPlan || { name: '', billingUrl: '' },
-        activeShiftsDetails: res.activeShiftsDetails || [],
+        activeShifts: statsRes.activeShifts || statsRes.active_shifts || 0,
+        activeDrivers: statsRes.activeDrivers || statsRes.active_drivers || 0,
+        trucksInWork: statsRes.trucksInWork || statsRes.trucks_in_work,
+        currentPlan: statsRes.currentPlan || statsRes.current_plan || { name: '', billingUrl: '' },
+        activeShiftsDetails: statsRes.activeShiftsDetails || statsRes.active_shifts_details || [],
       });
+
+      // Set usage from Analytics API (single source of truth across all views)
+      if (usageRes) {
+        setUsage(usageRes);
+      }
     } catch (e) {
       console.error("Failed to fetch dashboard stats:", e);
     }
@@ -274,25 +273,25 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {stats.usage && (
+            {usage && (
               <>
                 <UsageCard
                   label="Машины"
                   icon={<Truck size={24} className="text-[#0a192f]" />}
-                  current={stats.usage.trucks?.current || 0}
-                  limit={stats.usage.trucks?.limit || 0}
+                  current={usage.trucks.current}
+                  limit={usage.trucks.limit}
                 />
                 <UsageCard
                   label="Водители"
                   icon={<User size={24} className="text-[#0a192f]" />}
-                  current={stats.usage.drivers?.current || 0}
-                  limit={stats.usage.drivers?.limit || 0}
+                  current={usage.drivers.current}
+                  limit={usage.drivers.limit}
                 />
                 <UsageCard
                   label="Объекты"
                   icon={<Building2 size={24} className="text-[#0a192f]" />}
-                  current={stats.usage.sites?.current || 0}
-                  limit={stats.usage.sites?.limit || 0}
+                  current={usage.sites.current}
+                  limit={usage.sites.limit}
                 />
               </>
             )}
