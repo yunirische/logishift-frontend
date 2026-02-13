@@ -125,12 +125,12 @@ Plans:
   2. Dashboard.tsx data mapping is audited and corrected against current Backend API response structure
   3. Dashboard includes manual refresh button that updates all stats on demand
   4. Limit data (Trucks, Drivers, Sites) is synchronized between Dashboard and System section using single source from Usage Analytics API
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 10-01: Audit and fix Dashboard data mapping for accurate active shifts count
-- [ ] 10-02: Implement manual refresh mechanism for dashboard stats
-- [ ] 10-03: Synchronize quota limits between Dashboard and System sections
+- [ ] 10-01-PLAN.md — Audit and fix Dashboard data mapping for accurate active shifts count
+- [ ] 10-02-PLAN.md — Implement manual refresh mechanism for dashboard stats
+- [ ] 10-03-PLAN.md — Synchronize quota limits between Dashboard and System sections
 
 #### Phase 11: Export System Fixes
 **Goal**: Exported shift files download correctly in proper Excel/CSV format without corruption
@@ -171,7 +171,7 @@ Phases execute in numeric order: 8 → 9 → 10 → 11
 | 7. Styling & Theming | v1.5 | 1/1 | Complete | 2026-02-01 |
 | 8. Driver UI Unification | v2.5 | 3/3 | Complete | 2026-02-12 |
 | 9. Shift Modal Data Integrity | v2.5 | 0/3 | Ready | - |
-| 10. Dashboard Analytics Audit | v2.5 | 0/3 | Not started | - |
+| 10. Dashboard Analytics Audit | v2.5 | 3/3 | Ready | - |
 | 11. Export System Fixes | v2.5 | 0/3 | Not started | - |
 
 ## Quick Tasks
