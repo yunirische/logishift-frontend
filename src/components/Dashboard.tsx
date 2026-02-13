@@ -332,20 +332,23 @@ const Dashboard: React.FC = () => {
               onClose={() => setShowManualModal(false)}
               onSave={async () => {
                 setShowManualModal(false);
-                // Refresh stats
-                const res = await api.get(API_ENDPOINTS.DASHBOARD_STATS);
+                // Refresh stats and usage
+                const [statsRes, usageRes] = await Promise.all([
+                  api.get(API_ENDPOINTS.DASHBOARD_STATS),
+                  getAnalyticsUsage().catch(() => null),
+                ]);
+
                 setStats({
-                  activeShifts: res.activeShifts || 0,
-                  activeDrivers: res.activeDrivers || 0,
-                  trucksInWork: res.trucksInWork,
-                  usage: res.usage || {
-                    trucks: { current: 0, limit: 0 },
-                    drivers: { current: 0, limit: 0 },
-                    sites: { current: 0, limit: 0 },
-                  },
-                  currentPlan: res.currentPlan || { name: '', billingUrl: '' },
-                  activeShiftsDetails: res.activeShiftsDetails || [],
+                  activeShifts: statsRes.activeShifts || statsRes.active_shifts || 0,
+                  activeDrivers: statsRes.activeDrivers || statsRes.active_drivers || 0,
+                  trucksInWork: statsRes.trucksInWork || statsRes.trucks_in_work,
+                  currentPlan: statsRes.currentPlan || statsRes.current_plan || { name: '', billingUrl: '' },
+                  activeShiftsDetails: statsRes.activeShiftsDetails || statsRes.active_shifts_details || [],
                 });
+
+                if (usageRes) {
+                  setUsage(usageRes);
+                }
               }}
               timezone={"Europe/Moscow"}
             />
