@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState, Suspense } from "react";
 import { API_ENDPOINTS } from "../constants";
-import api, { getCurrentShift } from "../services/api";
+import api, { getCurrentShift, getAnalyticsUsage } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import { DriverState, UserRole } from "../types";
+import { DriverState, UserRole, AnalyticsUsage } from "../types";
 import {
   Clock,
   Truck,
@@ -10,6 +10,7 @@ import {
   Plus,
   User,
   Building2,
+  RefreshCw,
 } from "lucide-react";
 import { DriverView } from "../views/DriverView";
 
@@ -80,6 +81,7 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [shiftCheckComplete, setShiftCheckComplete] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState<{
     activeShifts: number;
     activeDrivers: number;
@@ -169,6 +171,15 @@ const Dashboard: React.FC = () => {
     }
   }, [isAdminView]);
 
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchDashboardStats();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     // Initial fetch
     fetchDashboardStats();
@@ -246,11 +257,21 @@ const Dashboard: React.FC = () => {
         <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-[#1B254B]">Лимиты тарифа</h3>
-            {stats.currentPlan && stats.currentPlan.name && (
-              <span className="px-3 py-1 bg-indigo-100 text-[#0a192f] text-xs font-bold rounded-full">
-                {stats.currentPlan.name}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {stats.currentPlan && stats.currentPlan.name && (
+                <span className="px-3 py-1 bg-indigo-100 text-[#0a192f] text-xs font-bold rounded-full">
+                  {stats.currentPlan.name}
+                </span>
+              )}
+              <button
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+                title="Обновить статистику"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {stats.usage && (
