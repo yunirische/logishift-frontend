@@ -1,45 +1,45 @@
 ---
 phase: 09-shift-modal-data-integrity
-plan: 03
+plan: 03b
 type: execute
 wave: 3
-depends_on: [09-01, 09-02]
+depends_on: [09-03a]
 files_modified:
   - src/components/EditShiftModal.tsx
 autonomous: true
 
 must_haves:
   truths:
-    - "Photo upload zones display only those required by site settings (odometer before/after, invoice)"
     - "Photo zones show Russian technical tags: [ОБЯЗАТЕЛЬНО] or [ОПЦИОНАЛЬНО]"
-    - "Photo zones use Smart Hybrid visibility: show if Required OR if Data Exists"
+    - "Technical tags use JetBrains Mono font for technical label styling"
     - "Empty state shows industrial dropzone with dashed border + icon + technical label"
-    - "Loading skeleton displays while fetching tenant settings (200ms delay before skeleton)"
+    - "Photo zones only render in Details tab (activeTab === 'details')"
+    - "Settings load on modal open for immediate photo zone availability"
   artifacts:
     - path: "src/components/EditShiftModal.tsx"
-      provides: "EditShiftModal with conditional photo upload zones using Smart Hybrid visibility"
+      provides: "EditShiftModal with Russian technical tags and industrial dropzone styling"
       min_lines: 920
   key_links:
-    - from: "src/components/EditShiftModal.tsx"
-      to: "API_ENDPOINTS.TENANT_SETTINGS"
-      via: "loadTenantSettings function fetches site requirements"
-      pattern: "api\\.get\\(API_ENDPOINTS\\.TENANT_SETTINGS"
-    - from: "src/components/EditShiftModal.tsx"
-      to: "Photo zone conditional rendering"
-      via: "Smart Hybrid: show if Required OR if Data Exists"
-      pattern: "needsOdometer|needsInvoice|photo_.*_url"
     - from: "src/components/EditShiftModal.tsx"
       to: "Technical tag display"
       via: "Russian labels [ОБЯЗАТЕЛЬНО]/[ОПЦИОНАЛЬНО] in JetBrains Mono"
       pattern: "ОБЯЗАТЕЛЬНО|ОПЦИОНАЛЬНО"
+    - from: "src/components/EditShiftModal.tsx"
+      to: "Industrial dropzone styling"
+      via: "Dashed border + centered icon + Russian label for empty zones"
+      pattern: "border-dashed|Перетащите или нажмите"
+    - from: "src/components/EditShiftModal.tsx"
+      to: "Details tab conditional rendering"
+      via: "Photo zones only render when activeTab === 'details'"
+      pattern: "activeTab === 'details'"
 ---
 
 <objective>
-Implement conditional photo upload zones with Smart Hybrid visibility and technical tags.
+Implement Russian technical tags and industrial dropzone styling for photo upload zones.
 
-Purpose: Per MODAL-04 requirement, photo upload zones must display conditionally based on site settings. Current implementation (lines 404-571) has basic conditional logic but lacks Smart Hybrid visibility (show if Required OR if Data Exists), Russian technical tags, and loading skeletons. This plan adds proper Smart Hybrid logic, industrial dropzone styling, and loading states.
+Purpose: Per MODAL-04 requirement and user decisions, photo zones must display Russian technical tags ([ОБЯЗАТЕЛЬНО]/[ОПЦИОНАЛЬНО]) in JetBrains Mono font, and empty zones must show industrial dropzone styling with dashed border, centered icon, and Russian label. Current implementation lacks these visual elements and proper tab isolation.
 
-Output: Updated EditShiftModal with photo zones showing/hiding based on Smart Hybrid logic, Russian technical tags, and industrial empty states.
+Output: Updated EditShiftModal with Russian technical tags above each photo zone and industrial dropzone styling for empty states, isolated to Details tab.
 </objective>
 
 <execution_context>
@@ -56,103 +56,10 @@ Output: Updated EditShiftModal with photo zones showing/hiding based on Smart Hy
 @src/constants.ts
 @src/types.ts
 @.planning/phases/09-shift-modal-data-integrity/09-01-SUMMARY.md
-@.planning/phases/09-shift-modal-data-integrity/09-02-SUMMARY.md
+@.planning/phases/09-shift-modal-data-integrity/09-03a-SUMMARY.md
 </context>
 
 <tasks>
-
-<task type="auto">
-  <name>Add loading state for tenant settings with 200ms skeleton delay</name>
-  <files>src/components/EditShiftModal.tsx</files>
-  <action>
-    Current loadTenantSettings (lines 103-110) lacks loading states. Add proper loading with skeleton delay:
-
-    1. Add loading states:
-       const [loadingSettings, setLoadingSettings] = useState(false);
-       const [showSettingsSkeleton, setShowSettingsSkeleton] = useState(false);
-
-    2. Update loadTenantSettings function:
-       const loadTenantSettings = async () => {
-         setLoadingSettings(true);
-         setShowSettingsSkeleton(false);
-
-         // Start 200ms delay for skeleton
-         const skeletonTimer = setTimeout(() => {
-           if (loadingSettings) setShowSettingsSkeleton(true);
-         }, 200);
-
-         try {
-           const data = await api.get(API_ENDPOINTS.TENANT_SETTINGS);
-           setTenantSettings(data);
-         } catch (err) {
-           console.error("Failed to load tenant settings:", err);
-           setTenantSettings(null);
-         } finally {
-           clearTimeout(skeletonTimer);
-           setLoadingSettings(false);
-           setShowSettingsSkeleton(false);
-         }
-       };
-
-    3. Add skeleton for photo zones section:
-       - When showSettingsSkeleton is true
-       - Render 3 placeholder blocks (one per zone type)
-       - Each: h-24 bg-slate-100 border border-slate-200 rounded-lg animate-pulse
-       - Mimics actual zone structure for content-aware skeleton
-
-    The key: Show skeleton only after 200ms to avoid flicker on fast loads.
-  </action>
-  <verify>
-    1. Check that loadingSettings and showSettingsSkeleton states exist
-    2. Check that 200ms setTimeout exists before showing skeleton
-    3. Check that clearTimeout exists in finally block
-    4. Check that skeleton renders in photo zones section
-  </verify>
-  <done>
-    Photo zones section shows loading skeleton after 200ms delay. Skeleton mimics actual zone structure.
-  </done>
-</task>
-
-<task type="auto">
-  <name>Implement Smart Hybrid visibility logic for photo zones</name>
-  <files>src/components/EditShiftModal.tsx</files>
-  <action>
-    Current logic (lines 407-409) only checks site requirements. Update to Smart Hybrid: Show if Required OR if Data Exists.
-
-    1. Define visibility condition function:
-       const shouldShowZone = (isRequired: boolean, hasData: boolean) => {
-         // Smart Hybrid: show if required OR if data exists
-         return isRequired || hasData;
-       };
-
-    2. Update zone visibility logic (replace lines 407-409):
-       - odometer_start: shouldShowZone(needsOdometer, !!shift.photo_start_url)
-       - odometer_end: shouldShowZone(needsOdometer, !!shift.photo_end_url)
-       - invoice: shouldShowZone(needsInvoice, !!shift.photo_invoice_url)
-
-    3. This means:
-       - If site requires odometer photos: show both start/end zones
-       - If site doesn't require odometer BUT user has uploaded start: show start zone
-       - If site doesn't require odometer BUT user has uploaded end: show end zone
-       - Same logic for invoice zone
-
-    4. Update the "no requirements" empty state (lines 411-424):
-       - Only show when ALL zones are hidden by Smart Hybrid
-       - Condition: !shouldShowZone(needsOdometer, hasStart) &&
-                     !shouldShowZone(needsOdometer, hasEnd) &&
-                     !shouldShowZone(needsInvoice, hasInvoice)
-
-    The key: Zones stay visible if they have data even if settings change to not require them.
-  </action>
-  <verify>
-    1. Check that shouldShowZone function exists with isRequired || hasData logic
-    2. Check that zone visibility uses shouldShowZone for each zone type
-    3. Check that "no requirements" empty state only shows when all zones hidden
-  </verify>
-  <done>
-    Photo zones use Smart Hybrid visibility: show if Required OR if Data Exists. Zones persist if data exists even when requirements change.
-  </done>
-</task>
 
 <task type="auto">
   <name>Add Russian technical tags [ОБЯЗАТЕЛЬНО]/[ОПЦИОНАЛЬНО] to photo zones</name>
@@ -271,7 +178,7 @@ Output: Updated EditShiftModal with photo zones showing/hiding based on Smart Hy
 
     1. Move photo zones to only render when activeTab === 'details':
        - Current implementation (lines 404-571) is in a self-executing function
-       - Wrap with: {activeTab === 'details' && (...)}
+       - Wrap with: {activeTab === 'details' (...)}
 
     2. Add useEffect to load tenant settings when modal opens:
        - Current implementation already calls loadTenantSettings() (line 72)
@@ -314,48 +221,33 @@ Output: Updated EditShiftModal with photo zones showing/hiding based on Smart Hy
 <verification>
 Phase verification:
 
-1. Photo zones visibility:
-   - Open EditShiftModal for a shift
-   - Verify odometer zones show if required OR if photos exist
-   - Verify invoice zone shows if required OR if invoice photo exists
-   - Verify "no requirements" message only when ALL zones are hidden
-   - Verify hidden zones don't reserve space (layout collapse)
-
-2. Technical tags:
+1. Technical tags:
+   - Open EditShiftModal
    - Verify [ОБЯЗАТЕЛЬНО] tag appears for required zones
    - Verify [ОПЦИОНАЛЬНО] tag appears for optional zones
    - Verify tags use monospace font (JetBrains Mono equivalent)
    - Verify tag styling (colors, borders, spacing)
 
-3. Empty state styling:
+2. Empty state styling:
    - Verify empty zones show dashed border (industrial dropzone)
    - Verify Image icon is centered
-   - Verify Russian label appears
+   - Verify Russian label "Перетащите или нажмите для загрузки" appears
    - Verify hover effect works
 
-4. Loading states:
-   - Verify skeleton shows during settings load
-   - Verify 200ms delay before skeleton appears
-   - Verify skeleton mimics actual zone structure
-
-5. Smart Hybrid persistence:
-   - Upload photo to a zone
-   - Change site settings to make zone optional
-   - Verify zone still shows (because data exists)
-   - Delete photo from zone
-   - Verify zone hides (not required + no data)
+3. Tab isolation:
+   - Verify photo zones only render in Details tab
+   - Verify zones are hidden in History and Comments tabs
+   - Verify layout collapse when zones are hidden
 </verification>
 
 <success_criteria>
-1. Photo zones use Smart Hybrid visibility: show if Required OR if Data Exists
-2. Russian technical tags [ОБЯЗАТЕЛЬНО]/[ОПЦИОНАЛЬНО] in JetBrains Mono above each zone
-3. Empty zones show industrial dropzone: dashed border + icon + Russian label
-4. Loading skeleton shows after 200ms delay with content-aware structure
+1. Photo zones display Russian technical tags [ОБЯЗАТЕЛЬНО]/[ОПЦИОНАЛЬНО] in JetBrains Mono
+2. Empty zones show industrial dropzone: dashed border + icon + Russian label
+3. Photo zones only render in Details tab (activeTab === 'details')
+4. Settings load on modal open for immediate availability
 5. Layout collapse: hidden zones don't reserve space
-6. Zones persist if data exists even when requirements change
-7. Settings load on modal open, zones only render in Details tab
 </success_criteria>
 
 <output>
-After completion, create `.planning/phases/09-shift-modal-data-integrity/09-03-SUMMARY.md`
+After completion, create `.planning/phases/09-shift-modal-data-integrity/09-03b-SUMMARY.md`
 </output>
