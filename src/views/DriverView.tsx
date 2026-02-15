@@ -100,18 +100,18 @@ export const DriverView = () => {
           truck: selectedTruckData || { id: 1, name: 'MAN TGX', plate_number: 'А123БВ' },
           site: selectedSiteData || { id: 1, name: 'ЖК Северный', address: 'ул. Примерная, 1' }
         };
+
+        // Force immediate state update for demo mode
         setActiveShift(mockShift);
         localStorage.setItem('logishift_active_shift', JSON.stringify(mockShift));
 
-        // Determine next state based on site requirements
-        const nextState = selectedSiteData?.odometer_required
-          ? DriverState.AWAITING_ODO_START
-          : DriverState.ACTIVE;
+        // Determine next state based on site requirements (use string literal for consistency)
+        const nextState = selectedSiteData?.odometer_required ? 'awaiting_odo_start' : 'active';
 
-        // Update user state via refreshUser to sync with AuthContext
+        // Update user state to active (string literal for consistency with condition check)
         const updatedUser = { ...user, current_state: nextState };
         localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
-        await refreshUser();
+        await refreshUser(); // This triggers AuthContext update
 
         setToast({ show: true, message: "✅ Смена открыта", type: 'success' });
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2000);
@@ -291,7 +291,7 @@ export const DriverView = () => {
       </div>
 
       {/* ГЛАВНАЯ ЛОГИКА ЭКРАНОВ */}
-      {!activeShift || user?.current_state === "idle" ? (
+      {!activeShift ? (
         // --- ЭКРАН 1: ВЫБОР (Если смены нет в БД или статус idle) ---
         <div className="space-y-5">
           <Card className="p-5 border border-slate-200 shadow-sm bg-white">
