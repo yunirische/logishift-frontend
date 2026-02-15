@@ -408,10 +408,10 @@ export const DriverView = () => {
                           {shift.truck?.name || shift.truck_name || '—'}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-400 font-mono">
                         {shift.created_at ? new Date(shift.created_at).toLocaleDateString('ru-RU', {
-                          day: 'numeric',
-                          month: 'short'
+                          day: '2-digit',
+                          month: '2-digit'
                         }) : '—'}
                       </span>
                     </div>
