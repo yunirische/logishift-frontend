@@ -434,10 +434,10 @@ export const DriverView = () => {
           <Button
             onClick={handleStart}
             disabled={!selectedTruck || !selectedSite}
-            className="w-full py-5 bg-[#0a192f] hover:bg-[#152238] text-white font-bold text-xl shadow-xl shadow-[#0a192f]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+            className="w-full py-3 rounded-lg bg-[#0a192f] hover:bg-[#152238] text-white font-bold text-lg shadow-lg shadow-[#0a192f]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             isLoading={loading}
           >
-            <Play size={24} fill="currentColor" className="mr-3" />
+            <Play size={20} fill="currentColor" />
             ОТКРЫТЬ СМЕНУ
           </Button>
         </div>
