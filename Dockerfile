@@ -1,5 +1,14 @@
 # Stage 1: Build
 FROM node:18-alpine as build
+
+# Accept build arguments for Vite environment variables
+ARG VITE_API_URL=http://localhost:3000/api/v1
+ARG VITE_STATIC_URL=http://localhost:3000
+
+# Set as environment variables for Vite build process
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_STATIC_URL=$VITE_STATIC_URL
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
