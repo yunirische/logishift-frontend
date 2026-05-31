@@ -153,9 +153,13 @@ const Login: React.FC = () => {
                 Входим в демо...
               </>
             ) : (
-              'Посмотреть демо'
+              'Войти в демо-организацию'
             )}
           </button>
+          <p className="text-center text-xs text-slate-400 mt-2 leading-relaxed px-2">
+            Откроется тестовая компания с демо-данными.
+            Для реальной компании используйте регистрацию.
+          </p>
         </div>
 
         {/* Register Link */}
