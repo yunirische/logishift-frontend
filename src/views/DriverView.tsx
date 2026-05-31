@@ -184,13 +184,21 @@ export const DriverView = () => {
     setLoading(true);
     try {
       // Use direct fetch instead of api.post() to avoid JSON.stringify on FormData
-      await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
+      const uploadRes = await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${api.getAuthToken()}`,
         },
         body: formData,
       });
+
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json().catch(() => ({}));
+        const errorMsg = (errData as any).error || `Ошибка загрузки фото (${uploadRes.status})`;
+        setToast({ show: true, message: `❌ ${errorMsg}`, type: 'error' });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+        return;
+      }
 
       // Demo mode: advance state machine
       if (user?.tenant_id === 999) {
@@ -209,6 +217,12 @@ export const DriverView = () => {
             break;
           default:
             nextState = DriverState.ACTIVE;
+        }
+
+        // Clear active shift before initData runs so it does not restore from localStorage
+        if (nextState === DriverState.IDLE) {
+          setActiveShift(null);
+          localStorage.removeItem('logishift_active_shift');
         }
 
         // Update user state via refreshUser to sync with AuthContext
@@ -233,6 +247,7 @@ export const DriverView = () => {
       const errorMsg = err.response?.data?.error || err.message || "Ошибка загрузки фото";
       setToast({ show: true, message: `❌ ${errorMsg}`, type: 'error' });
       setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    } finally {
       setLoading(false);
     }
   };
@@ -513,7 +528,7 @@ export const DriverView = () => {
                 ЗАВЕРШИТЬ РАБОТУ
               </Button>
             </div>
-          ) : (
+          ) : ['awaiting_odo_start', 'awaiting_odo_end', 'awaiting_invoice'].includes(user?.current_state || '') ? (
             // ПОД-ЭКРАН: ТРЕБУЕТСЯ ФОТО
             <div className="space-y-4">
               <div className="p-6 bg-orange-50 border border-orange-200 rounded-xl text-center">
@@ -532,7 +547,7 @@ export const DriverView = () => {
               </div>
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-10 bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold animate-pulse shadow-2xl shadow-orange-200 flex flex-col items-center gap-2 transition-all active:scale-[0.98]"
+                className="w-full py-10 bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold shadow-2xl shadow-orange-200 flex flex-col items-center gap-2 transition-all active:scale-[0.98]"
                 isLoading={loading}
               >
                 <Camera size={36} />
@@ -545,6 +560,29 @@ export const DriverView = () => {
                   фото может стать причиной отклонения смены.
                 </span>
               </div>
+            </div>
+          ) : (
+            // ПОД-ЭКРАН: СМЕНА ЗАВЕРШЕНА (состояние не ожидает фото)
+            <div className="space-y-4">
+              <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
+                <CheckCircle2 size={48} className="mx-auto mb-4 text-emerald-500" />
+                <h3 className="font-bold text-lg text-emerald-900 uppercase tracking-tight mb-2">
+                  Смена завершена
+                </h3>
+                <p className="text-sm text-emerald-700 font-medium">
+                  Все документы приняты. Хорошей работы!
+                </p>
+              </div>
+              <Button
+                onClick={() => {
+                  setActiveShift(null);
+                  localStorage.removeItem('logishift_active_shift');
+                }}
+                className="w-full py-3 bg-[#0a192f] hover:bg-[#152238] text-white font-bold text-lg shadow-lg shadow-[#0a192f]/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Play size={20} fill="currentColor" />
+                Открыть новую смену
+              </Button>
             </div>
           )}
         </div>
