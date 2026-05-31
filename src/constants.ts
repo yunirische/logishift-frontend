@@ -1,5 +1,7 @@
-export const API_BASE_URL = "https://pwa.kontrolsmen.ru/api/v1";
-export const STATIC_BASE_URL = "https://pwa.kontrolsmen.ru";
+// Environment variable support for API URLs
+// Falls back to production URLs if not set (for backwards compatibility)
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://pwa.kontrolsmen.ru/api/v1";
+export const STATIC_BASE_URL = import.meta.env.VITE_STATIC_URL || "https://pwa.kontrolsmen.ru";
 
 export const API_ENDPOINTS = {
   AUTH_LOGIN: `${API_BASE_URL}/auth/login`,

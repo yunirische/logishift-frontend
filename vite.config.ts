@@ -19,7 +19,8 @@ export default defineConfig({
         
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/pwa\.kontrolsmen\.ru\/api\/.*/i,
+            // Match API requests regardless of domain (supports local dev and production)
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
@@ -32,10 +33,10 @@ export default defineConfig({
               }
             }
           },
-          // ДОБАВЬ - явно НЕ кэшируй /uploads/
           {
-            urlPattern: /^https:\/\/pwa\.kontrolsmen\.ru\/uploads\/.*/i,
-            handler: 'NetworkOnly', // ВСЕГДА запрашивать с сервера
+            // Match uploads regardless of domain (supports local dev and production)
+            urlPattern: ({ url }) => url.pathname.startsWith('/uploads/'),
+            handler: 'NetworkOnly', // Always fetch from server
           }
         ]
       },
