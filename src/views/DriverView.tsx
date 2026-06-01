@@ -56,9 +56,14 @@ export const DriverView = () => {
         // Если смена есть в базе — сохраняем её
         setActiveShift(currentShift);
       } else {
-        // Если смены нет — обнуляем стейт и грузим списки выборасч
+        // Если смены нет — обнуляем стейт и грузим списки выбора
         if (!user || user.tenant_id !== 999) {
           setActiveShift(null);
+        } else if (user.current_state === DriverState.IDLE) {
+          // Demo mode, idle state: clear any stale mock shift so the
+          // start-shift screen shows instead of the fallback completion screen.
+          setActiveShift(null);
+          localStorage.removeItem('logishift_active_shift');
         }
         const [trucksRes, sitesRes, historyRes] = await Promise.all([
           api.get("/trucks"),
