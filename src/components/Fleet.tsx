@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Pencil, Trash2, X, Power, Loader2, Truck } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Power, Loader2, Truck } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
 import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
@@ -141,66 +141,79 @@ const Fleet: React.FC = () => {
         </button>
       </div>
 
-      {/* Сетка техники */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
-        {trucks.length === 0 && (
-          <div className="col-span-full text-center py-12 text-slate-400 italic bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+      {/* Таблица техники */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in">
+        {trucks.length === 0 ? (
+          <div className="text-center py-16 text-slate-400 italic">
             В автопарке пока нет машин
           </div>
-        )}
-
-        {trucks.map((t) => (
-          <div key={t.id} className={`bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative group transition-all ${t.is_busy ? 'border-orange-200 bg-orange-50/30' : 'border-slate-200'}`}>
-            
-            {/* Кнопки действий */}
-            <div className="absolute top-4 right-4 flex gap-2 z-10">
-              <button
-                onClick={() => handleEditClick(t)}
-                className="p-2 bg-white border border-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-[#0a192f] transition-colors shadow-sm"
-                aria-label={`Редактировать ${t.name}`}
-              >
-                <Pencil size={16} />
-              </button>
-              <button
-                onClick={() => handleDeleteClick(t.id, t.name)}
-                className="p-2 bg-white border border-slate-100 text-red-500 rounded-lg hover:bg-red-50 hover:border-red-100 transition-colors shadow-sm"
-                aria-label={`Удалить ${t.name}`}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-
-            <div className="flex justify-between items-start pr-16">
-              <Truck size={40} className="text-[#0a192f] drop-shadow-sm" />
-              {/* Статус в карточке */}
-              <div className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase flex items-center gap-1.5 ${t.is_busy ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                 <Power size={10} fill="currentColor" />
-                 {t.is_busy ? 'В рейсе' : 'Свободна'}
-              </div>
-            </div>
-            
-            <h4 className="mt-4 font-bold text-[#1B254B] text-lg">{t.name}</h4>
-            
-            <div className="flex items-center gap-2 mt-2 text-slate-500 font-medium text-sm">
-               <MapPin size={14} className="text-slate-400" />
-               <span className="font-mono tracking-wide text-slate-600">{t.plate || 'Без номера'}</span>
-            </div>
-
-            {/* Переключатель статуса (быстрое действие) */}
-            <div className="mt-6 pt-4 border-t border-slate-100/50">
-               <button
-                 onClick={() => handleToggleBusy(t)}
-                 className={`w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${
-                   t.is_busy 
-                   ? 'bg-white text-orange-600 border-orange-200 hover:bg-orange-50' 
-                   : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50'
-                 }`}
-               >
-                 {t.is_busy ? 'Освободить машину' : 'Отправить в рейс'}
-               </button>
-            </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Машина</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Госномер</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Статус</th>
+                  <th className="px-4 py-3 w-1"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {trucks.map((t) => (
+                  <tr key={t.id} className={`hover:bg-slate-50/60 transition-colors ${t.is_busy ? 'bg-orange-50/20' : ''}`}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Truck size={16} className="text-slate-400 shrink-0" />
+                        <span className="font-semibold text-[#1B254B]">{t.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-slate-600 text-xs bg-slate-100 px-2 py-1 rounded">
+                        {t.plate || '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                        t.is_busy ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'
+                      }`}>
+                        <Power size={10} fill="currentColor" />
+                        {t.is_busy ? 'В рейсе' : 'Свободна'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button
+                          onClick={() => handleToggleBusy(t)}
+                          className={`px-2.5 py-1.5 text-xs font-semibold border rounded-lg transition-all ${
+                            t.is_busy
+                              ? 'text-orange-600 border-orange-200 hover:bg-orange-50'
+                              : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {t.is_busy ? 'Освободить' : 'В рейс'}
+                        </button>
+                        <button
+                          onClick={() => handleEditClick(t)}
+                          className="p-1.5 text-slate-500 hover:text-[#0a192f] hover:bg-slate-100 rounded-lg transition-colors"
+                          aria-label={`Редактировать ${t.name}`}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(t.id, t.name)}
+                          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          aria-label={`Удалить ${t.name}`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
+        )}
       </div>
 
       {/* Модальное окно */}

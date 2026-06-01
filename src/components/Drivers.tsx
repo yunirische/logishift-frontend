@@ -133,7 +133,7 @@ const Drivers: React.FC = () => {
   if (loading)
     return (
       <div className="p-20 text-center animate-pulse text-[#0a192f] font-semibold uppercase tracking-widest text-xs">
-        Загрузка штата KONTROLSMEN...
+        Загрузка персонала...
       </div>
     );
 
@@ -160,77 +160,73 @@ const Drivers: React.FC = () => {
         </div>
       )}
 
-      {drivers.length === 0 && !error ? (
-        <div className="p-20 text-center bg-white rounded-lg text-slate-300 italic">
-          Список водителей пуст
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-500">
-          {drivers.map((driver) => (
-            <div
-              key={driver.id}
-              className="bg-white p-6 rounded-lg border border-slate-50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <span className="text-4xl">🚚</span>
-              </div>
-              <div className="flex items-center gap-4 mb-4 relative z-10">
-                <div
-                  className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg shadow-inner ${
-                    driver.is_active
-                      ? "bg-indigo-100 text-[#0a192f]"
-                      : "bg-slate-100 text-slate-400"
-                  }`}
-                >
-                  {driver.full_name.charAt(0)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-bold text-[#1B254B] truncate text-base">
-                    {driver.full_name}
-                  </h4>
-                  <p className="text-xs text-slate-400 font-medium">
-                    {driver.role}
-                  </p>
-                </div>
-                <button
-                  onClick={() => openEditModal(driver)}
-                  className="min-w-[40px] min-h-[40px] p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-100 hover:text-[#0a192f] transition-colors"
-                  aria-label={`Редактировать ${driver.full_name}`}
-                >
-                  <Pencil size={16} />
-                </button>
-                <button
-                  onClick={() => handleDelete(driver)}
-                  className="min-w-[40px] min-h-[40px] p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors"
-                  aria-label={`Удалить ${driver.full_name}`}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-              <div className="pt-4 border-t border-slate-50 text-sm space-y-2 relative z-10">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium text-xs">
-                    Ставка:
-                  </span>
-                  <span className="font-bold text-[#1B254B] text-[10px] px-2 py-1 bg-slate-50 rounded-lg uppercase tracking-tight">
-                    {driver.hourly_rate ? `${driver.hourly_rate} ₽/час` : "Не указана"}
-                  </span>
-                </div>
-                {driver.last_activity && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400 font-medium text-xs">
-                      Активность:
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      {new Date(driver.last_activity).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Таблица персонала */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+        {drivers.length === 0 && !error ? (
+          <div className="p-16 text-center text-slate-400 italic">
+            Список водителей пуст
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50">
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Сотрудник</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Роль</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Ставка</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Активность</th>
+                  <th className="px-4 py-3 w-1"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {drivers.map((driver) => (
+                  <tr key={driver.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
+                          driver.is_active ? 'bg-indigo-100 text-[#0a192f]' : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {driver.full_name.charAt(0)}
+                        </div>
+                        <span className="font-semibold text-[#1B254B]">{driver.full_name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{driver.role}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-semibold text-[#1B254B]">
+                        {driver.hourly_rate ? `${driver.hourly_rate} ₽/ч` : '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell text-xs text-slate-500 font-mono">
+                      {driver.last_activity
+                        ? new Date(driver.last_activity).toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit', year: '2-digit'})
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button
+                          onClick={() => openEditModal(driver)}
+                          className="p-1.5 text-slate-500 hover:text-[#0a192f] hover:bg-slate-100 rounded-lg transition-colors"
+                          aria-label={`Редактировать ${driver.full_name}`}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(driver)}
+                          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          aria-label={`Удалить ${driver.full_name}`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Модалка приглашения */}
       {inviteModalOpen && (
