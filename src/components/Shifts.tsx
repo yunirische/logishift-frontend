@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift, UserRole } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
-import { Filter, X, ChevronDown } from "lucide-react";
+import { Filter, X, ChevronDown, Download } from "lucide-react";
 
 // Dynamic import for code splitting
 const EditShiftModal = React.lazy(() => import("./EditShiftModal"));
@@ -51,10 +51,41 @@ const Shifts: React.FC = () => {
   // Данные для фильтров
   const [drivers, setDrivers] = useState<any[]>([]);
   const [trucks, setTrucks] = useState<any[]>([]);
+  const [exporting, setExporting] = useState(false);
 
   const user = api.getUserInfo();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
+
+  const handleExcelExport = async () => {
+    setExporting(true);
+    try {
+      const token = api.getAuthToken();
+      const response = await fetch(API_ENDPOINTS.REPORTS_EXCEL, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        alert((err as any).error || `Ошибка экспорта (${response.status})`);
+        return;
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const cd = response.headers.get("Content-Disposition");
+      const match = cd?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      a.download = match?.[1]?.replace(/['"]/g, "") || "logishift-shifts-report.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (e: any) {
+      alert(e.message || "Не удалось скачать отчёт");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Загрузка данных для фильтров
   useEffect(() => {
@@ -369,6 +400,16 @@ const Shifts: React.FC = () => {
               {totalCount > 0 ? `Показано: ${displayShifts.length} из ${totalCount}` : `Отображено: ${displayShifts.length}`}
             </p>
           </div>
+          {isAdmin && (
+            <button
+              onClick={handleExcelExport}
+              disabled={exporting}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download size={15} />
+              {exporting ? "Загрузка..." : "Выгрузить в Excel"}
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
