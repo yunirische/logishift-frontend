@@ -8,6 +8,7 @@ dayjs.extend(timezone);
 const DEFAULT_TIMEZONE = 'Europe/Moscow';
 
 const normalizeTimezone = (timezone?: string): string => timezone || DEFAULT_TIMEZONE;
+const DATETIME_LOCAL_PREFIX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 
 /**
  * Convert datetime-local input value to UTC ISO for backend
@@ -42,4 +43,26 @@ export const formatForDisplay = (
 
 export const nowInTenantTimezone = (timezone: string): string => {
   return dayjs().tz(normalizeTimezone(timezone)).format('YYYY-MM-DDTHH:mm');
+};
+
+export const compareTenantLocalDateTimes = (
+  left?: string,
+  right?: string
+): number | null => {
+  if (!left || !right || !DATETIME_LOCAL_PREFIX.test(left) || !DATETIME_LOCAL_PREFIX.test(right)) {
+    return null;
+  }
+
+  const normalizedLeft = left.slice(0, 16);
+  const normalizedRight = right.slice(0, 16);
+
+  if (normalizedLeft === normalizedRight) {
+    return 0;
+  }
+
+  return normalizedLeft > normalizedRight ? 1 : -1;
+};
+
+export const getBrowserTimezone = (): string => {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
 };

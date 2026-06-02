@@ -2,7 +2,13 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { API_ENDPOINTS, API_BASE_URL } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift } from "../types";
-import { toTenantISO, fromTenantISO, nowInTenantTimezone } from "../utils/dateUtils";
+import {
+  toTenantISO,
+  fromTenantISO,
+  nowInTenantTimezone,
+  compareTenantLocalDateTimes,
+  getBrowserTimezone,
+} from "../utils/dateUtils";
 import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
 import { AlertCircle, MessageSquare, Send, X, Lock, Upload, Check, Image, Pencil, Trash2, ArrowRightLeft, FileText } from "lucide-react";
 import { getUserInfo } from "../services/api";
@@ -46,6 +52,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   // Time fields
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [tenantNow, setTenantNow] = useState("");
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'comments'>('details');
@@ -107,6 +114,19 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       previousShiftIdRef.current = null;
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !timezoneLoaded) {
+      setTenantNow("");
+      return;
+    }
+
+    const updateTenantNow = () => setTenantNow(nowInTenantTimezone(effectiveTimezone));
+    updateTenantNow();
+
+    const intervalId = window.setInterval(updateTenantNow, 30000);
+    return () => window.clearInterval(intervalId);
+  }, [isOpen, timezoneLoaded, effectiveTimezone]);
 
   // Load audit logs when History tab becomes active (lazy loading)
   useEffect(() => {
@@ -337,6 +357,22 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
           return;
         }
 
+        const freshTenantNow = nowInTenantTimezone(effectiveTimezone);
+        const endComparedToStart = compareTenantLocalDateTimes(endTime, startTime);
+        const endComparedToNow = compareTenantLocalDateTimes(endTime, freshTenantNow);
+
+        if (startTime && endTime && endComparedToStart !== null && endComparedToStart <= 0) {
+          setError("⚠️ Время окончания должно быть позже начала");
+          setLoading(false);
+          return;
+        }
+
+        if (endTime && endComparedToNow !== null && endComparedToNow > 0) {
+          setError(`⚠️ Время окончания не может быть позже текущего времени компании (${effectiveTimezone})`);
+          setLoading(false);
+          return;
+        }
+
         // Send time fields
         if (startTime !== originalStart) {
           payload.start_time = startTime;
@@ -352,16 +388,6 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       // Append comment if provided (for time+comment updates)
       if (commentChanged) {
         payload.comment = newComment.trim();
-      }
-
-      // Validate time changes
-      if (timeChanged && shift.status !== 'ACTIVE') {
-        // For non-active shifts, end_time must be after start_time
-        if (startTime && endTime && new Date(endTime) <= new Date(startTime)) {
-          setError("⚠️ Время окончания должно быть позже начала");
-          setLoading(false);
-          return;
-        }
       }
 
       const response = await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
@@ -463,12 +489,22 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   };
 
-  // Validate: end_time must be after start_time (only if end_time is provided)
-  // For ACTIVE shifts, end_time can be empty (shift is still ongoing)
-  // For FINISHED shifts with comment-only update, validation is bypassed
-  const isEndTimeInvalid = startTime && endTime && shift.status !== 'ACTIVE'
-    ? new Date(endTime) <= new Date(startTime)
+  const browserTimezone = useMemo(() => getBrowserTimezone(), []);
+  const browserTimezoneDiffers =
+    timezoneLoaded && browserTimezone && browserTimezone !== effectiveTimezone;
+  const endTimeMin = startTime || undefined;
+  const endTimeMax = tenantNow || undefined;
+
+  // Validate tenant-local datetime-local values without browser timezone conversion.
+  const isEndTimeBeforeStart = startTime && endTime
+    ? compareTenantLocalDateTimes(endTime, startTime) !== null &&
+      compareTenantLocalDateTimes(endTime, startTime)! <= 0
     : false;
+  const isEndTimeAfterTenantNow = endTime && tenantNow
+    ? compareTenantLocalDateTimes(endTime, tenantNow) !== null &&
+      compareTenantLocalDateTimes(endTime, tenantNow)! > 0
+    : false;
+  const isEndTimeInvalid = Boolean(isEndTimeBeforeStart || isEndTimeAfterTenantNow);
 
   // Validate: check if year is valid (4 digits, reasonable range)
   const isValidYear = (dateString: string) => {
@@ -502,7 +538,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       if (!timezoneLoaded) return false;
       if (shift.status === 'finished') return false; // Can't change finished shift times
       if (isStartTimeYearInvalid || isEndTimeYearInvalid) return false;
-      if (shift.status !== 'ACTIVE' && isEndTimeInvalid) return false;
+      if (isEndTimeInvalid) return false;
       return true;
     }
 
@@ -1034,7 +1070,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   type="datetime-local"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  max="2100-12-31T23:59"
+                  max={endTimeMax || "2100-12-31T23:59"}
                   step="60"
                   disabled={shift.status === 'finished' && !isAdmin}
                   className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
@@ -1047,8 +1083,13 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   required
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Часовой пояс: {effectiveTimezone}
+                  Время указывается по часовому поясу компании: {effectiveTimezone}
                 </p>
+                {browserTimezoneDiffers && (
+                  <p className="text-[10px] text-amber-600 mt-1">
+                    Ваше устройство: {browserTimezone}, компания: {effectiveTimezone}. Используйте время компании.
+                  </p>
+                )}
                 {!timezoneLoaded && (
                   <p className="text-[10px] text-amber-600 mt-1">
                     Загрузка часового пояса компании...
@@ -1087,7 +1128,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   type="datetime-local"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  max="2100-12-31T23:59"
+                  min={endTimeMin}
+                  max={endTimeMax || "2100-12-31T23:59"}
                   step="60"
                   disabled={shift.status === 'ACTIVE' || (shift.status === 'finished' && !isAdmin)}
                   className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
@@ -1102,9 +1144,13 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   <p className="text-[10px] text-red-500 mt-1">
                     Некорректный год (1900-2100)
                   </p>
-                ) : isEndTimeInvalid && shift.status !== 'ACTIVE' && !(shift.status === 'finished' && !isAdmin) ? (
+                ) : isEndTimeBeforeStart && shift.status !== 'ACTIVE' && !(shift.status === 'finished' && !isAdmin) ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Должно быть позже начала
+                  </p>
+                ) : isEndTimeAfterTenantNow && shift.status !== 'ACTIVE' && !(shift.status === 'finished' && !isAdmin) ? (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    Не может быть позже текущего времени компании ({effectiveTimezone})
                   </p>
                 ) : shift.status === 'ACTIVE' ? (
                   <p className="text-[10px] text-slate-400 mt-1">
