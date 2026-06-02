@@ -32,6 +32,7 @@ const Shifts: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [timezone, setTimezone] = useState("Europe/Moscow");
+  const [timezoneLoaded, setTimezoneLoaded] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -183,6 +184,9 @@ const Shifts: React.FC = () => {
         setTimezone(data.timezone || "Europe/Moscow");
       } catch (err) {
         console.error("Failed to fetch timezone:", err);
+        setTimezone("Europe/Moscow");
+      } finally {
+        setTimezoneLoaded(true);
       }
     };
     fetchTimezone();
@@ -527,11 +531,18 @@ const Shifts: React.FC = () => {
               setIsEditModalOpen(false);
               setEditingShift(null);
             }}
-            onSave={() => {
+            onSave={(updatedShift) => {
+              if (updatedShift) {
+                setEditingShift((current) => current ? { ...current, ...updatedShift } : current);
+                setShifts((prev) => prev.map((item) =>
+                  item.id === updatedShift.id ? { ...item, ...updatedShift } : item
+                ));
+              }
               fetchShifts(false, false);
             }}
             shift={editingShift}
             timezone={timezone}
+            timezoneLoaded={timezoneLoaded}
           />
         </Suspense>
       )}

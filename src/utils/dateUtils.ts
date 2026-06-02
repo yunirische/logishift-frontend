@@ -5,13 +5,17 @@ import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const DEFAULT_TIMEZONE = 'Europe/Moscow';
+
+const normalizeTimezone = (timezone?: string): string => timezone || DEFAULT_TIMEZONE;
+
 /**
  * Convert datetime-local input value to UTC ISO for backend
  * Input: "2025-01-24T14:30" (interpreted as tenant timezone)
  * Output: "2025-01-24T11:30:00Z" (UTC ISO string)
  */
 export const toTenantISO = (date: string | Date, timezone: string): string => {
-  return dayjs.tz(date, timezone).utc().toISOString();
+  return dayjs.tz(date, normalizeTimezone(timezone)).utc().toISOString();
 };
 
 /**
@@ -20,7 +24,7 @@ export const toTenantISO = (date: string | Date, timezone: string): string => {
  * Output: "2025-01-24T14:30" (tenant timezone for datetime-local)
  */
 export const fromTenantISO = (date: string, timezone: string): string => {
-  return dayjs.utc(date).tz(timezone).format('YYYY-MM-DDTHH:mm');
+  return dayjs.utc(date).tz(normalizeTimezone(timezone)).format('YYYY-MM-DDTHH:mm');
 };
 
 /**
@@ -33,5 +37,9 @@ export const formatForDisplay = (
   timezone: string,
   format = 'DD.MM.YYYY, HH:mm'
 ): string => {
-  return dayjs.utc(date).tz(timezone).format(format);
+  return dayjs.utc(date).tz(normalizeTimezone(timezone)).format(format);
+};
+
+export const nowInTenantTimezone = (timezone: string): string => {
+  return dayjs().tz(normalizeTimezone(timezone)).format('YYYY-MM-DDTHH:mm');
 };

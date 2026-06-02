@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { API_ENDPOINTS, API_BASE_URL } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift } from "../types";
-import { toTenantISO, fromTenantISO } from "../utils/dateUtils";
+import { toTenantISO, fromTenantISO, nowInTenantTimezone } from "../utils/dateUtils";
 import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
 import { AlertCircle, MessageSquare, Send, X, Lock, Upload, Check, Image, Pencil, Trash2, ArrowRightLeft, FileText } from "lucide-react";
 import { getUserInfo } from "../services/api";
@@ -20,9 +20,10 @@ interface Comment {
 interface EditShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (updatedShift?: Partial<Shift>) => void;
   shift: Shift;
   timezone: string;
+  timezoneLoaded: boolean;
 }
 
 const EditShiftModal: React.FC<EditShiftModalProps> = ({
@@ -31,6 +32,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   onSave,
   shift,
   timezone,
+  timezoneLoaded,
 }) => {
   const containerRef = useFocusTrap(isOpen);
   useFocusRestore(isOpen);
@@ -39,6 +41,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   // Get current user role
   const currentUser = getUserInfo();
   const isAdmin = currentUser?.role === 'admin';
+  const effectiveTimezone = timezone || "Europe/Moscow";
 
   // Time fields
   const [startTime, setStartTime] = useState("");
@@ -75,10 +78,10 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
       // Convert backend times to datetime-local format
       setStartTime(
-        shift.start_time ? fromTenantISO(shift.start_time, timezone) : ""
+        shift.start_time ? fromTenantISO(shift.start_time, effectiveTimezone) : ""
       );
       setEndTime(
-        shift.end_time ? fromTenantISO(shift.end_time, timezone) : ""
+        shift.end_time ? fromTenantISO(shift.end_time, effectiveTimezone) : ""
       );
 
       // Load tenant settings for invoice requirement
@@ -97,7 +100,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       setSuccessMessage(null);
       setOverlapError(false);
     }
-  }, [isOpen, shift, timezone]);
+  }, [isOpen, shift, effectiveTimezone]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -287,8 +290,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
     try {
       // Check what fields changed
-      const originalStart = shift.start_time ? fromTenantISO(shift.start_time, timezone) : "";
-      const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, timezone) : "";
+      const originalStart = shift.start_time ? fromTenantISO(shift.start_time, effectiveTimezone) : "";
+      const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, effectiveTimezone) : "";
       const timeChanged = startTime !== originalStart || endTime !== originalEnd;
       const commentChanged = newComment.trim().length > 0;
 
@@ -322,6 +325,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
           return;
         }
 
+        if (!timezoneLoaded) {
+          setError("⚠️ Часовой пояс компании еще загружается. Повторите сохранение через несколько секунд.");
+          setLoading(false);
+          return;
+        }
+
         if (shift.status === 'finished') {
           setError("⚠️ Нельзя изменить время завершенной смены. Используйте только поле комментария.");
           setLoading(false);
@@ -330,12 +339,14 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
         // Send time fields
         if (startTime !== originalStart) {
-          payload.start_time = toTenantISO(startTime, timezone);
+          payload.start_time = startTime;
         }
 
         if (endTime !== originalEnd) {
-          payload.end_time = toTenantISO(endTime, timezone);
+          payload.end_time = endTime;
         }
+
+        payload.tenant_timezone = effectiveTimezone;
       }
 
       // Append comment if provided (for time+comment updates)
@@ -353,7 +364,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         }
       }
 
-      await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
+      const response = await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
       if (commentChanged) {
         setNewComment("");
         if (activeTab === 'comments') {
@@ -361,7 +372,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         }
       }
       setSuccessMessage("Изменения сохранены");
-      onSave();
+      onSave(response?.shift);
     } catch (err: any) {
       console.error("Update shift error:", err);
 
@@ -472,8 +483,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const isEndTimeYearInvalid = !isValidYear(endTime);
 
   // v1.1.2: Determine if changes are comment-only
-  const originalStart = shift.start_time ? fromTenantISO(shift.start_time, timezone) : "";
-  const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, timezone) : "";
+  const originalStart = shift.start_time ? fromTenantISO(shift.start_time, effectiveTimezone) : "";
+  const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, effectiveTimezone) : "";
   const timeChanged = startTime !== originalStart || endTime !== originalEnd;
   const commentChanged = newComment.trim().length > 0;
   const isCommentOnly = commentChanged && !timeChanged;
@@ -488,6 +499,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     // Time changes: require admin + active shift + valid times
     if (timeChanged) {
       if (!isAdmin) return false; // Only admin can change times
+      if (!timezoneLoaded) return false;
       if (shift.status === 'finished') return false; // Can't change finished shift times
       if (isStartTimeYearInvalid || isEndTimeYearInvalid) return false;
       if (shift.status !== 'ACTIVE' && isEndTimeInvalid) return false;
@@ -496,7 +508,21 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
     // No changes: can't save
     return false;
-  }, [isCommentOnly, timeChanged, isAdmin, shift.status, isStartTimeYearInvalid, isEndTimeYearInvalid, isEndTimeInvalid]);
+  }, [isCommentOnly, timeChanged, isAdmin, timezoneLoaded, shift.status, isStartTimeYearInvalid, isEndTimeYearInvalid, isEndTimeInvalid]);
+
+  const endTimeUtcPreview = useMemo(() => {
+    if (!endTime || !timezoneLoaded || isEndTimeYearInvalid) {
+      return null;
+    }
+
+    try {
+      return toTenantISO(endTime, effectiveTimezone)
+        .replace('T', ' ')
+        .replace('.000Z', ' UTC');
+    } catch {
+      return null;
+    }
+  }, [endTime, effectiveTimezone, timezoneLoaded, isEndTimeYearInvalid]);
 
   // Format comment time for display
   const formatCommentTime = (dateString: string) => {
@@ -1021,8 +1047,13 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   required
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Часовой пояс: {timezone}
+                  Часовой пояс: {effectiveTimezone}
                 </p>
+                {!timezoneLoaded && (
+                  <p className="text-[10px] text-amber-600 mt-1">
+                    Загрузка часового пояса компании...
+                  </p>
+                )}
                 {isStartTimeYearInvalid && (
                   <p className="text-[10px] text-red-500 mt-1">
                     Некорректный год (1900-2100)
@@ -1031,13 +1062,25 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               </div>
 
               <div>
-                <label htmlFor="end-time" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                  Время окончания
-                  {shift.status === 'ACTIVE' && <span className="text-slate-400 font-normal ml-1">(опционально)</span>}
-                  {shift.status === 'finished' && !isAdmin && (
-                    <span className="text-amber-600 font-normal ml-1">(только чтение)</span>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label htmlFor="end-time" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Время окончания
+                    {shift.status === 'ACTIVE' && <span className="text-slate-400 font-normal ml-1">(опционально)</span>}
+                    {shift.status === 'finished' && !isAdmin && (
+                      <span className="text-amber-600 font-normal ml-1">(только чтение)</span>
+                    )}
+                  </label>
+                  {isAdmin && shift.status !== 'finished' && (
+                    <button
+                      type="button"
+                      onClick={() => setEndTime(nowInTenantTimezone(effectiveTimezone))}
+                      disabled={!timezoneLoaded}
+                      className="text-[10px] font-semibold text-[#0a192f] hover:text-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Сейчас
+                    </button>
                   )}
-                </label>
+                </div>
                 <input
                   id="end-time"
                   name="end-time"
@@ -1070,6 +1113,10 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 ) : shift.status === 'finished' && !isAdmin ? (
                   <p className="text-[10px] text-amber-600 mt-1">
                     Завершенная смена — время нельзя изменить
+                  </p>
+                ) : endTimeUtcPreview ? (
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Будет сохранено: {endTimeUtcPreview}
                   </p>
                 ) : null}
               </div>
