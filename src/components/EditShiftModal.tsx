@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { API_ENDPOINTS, API_BASE_URL } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift } from "../types";
@@ -34,6 +34,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 }) => {
   const containerRef = useFocusTrap(isOpen);
   useFocusRestore(isOpen);
+  const previousShiftIdRef = useRef<number | null>(null);
 
   // Get current user role
   const currentUser = getUserInfo();
@@ -66,9 +67,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [showSettingsSkeleton, setShowSettingsSkeleton] = useState(false);
 
-  // Pre-fill time fields when modal opens
+  // Pre-fill time fields when modal opens or when a different shift is selected.
   useEffect(() => {
     if (isOpen && shift) {
+      const openedDifferentShift = previousShiftIdRef.current !== shift.id;
+      previousShiftIdRef.current = shift.id;
+
       // Convert backend times to datetime-local format
       setStartTime(
         shift.start_time ? fromTenantISO(shift.start_time, timezone) : ""
@@ -80,17 +84,26 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       // Load tenant settings for invoice requirement
       loadTenantSettings();
 
-      // Reset tab to details on modal open
-      setActiveTab('details');
+      if (openedDifferentShift) {
+        setActiveTab('details');
+        setNewComment("");
+        setAuditLogs([]);
+        setAuditError(null);
+        setComments([]);
+        setCommentsError(null);
+      }
 
       setError(null);
       setSuccessMessage(null);
       setOverlapError(false);
-      setNewComment("");
-      setAuditLogs([]);
-      setAuditError(null);
     }
   }, [isOpen, shift, timezone]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      previousShiftIdRef.current = null;
+    }
+  }, [isOpen]);
 
   // Load audit logs when History tab becomes active (lazy loading)
   useEffect(() => {
@@ -294,7 +307,6 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         }
         setNewComment("");
         setSuccessMessage("Комментарий добавлен");
-        onSave();
         return;
       }
 

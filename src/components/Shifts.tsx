@@ -119,11 +119,11 @@ const Shifts: React.FC = () => {
     return params.toString();
   }, [page, filters]);
 
-  const fetchShifts = useCallback(async (loadMore = false) => {
+  const fetchShifts = useCallback(async (loadMore = false, showLoader = true) => {
     try {
       if (loadMore) {
         setLoadingMore(true);
-      } else {
+      } else if (showLoader) {
         setLoading(true);
       }
 
@@ -157,6 +157,10 @@ const Shifts: React.FC = () => {
       } else {
         setShifts(newData);
         setHasMore(newData.length === 20 && newData.length < totalCountValue);
+        setEditingShift((current) => {
+          if (!current) return current;
+          return (newData as Shift[]).find((item) => item.id === current.id) || current;
+        });
       }
 
       setTotalCount(totalCountValue);
@@ -524,7 +528,7 @@ const Shifts: React.FC = () => {
               setEditingShift(null);
             }}
             onSave={() => {
-              fetchShifts();
+              fetchShifts(false, false);
             }}
             shift={editingShift}
             timezone={timezone}
