@@ -59,6 +59,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [overlapError, setOverlapError] = useState(false);
   const [uploadingPhotoType, setUploadingPhotoType] = useState<string | null>(null);
   const [tenantSettings, setTenantSettings] = useState<any>(null);
@@ -83,6 +84,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       setActiveTab('details');
 
       setError(null);
+      setSuccessMessage(null);
       setOverlapError(false);
       setNewComment("");
       setAuditLogs([]);
@@ -110,6 +112,53 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       loadAuditLogs();
     }
   }, [activeTab]);
+
+  const parseShiftCommentString = (commentValue?: string | null): Comment[] => {
+    if (!commentValue || commentValue.trim() === "") {
+      return [];
+    }
+
+    const currentYear = new Date().getFullYear();
+    return commentValue
+      .split('\n')
+      .map((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return null;
+
+        const match = trimmed.match(/^\[(\d{2})\.(\d{2})\s+(\d{2}):(\d{2})\s+([^\]]+)\]:\s*(.*)$/s);
+        if (!match) {
+          return {
+            id: index + 1,
+            text: trimmed,
+            author: 'Система',
+            created_at: new Date().toISOString(),
+          };
+        }
+
+        const [, day, month, hour, minute, role, text] = match;
+        const createdAt = new Date(
+          currentYear,
+          Number(month) - 1,
+          Number(day),
+          Number(hour),
+          Number(minute)
+        );
+        const normalizedRole = role.toLowerCase();
+
+        return {
+          id: index + 1,
+          text,
+          author: role,
+          author_role: normalizedRole.includes('admin')
+            ? 'admin'
+            : normalizedRole.includes('driver')
+              ? 'driver'
+              : normalizedRole,
+          created_at: Number.isNaN(createdAt.getTime()) ? new Date().toISOString() : createdAt.toISOString(),
+        };
+      })
+      .filter((comment): comment is Comment => Boolean(comment));
+  };
 
   // Load comment history using GET /shifts/:id endpoint with tab-specific loading
   const loadComments = async () => {
@@ -141,6 +190,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
           mentions: c.mentions || undefined,
         }));
         setComments(normalizedComments);
+      } else if (typeof data?.comment === 'string') {
+        setComments(parseShiftCommentString(data.comment));
       } else {
         setComments([]);
       }
@@ -218,6 +269,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
     setOverlapError(false);
 
     try {
@@ -230,12 +282,19 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       // Determine if this is a comment-only update
       const isCommentOnly = commentChanged && !timeChanged;
 
-      // COMMENT-ONLY UPDATE: Send ONLY { comment: "text" } to bypass backend time-validation
+      // COMMENT-ONLY UPDATE: use the dedicated backend comment endpoint.
       if (isCommentOnly) {
-        const payload = { comment: newComment.trim() };
-        await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
+        const response = await api.post(API_ENDPOINTS.ADD_SHIFT_COMMENT(shift.id), {
+          text: newComment.trim(),
+        });
+        if (typeof response?.comment === 'string') {
+          setComments(parseShiftCommentString(response.comment));
+        } else {
+          await loadComments();
+        }
+        setNewComment("");
+        setSuccessMessage("Комментарий добавлен");
         onSave();
-        onClose();
         return;
       }
 
@@ -283,8 +342,14 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       }
 
       await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
+      if (commentChanged) {
+        setNewComment("");
+        if (activeTab === 'comments') {
+          await loadComments();
+        }
+      }
+      setSuccessMessage("Изменения сохранены");
       onSave();
-      onClose();
     } catch (err: any) {
       console.error("Update shift error:", err);
 
@@ -565,6 +630,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   <span>⚠️</span>
                 )}
                 <span>{error}</span>
+              </div>
+            )}
+            {successMessage && (
+              <div className="px-4 py-3 rounded-lg text-sm font-medium flex items-start gap-2 bg-emerald-50 text-emerald-700 border border-emerald-100">
+                <Check size={16} className="flex-shrink-0 mt-0.5" />
+                <span>{successMessage}</span>
               </div>
             )}
 

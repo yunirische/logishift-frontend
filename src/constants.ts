@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
   MANUAL_SHIFT: `${API_BASE_URL}/shifts/manual`,
   GET_SHIFT: (id: number | string) => `${API_BASE_URL}/shifts/${id}`,
   UPDATE_SHIFT: (id: number | string) => `${API_BASE_URL}/shifts/${id}`,
+  ADD_SHIFT_COMMENT: (id: number | string) => `${API_BASE_URL}/shifts/${id}/comments`,
 
   // Health Check
   HEALTH: `${API_BASE_URL}/health`,

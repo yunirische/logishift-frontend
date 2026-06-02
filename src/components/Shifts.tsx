@@ -519,9 +519,11 @@ const Shifts: React.FC = () => {
         <Suspense fallback={<div className="p-8 text-center text-slate-400 text-sm">Загрузка...</div>}>
           <EditShiftModal
             isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            onSave={() => {
+            onClose={() => {
               setIsEditModalOpen(false);
+              setEditingShift(null);
+            }}
+            onSave={() => {
               fetchShifts();
             }}
             shift={editingShift}
