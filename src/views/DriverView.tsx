@@ -32,6 +32,7 @@ export const DriverView = () => {
   const [selectedSite, setSelectedSite] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const workflowState = activeShift?.status || user?.current_state || "";
 
   const initData = async () => {
     setLoading(true);
@@ -94,8 +95,8 @@ export const DriverView = () => {
     try {
       // Demo mode: force state update with mock shift object
       if (user?.tenant_id === 999) {
-        const selectedSiteData = sites.find(s => s.id === selectedSite);
-        const selectedTruckData = trucks.find(t => t.id === selectedTruck);
+        const selectedSiteData = sites.find(s => String(s.id) === selectedSite);
+        const selectedTruckData = trucks.find(t => String(t.id) === selectedTruck);
 
         // Create mock shift object
         const mockShift = {
@@ -358,9 +359,9 @@ export const DriverView = () => {
               {sites.map((s) => (
                 <div
                   key={s.id}
-                  onClick={() => setSelectedSite(s.id)}
+                  onClick={() => setSelectedSite(String(s.id))}
                   className={`p-4 rounded-xl border flex items-center gap-3 cursor-pointer transition-all active:scale-[0.98] min-h-[60px] ${
-                    selectedSite === s.id
+                    selectedSite === String(s.id)
                       ? "border-[#0a192f] bg-[#0a192f]/5 shadow-md shadow-[#0a192f]/10"
                       : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                   }`}
@@ -368,7 +369,7 @@ export const DriverView = () => {
                   <MapPin
                     size={20}
                     className={
-                      selectedSite === s.id ? "text-[#0a192f]" : "text-slate-400"
+                      selectedSite === String(s.id) ? "text-[#0a192f]" : "text-slate-400"
                     }
                   />
                   <span className="text-base font-bold text-slate-800">
@@ -381,7 +382,7 @@ export const DriverView = () => {
 
           {/* Requirements Info Block */}
           {selectedSite && (() => {
-            const selectedSiteData = sites.find(s => s.id === selectedSite);
+            const selectedSiteData = sites.find(s => String(s.id) === selectedSite);
             const requiresOdometer = selectedSiteData?.odometer_required;
             const requiresInvoice = selectedSiteData?.invoice_required;
 
@@ -512,7 +513,7 @@ export const DriverView = () => {
             </div>
           </Card>
 
-          {user?.current_state === "active" ? (
+          {workflowState === "active" ? (
             // ПОД-ЭКРАН: ПРОСТО РАБОТА
             <div className="space-y-4">
               <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-4 text-emerald-800">
@@ -533,7 +534,7 @@ export const DriverView = () => {
                 ЗАВЕРШИТЬ РАБОТУ
               </Button>
             </div>
-          ) : ['awaiting_odo_start', 'awaiting_odo_end', 'awaiting_invoice'].includes(user?.current_state || '') ? (
+          ) : ['awaiting_odo_start', 'awaiting_odo_end', 'awaiting_invoice'].includes(workflowState) ? (
             // ПОД-ЭКРАН: ТРЕБУЕТСЯ ФОТО
             <div className="space-y-4">
               <div className="p-6 bg-orange-50 border border-orange-200 rounded-xl text-center">
@@ -542,11 +543,11 @@ export const DriverView = () => {
                   Нужна фотография
                 </h3>
                 <p className="text-sm text-orange-700 font-medium leading-relaxed">
-                  {user?.current_state === "awaiting_odo_start" &&
+                  {workflowState === "awaiting_odo_start" &&
                     "Сфотографируйте одометр ПЕРЕД началом"}
-                  {user?.current_state === "awaiting_odo_end" &&
+                  {workflowState === "awaiting_odo_end" &&
                     "Сфотографируйте одометр ПОСЛЕ работы"}
-                  {user?.current_state === "awaiting_invoice" &&
+                  {workflowState === "awaiting_invoice" &&
                     "Сфотографируйте накладную (ТТН)"}
                 </p>
               </div>

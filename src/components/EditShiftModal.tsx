@@ -472,6 +472,40 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     return refreshedShift as Shift;
   };
 
+  useEffect(() => {
+    if (!isOpen || !shift?.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadFullShift = async () => {
+      try {
+        const fullShift = await api.get(API_ENDPOINTS.GET_SHIFT(shift.id));
+        if (cancelled) return;
+        setModalShift(fullShift);
+        setStartTime(
+          fullShift.start_time
+            ? fromTenantISO(fullShift.start_time, effectiveTimezone)
+            : ""
+        );
+        setEndTime(
+          fullShift.end_time
+            ? fromTenantISO(fullShift.end_time, effectiveTimezone)
+            : ""
+        );
+      } catch (err) {
+        console.error("Failed to load full shift details:", err);
+      }
+    };
+
+    loadFullShift();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, shift?.id, effectiveTimezone]);
+
   // Handle photo upload - use proxy endpoint for admin photo uploads
   const handlePhotoUpload = async (photoType: 'start' | 'end' | 'invoice', file: File) => {
     setUploadingPhotoType(photoType);

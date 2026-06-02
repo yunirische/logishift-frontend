@@ -56,6 +56,7 @@ export interface Shift {
   // Вложенные объекты (из /shifts/current)
   truck?: { name: string };
   site?: {
+    id?: number;
     name: string;
     odometer_required: boolean;
     invoice_required: boolean;
