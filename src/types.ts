@@ -67,6 +67,11 @@ export interface Shift {
   photo_start_url?: string;
   photo_end_url?: string;
   photo_invoice_url?: string;
+
+  // Snapshot proof requirements (set at shift creation; null = legacy shift, fall back to site/tenant flags)
+  requires_odo_start?: boolean | null;
+  requires_odo_end?: boolean | null;
+  requires_invoice?: boolean | null;
 }
 
 export interface Driver {

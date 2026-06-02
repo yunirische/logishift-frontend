@@ -775,8 +775,21 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             {/* Proxy Photo Upload Section - Smart Filtering - Details Tab Only */}
             {activeTab === 'details' && (() => {
               const site = (currentShift as any).site || {};
-              const needsOdometer = site.odometer_required === true;
-              const needsInvoice = site.invoice_required === true || tenantSettings?.invoice_required === true;
+              const cs = currentShift as any;
+
+              // Prefer snapshot fields when non-null (set at shift creation); fall back to live site/tenant flags
+              const needsOdoStart =
+                cs.requires_odo_start != null
+                  ? cs.requires_odo_start === true
+                  : site.odometer_required === true;
+              const needsOdoEnd =
+                cs.requires_odo_end != null
+                  ? cs.requires_odo_end === true
+                  : site.odometer_required === true;
+              const needsInvoice =
+                cs.requires_invoice != null
+                  ? cs.requires_invoice === true
+                  : (site.invoice_required === true || tenantSettings?.invoice_required === true);
 
               // Smart Hybrid visibility: show if Required OR if Data Exists
               const shouldShowZone = (isRequired: boolean, hasData: boolean) => {
@@ -787,8 +800,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               const hasEndPhoto = !!(currentShift as any).photo_end_url;
               const hasInvoicePhoto = !!(currentShift as any).photo_invoice_url;
 
-              const showStartZone = shouldShowZone(needsOdometer, hasStartPhoto);
-              const showEndZone = shouldShowZone(needsOdometer, hasEndPhoto);
+              const showStartZone = shouldShowZone(needsOdoStart, hasStartPhoto);
+              const showEndZone = shouldShowZone(needsOdoEnd, hasEndPhoto);
               const showInvoiceZone = shouldShowZone(needsInvoice, hasInvoicePhoto);
 
               const hasAnyVisibleZones = showStartZone || showEndZone || showInvoiceZone;
@@ -845,7 +858,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                           <div className="flex items-center gap-2">
                             <span className="text-sm">🏁</span>
                             <span className="text-sm font-semibold text-slate-700">Одометр (старт)</span>
-                            {needsOdometer ? (
+                            {needsOdoStart ? (
                               <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 border border-emerald-200 rounded">
                                 [ОБЯЗАТЕЛЬНО]
                               </span>
@@ -918,7 +931,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                           <div className="flex items-center gap-2">
                             <span className="text-sm">🏁</span>
                             <span className="text-sm font-semibold text-slate-700">Одометр (финиш)</span>
-                            {needsOdometer ? (
+                            {needsOdoEnd ? (
                               <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 border border-emerald-200 rounded">
                                 [ОБЯЗАТЕЛЬНО]
                               </span>
