@@ -26,7 +26,10 @@ interface Comment {
 interface EditShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedShift?: Partial<Shift>) => void;
+  onSave: (
+    updatedShift?: Partial<Shift>,
+    options?: { refreshList?: boolean }
+  ) => void;
   shift: Shift;
   timezone: string;
   timezoneLoaded: boolean;
@@ -73,15 +76,20 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [overlapError, setOverlapError] = useState(false);
   const [uploadingPhotoType, setUploadingPhotoType] = useState<string | null>(null);
+  const [modalShift, setModalShift] = useState<Shift>(shift);
   const [tenantSettings, setTenantSettings] = useState<any>(null);
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [showSettingsSkeleton, setShowSettingsSkeleton] = useState(false);
+  const currentShift = modalShift || shift;
 
   // Pre-fill time fields when modal opens or when a different shift is selected.
   useEffect(() => {
     if (isOpen && shift) {
       const openedDifferentShift = previousShiftIdRef.current !== shift.id;
       previousShiftIdRef.current = shift.id;
+      setModalShift((prev) =>
+        openedDifferentShift ? shift : ({ ...prev, ...shift } as Shift)
+      );
 
       // Convert backend times to datetime-local format
       setStartTime(
@@ -101,11 +109,10 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         setAuditError(null);
         setComments([]);
         setCommentsError(null);
+        setError(null);
+        setSuccessMessage(null);
+        setOverlapError(false);
       }
-
-      setError(null);
-      setSuccessMessage(null);
-      setOverlapError(false);
     }
   }, [isOpen, shift, effectiveTimezone]);
 
@@ -449,10 +456,27 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   };
 
+  const refreshCurrentShift = async () => {
+    const refreshedShift = await api.get(API_ENDPOINTS.GET_SHIFT(currentShift.id));
+    setModalShift(refreshedShift);
+    setStartTime(
+      refreshedShift.start_time
+        ? fromTenantISO(refreshedShift.start_time, effectiveTimezone)
+        : ""
+    );
+    setEndTime(
+      refreshedShift.end_time
+        ? fromTenantISO(refreshedShift.end_time, effectiveTimezone)
+        : ""
+    );
+    return refreshedShift as Shift;
+  };
+
   // Handle photo upload - use proxy endpoint for admin photo uploads
   const handlePhotoUpload = async (photoType: 'start' | 'end' | 'invoice', file: File) => {
     setUploadingPhotoType(photoType);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       // Map photo type to API format
@@ -467,7 +491,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       formData.append('type', typeMap[photoType]); // API expects 'type' not 'photo_type'
 
       // Use proxy endpoint: /api/v1/shifts/:id/proxy-photo
-      const response = await fetch(`${API_BASE_URL}/shifts/${shift.id}/proxy-photo`, {
+      const response = await fetch(`${API_BASE_URL}/shifts/${currentShift.id}/proxy-photo`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${api.getAuthToken()}`,
@@ -480,8 +504,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         throw new Error(errorData.error || errorData.message || 'Ошибка загрузки фото');
       }
 
-      // Refresh the shift data after upload
-      onSave();
+      const refreshedShift = await refreshCurrentShift();
+      onSave(refreshedShift, { refreshList: false });
+      setSuccessMessage('Фото успешно загружено');
     } catch (err: any) {
       setError(err.message || 'Ошибка загрузки фото');
     } finally {
@@ -715,7 +740,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
             {/* Proxy Photo Upload Section - Smart Filtering - Details Tab Only */}
             {activeTab === 'details' && (() => {
-              const site = (shift as any).site || {};
+              const site = (currentShift as any).site || {};
               const needsOdometer = site.odometer_required === true;
               const needsInvoice = site.invoice_required === true || tenantSettings?.invoice_required === true;
 
@@ -724,9 +749,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 return isRequired || hasData;
               };
 
-              const hasStartPhoto = !!(shift as any).photo_start_url;
-              const hasEndPhoto = !!(shift as any).photo_end_url;
-              const hasInvoicePhoto = !!(shift as any).photo_invoice_url;
+              const hasStartPhoto = !!(currentShift as any).photo_start_url;
+              const hasEndPhoto = !!(currentShift as any).photo_end_url;
+              const hasInvoicePhoto = !!(currentShift as any).photo_invoice_url;
 
               const showStartZone = shouldShowZone(needsOdometer, hasStartPhoto);
               const showEndZone = shouldShowZone(needsOdometer, hasEndPhoto);
@@ -796,9 +821,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                               </span>
                             )}
                           </div>
-                          {(shift as any).photo_start_url ? (
+                          {(currentShift as any).photo_start_url ? (
                             <a
-                              href={getPhotoUrl((shift as any).photo_start_url) || ''}
+                              href={getPhotoUrl((currentShift as any).photo_start_url) || ''}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-[#0a192f] hover:text-[#152238] flex items-center gap-1"
@@ -808,7 +833,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                             </a>
                           ) : null}
                         </div>
-                        {!(shift as any).photo_start_url ? (
+                        {!(currentShift as any).photo_start_url ? (
                           <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 bg-slate-50 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-colors">
                             <input
                               type="file"
@@ -869,9 +894,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                               </span>
                             )}
                           </div>
-                          {(shift as any).photo_end_url ? (
+                          {(currentShift as any).photo_end_url ? (
                             <a
-                              href={getPhotoUrl((shift as any).photo_end_url) || ''}
+                              href={getPhotoUrl((currentShift as any).photo_end_url) || ''}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-[#0a192f] hover:text-[#152238] flex items-center gap-1"
@@ -881,7 +906,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                             </a>
                           ) : null}
                         </div>
-                        {!(shift as any).photo_end_url ? (
+                        {!(currentShift as any).photo_end_url ? (
                           <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 bg-slate-50 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-colors">
                             <input
                               type="file"
@@ -942,9 +967,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                               </span>
                             )}
                           </div>
-                          {(shift as any).photo_invoice_url ? (
+                          {(currentShift as any).photo_invoice_url ? (
                             <a
-                              href={getPhotoUrl((shift as any).photo_invoice_url) || ''}
+                              href={getPhotoUrl((currentShift as any).photo_invoice_url) || ''}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-[#0a192f] hover:text-[#152238] flex items-center gap-1"
@@ -954,7 +979,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                             </a>
                           ) : null}
                         </div>
-                        {!(shift as any).photo_invoice_url ? (
+                        {!(currentShift as any).photo_invoice_url ? (
                           <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 bg-slate-50 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-colors">
                             <input
                               type="file"

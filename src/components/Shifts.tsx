@@ -531,14 +531,16 @@ const Shifts: React.FC = () => {
               setIsEditModalOpen(false);
               setEditingShift(null);
             }}
-            onSave={(updatedShift) => {
+            onSave={(updatedShift, options) => {
               if (updatedShift) {
                 setEditingShift((current) => current ? { ...current, ...updatedShift } : current);
                 setShifts((prev) => prev.map((item) =>
                   item.id === updatedShift.id ? { ...item, ...updatedShift } : item
                 ));
               }
-              fetchShifts(false, false);
+              if (options?.refreshList !== false) {
+                fetchShifts(false, false);
+              }
             }}
             shift={editingShift}
             timezone={timezone}
