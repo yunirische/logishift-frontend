@@ -63,6 +63,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   // Comments (chat style)
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [bypassReason, setBypassReason] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
   const [showCommentsSkeleton, setShowCommentsSkeleton] = useState(false);
   const [commentsError, setCommentsError] = useState<string | null>(null);
@@ -105,6 +106,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       if (openedDifferentShift) {
         setActiveTab('details');
         setNewComment("");
+        setBypassReason("");
         setAuditLogs([]);
         setAuditError(null);
         setComments([]);
@@ -393,12 +395,22 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       }
 
       // Append comment if provided (for time+comment updates)
-      if (commentChanged) {
+      if (needsBypassReasonForSubmit) {
+        if (bypassReason.trim().length === 0) {
+          setError(`В смене отсутствуют обязательные подтверждения: ${proofState.missingRequiredLabels.join(", ")}. Укажите причину закрытия без обязательных фото.`);
+          setLoading(false);
+          return;
+        }
+
+        payload.comment = bypassReason.trim();
+      } else if (commentChanged) {
         payload.comment = newComment.trim();
       }
 
       const response = await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
-      if (commentChanged) {
+      if (needsBypassReasonForSubmit) {
+        setBypassReason("");
+      } else if (commentChanged) {
         setNewComment("");
         if (activeTab === 'comments') {
           await loadComments();
@@ -577,12 +589,76 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const isStartTimeYearInvalid = !isValidYear(startTime);
   const isEndTimeYearInvalid = !isValidYear(endTime);
 
+  const proofState = useMemo(() => {
+    const site = (currentShift as any).site || {};
+    const cs = currentShift as any;
+
+    const needsOdoStart =
+      cs.requires_odo_start != null
+        ? cs.requires_odo_start === true
+        : site.odometer_required === true;
+    const needsOdoEnd =
+      cs.requires_odo_end != null
+        ? cs.requires_odo_end === true
+        : site.odometer_required === true;
+    const needsInvoice =
+      cs.requires_invoice != null
+        ? cs.requires_invoice === true
+        : (site.invoice_required === true || tenantSettings?.invoice_required === true);
+
+    const hasStartPhoto = !!cs.photo_start_url;
+    const hasEndPhoto = !!cs.photo_end_url;
+    const hasInvoicePhoto = !!cs.photo_invoice_url;
+
+    const items = [
+      {
+        key: 'odo_start',
+        label: 'Стартовый одометр',
+        required: needsOdoStart,
+        uploaded: hasStartPhoto,
+      },
+      {
+        key: 'odo_end',
+        label: 'Финишный одометр',
+        required: needsOdoEnd,
+        uploaded: hasEndPhoto,
+      },
+      {
+        key: 'invoice',
+        label: 'Накладная',
+        required: needsInvoice,
+        uploaded: hasInvoicePhoto,
+      },
+    ];
+
+    const missingRequiredItems = items.filter((item) => item.required && !item.uploaded);
+    const hasAnyVisibleZones = items.some((item) => item.required || item.uploaded);
+
+    return {
+      needsOdoStart,
+      needsOdoEnd,
+      needsInvoice,
+      hasStartPhoto,
+      hasEndPhoto,
+      hasInvoicePhoto,
+      hasAnyVisibleZones,
+      items,
+      missingRequiredItems,
+      missingRequiredLabels: missingRequiredItems.map((item) => item.label),
+    };
+  }, [currentShift, tenantSettings]);
+
   // v1.1.2: Determine if changes are comment-only
   const originalStart = shift.start_time ? fromTenantISO(shift.start_time, effectiveTimezone) : "";
   const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, effectiveTimezone) : "";
   const timeChanged = startTime !== originalStart || endTime !== originalEnd;
   const commentChanged = newComment.trim().length > 0;
   const isCommentOnly = commentChanged && !timeChanged;
+  const needsBypassReasonForSubmit =
+    isAdmin &&
+    timeChanged &&
+    shift.status !== 'finished' &&
+    proofState.missingRequiredItems.length > 0;
 
   // v1.1.2: Smart save button validation
   const canSave = useMemo(() => {
@@ -598,12 +674,13 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       if (shift.status === 'finished') return false; // Can't change finished shift times
       if (isStartTimeYearInvalid || isEndTimeYearInvalid) return false;
       if (isEndTimeInvalid) return false;
+      if (needsBypassReasonForSubmit && bypassReason.trim().length === 0) return false;
       return true;
     }
 
     // No changes: can't save
     return false;
-  }, [isCommentOnly, timeChanged, isAdmin, timezoneLoaded, shift.status, isStartTimeYearInvalid, isEndTimeYearInvalid, isEndTimeInvalid]);
+  }, [isCommentOnly, timeChanged, isAdmin, timezoneLoaded, shift.status, isStartTimeYearInvalid, isEndTimeYearInvalid, isEndTimeInvalid, needsBypassReasonForSubmit, bypassReason]);
 
   const endTimeUtcPreview = useMemo(() => {
     if (!endTime || !timezoneLoaded || isEndTimeYearInvalid) {
@@ -772,33 +849,34 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               </div>
             )}
 
+            {activeTab === 'details' && isAdmin && proofState.missingRequiredItems.length > 0 && (
+              <div className="px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800">
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-semibold">В смене отсутствуют обязательные подтверждения: {proofState.missingRequiredLabels.join(", ")}</p>
+                    <p className="mt-1 text-amber-700">
+                      Если вы закрываете смену без обязательных фото, укажите причину. Она будет отправлена в backend в поле комментария.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Proxy Photo Upload Section - Smart Filtering - Details Tab Only */}
             {activeTab === 'details' && (() => {
-              const site = (currentShift as any).site || {};
-              const cs = currentShift as any;
-
-              // Prefer snapshot fields when non-null (set at shift creation); fall back to live site/tenant flags
-              const needsOdoStart =
-                cs.requires_odo_start != null
-                  ? cs.requires_odo_start === true
-                  : site.odometer_required === true;
-              const needsOdoEnd =
-                cs.requires_odo_end != null
-                  ? cs.requires_odo_end === true
-                  : site.odometer_required === true;
-              const needsInvoice =
-                cs.requires_invoice != null
-                  ? cs.requires_invoice === true
-                  : (site.invoice_required === true || tenantSettings?.invoice_required === true);
+              const needsOdoStart = proofState.needsOdoStart;
+              const needsOdoEnd = proofState.needsOdoEnd;
+              const needsInvoice = proofState.needsInvoice;
 
               // Smart Hybrid visibility: show if Required OR if Data Exists
               const shouldShowZone = (isRequired: boolean, hasData: boolean) => {
                 return isRequired || hasData;
               };
 
-              const hasStartPhoto = !!(currentShift as any).photo_start_url;
-              const hasEndPhoto = !!(currentShift as any).photo_end_url;
-              const hasInvoicePhoto = !!(currentShift as any).photo_invoice_url;
+              const hasStartPhoto = proofState.hasStartPhoto;
+              const hasEndPhoto = proofState.hasEndPhoto;
+              const hasInvoicePhoto = proofState.hasInvoicePhoto;
 
               const showStartZone = shouldShowZone(needsOdoStart, hasStartPhoto);
               const showEndZone = shouldShowZone(needsOdoEnd, hasEndPhoto);
@@ -848,6 +926,35 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                     <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Загрузка фото (админ)
                     </label>
+                  </div>
+
+                  <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                      Сводка подтверждений
+                    </p>
+                    <div className="space-y-2">
+                      {proofState.items.map((item) => {
+                        const statusText = !item.required
+                          ? 'не требуется'
+                          : item.uploaded
+                            ? 'загружено'
+                            : 'отсутствует';
+                        const statusClass = !item.required
+                          ? 'text-slate-500'
+                          : item.uploaded
+                            ? 'text-emerald-700'
+                            : 'text-amber-700';
+
+                        return (
+                          <div key={item.key} className="flex items-center justify-between gap-3 text-sm">
+                            <span className="text-slate-700">{item.label}</span>
+                            <span className={`font-medium ${statusClass}`}>
+                              {item.required ? 'обязательно' : 'необязательно'} · {statusText}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -1129,6 +1236,37 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 </div>
               )}
 
+              {currentShift.status === 'awaiting_odo_start' && (
+                <div className="md:col-span-2 p-3 bg-sky-50 border border-sky-200 rounded-lg flex items-start gap-2">
+                  <AlertCircle size={16} className="text-sky-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium text-sky-800">Смена ещё не начата</p>
+                    <p className="text-sky-700 mt-1">
+                      Ожидается фото стартового одометра. Время начала будет установлено после загрузки фото.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {isAdmin && proofState.missingRequiredItems.length > 0 && (
+                <div className="md:col-span-2">
+                  <label htmlFor="bypass-reason" className="block text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">
+                    Причина закрытия без обязательных фото
+                  </label>
+                  <textarea
+                    id="bypass-reason"
+                    value={bypassReason}
+                    onChange={(e) => setBypassReason(e.target.value)}
+                    placeholder={`Укажите причину. Отсутствуют: ${proofState.missingRequiredLabels.join(", ")}`}
+                    rows={2}
+                    className="w-full px-4 py-3 rounded-lg border border-amber-300 bg-amber-50/40 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all text-sm resize-none"
+                  />
+                  <p className="text-[10px] text-amber-700 mt-1">
+                    Причина будет отправлена в backend в существующем поле комментария при закрытии смены.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label htmlFor="start-time" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                   Время начала *
@@ -1170,6 +1308,11 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 {isStartTimeYearInvalid && (
                   <p className="text-[10px] text-red-500 mt-1">
                     Некорректный год (1900-2100)
+                  </p>
+                )}
+                {currentShift.status === 'awaiting_odo_start' && !startTime && (
+                  <p className="text-[10px] text-sky-700 mt-1">
+                    Поле пока может быть пустым: стартовое время появится после загрузки фото стартового одометра.
                   </p>
                 )}
               </div>
@@ -1446,7 +1589,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 px-6 py-3 rounded-lg border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative flex-1 px-6 py-3 rounded-lg border border-slate-200 text-transparent font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed after:absolute after:inset-0 after:flex after:items-center after:justify-center after:text-slate-600 after:content-['Закрыть']"
             >
               Отмена
             </button>
