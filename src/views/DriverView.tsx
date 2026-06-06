@@ -9,7 +9,7 @@ import {
   Square,
   Truck,
 } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
@@ -26,152 +26,248 @@ export const DriverView = () => {
   const [sites, setSites] = useState<any[]>([]);
   const [shiftHistory, setShiftHistory] = useState<any[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [toast, setToast] = useState<{show: boolean; message: string; type?: 'success' | 'error'}>({show: false, message: '', type: 'success'});
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    type?: "success" | "error";
+  }>({ show: false, message: "", type: "success" });
 
   const [selectedTruck, setSelectedTruck] = useState<string>("");
   const [selectedSite, setSelectedSite] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const workflowState = activeShift?.status || user?.current_state || "";
+  const isDemoMode = user?.tenant_id === 999;
+  const hasActiveShift = Boolean(activeShift);
+  const workflowState = activeShift?.status || "";
 
-  const initData = async () => {
-    setLoading(true);
-    try {
-      // Demo mode: restore active shift from localStorage
-      if (user?.tenant_id === 999) {
-        const storedShift = localStorage.getItem('logishift_active_shift');
-        if (storedShift) {
-          try {
-            setActiveShift(JSON.parse(storedShift));
-          } catch (e) {
-            console.error("Failed to parse stored shift:", e);
-            localStorage.removeItem('logishift_active_shift');
+  const loadSelectionData = useCallback(async () => {
+    const [trucksRes, sitesRes, historyRes] = await Promise.all([
+      api.get("/trucks"),
+      api.get("/sites"),
+      api
+        .get("/shifts?driver_id=" + user?.id + "&status=completed&limit=10")
+        .catch(() => []),
+    ]);
+
+    setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
+    setSites(Array.isArray(sitesRes) ? sitesRes : []);
+    setShiftHistory(Array.isArray(historyRes) ? historyRes : []);
+  }, [user?.id]);
+
+  const refreshCurrentShift = useCallback(
+    async ({
+      silent = false,
+      refreshAuthState = false,
+    }: {
+      silent?: boolean;
+      refreshAuthState?: boolean;
+    } = {}) => {
+      if (!user) return null;
+
+      if (!silent) {
+        setLoading(true);
+      }
+
+      try {
+        if (user.tenant_id === 999) {
+          const storedShift = localStorage.getItem("logishift_active_shift");
+
+          if (storedShift) {
+            try {
+              const parsedShift = JSON.parse(storedShift);
+              setActiveShift(parsedShift);
+              return parsedShift;
+            } catch (e) {
+              console.error("Failed to parse stored shift:", e);
+              localStorage.removeItem("logishift_active_shift");
+            }
           }
+
+          if (user.current_state === DriverState.IDLE) {
+            setActiveShift(null);
+            localStorage.removeItem("logishift_active_shift");
+          }
+
+          await loadSelectionData();
+
+          if (refreshAuthState) {
+            await refreshUser();
+          }
+
+          return null;
+        }
+
+        const currentShift = await getCurrentShift();
+
+        if (currentShift) {
+          setActiveShift(currentShift);
+          if (refreshAuthState) {
+            await refreshUser();
+          }
+          return currentShift;
+        }
+
+        setActiveShift(null);
+        await loadSelectionData();
+
+        if (refreshAuthState) {
+          await refreshUser();
+        }
+
+        return null;
+      } catch (e) {
+        if (!silent) {
+          console.error("РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РґР°РЅРЅС‹С…:", e);
+        }
+        return null;
+      } finally {
+        if (!silent) {
+          setLoading(false);
         }
       }
-
-      // 1. Запрашиваем текущую смену (getCurrentShift handles 400/404 gracefully)
-      const currentShift = await getCurrentShift();
-
-      if (currentShift) {
-        // Если смена есть в базе — сохраняем её
-        setActiveShift(currentShift);
-      } else {
-        // Если смены нет — обнуляем стейт и грузим списки выбора
-        if (!user || user.tenant_id !== 999) {
-          setActiveShift(null);
-        } else if (user.current_state === DriverState.IDLE) {
-          // Demo mode, idle state: clear any stale mock shift so the
-          // start-shift screen shows instead of the fallback completion screen.
-          setActiveShift(null);
-          localStorage.removeItem('logishift_active_shift');
-        }
-        const [trucksRes, sitesRes, historyRes] = await Promise.all([
-          api.get("/trucks"),
-          api.get("/sites"),
-          // Fetch shift history: completed shifts for current user, limit 10
-          api.get("/shifts?driver_id=" + user?.id + "&status=completed&limit=10").catch(() => []),
-        ]);
-        setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
-        setSites(Array.isArray(sitesRes) ? sitesRes : []);
-        setShiftHistory(Array.isArray(historyRes) ? historyRes : []);
-      }
-    } catch (e) {
-      console.error("Ошибка загрузки данных:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [loadSelectionData, refreshUser, user]
+  );
 
   useEffect(() => {
     if (user) {
-      initData();
+      void refreshCurrentShift();
     }
-  }, [user]);
+  }, [refreshCurrentShift, user]);
+
+  useEffect(() => {
+    if (!user || isDemoMode) return;
+
+    const runBackgroundRefresh = () => {
+      if (document.visibilityState === "visible") {
+        void refreshCurrentShift({ silent: true });
+      }
+    };
+
+    const intervalMs =
+      hasActiveShift || user.current_state !== DriverState.IDLE ? 10000 : 15000;
+
+    const intervalId = window.setInterval(runBackgroundRefresh, intervalMs);
+
+    window.addEventListener("focus", runBackgroundRefresh);
+    document.addEventListener("visibilitychange", runBackgroundRefresh);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", runBackgroundRefresh);
+      document.removeEventListener("visibilitychange", runBackgroundRefresh);
+    };
+  }, [
+    hasActiveShift,
+    isDemoMode,
+    refreshCurrentShift,
+    user,
+    user?.current_state,
+  ]);
 
   const handleStart = async () => {
     if (!selectedTruck || !selectedSite) return;
     setLoading(true);
     try {
-      // Demo mode: force state update with mock shift object
       if (user?.tenant_id === 999) {
-        const selectedSiteData = sites.find(s => String(s.id) === selectedSite);
-        const selectedTruckData = trucks.find(t => String(t.id) === selectedTruck);
+        const selectedSiteData = sites.find((s) => String(s.id) === selectedSite);
+        const selectedTruckData = trucks.find(
+          (t) => String(t.id) === selectedTruck
+        );
 
-        // Create mock shift object
         const mockShift = {
           id: 999,
-          status: 'active',
+          status: "active",
           start_time: new Date().toISOString(),
-          truck: selectedTruckData || { id: 1, name: 'MAN TGX', plate_number: 'А123БВ' },
-          site: selectedSiteData || { id: 1, name: 'ЖК Северный', address: 'ул. Примерная, 1' }
+          truck: selectedTruckData || {
+            id: 1,
+            name: "MAN TGX",
+            plate_number: "Рђ123Р‘Р’",
+          },
+          site: selectedSiteData || {
+            id: 1,
+            name: "Р–Рљ РЎРµРІРµСЂРЅС‹Р№",
+            address: "СѓР». РџСЂРёРјРµСЂРЅР°СЏ, 1",
+          },
         };
 
-        // Force immediate state update for demo mode
         setActiveShift(mockShift);
-        localStorage.setItem('logishift_active_shift', JSON.stringify(mockShift));
+        localStorage.setItem("logishift_active_shift", JSON.stringify(mockShift));
 
-        // Determine next state based on site requirements (use string literal for consistency)
-        const nextState = selectedSiteData?.odometer_required ? 'awaiting_odo_start' : 'active';
+        const nextState = selectedSiteData?.odometer_required
+          ? "awaiting_odo_start"
+          : "active";
 
-        // Update user state to active (string literal for consistency with condition check)
         const updatedUser = { ...user, current_state: nextState };
-        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
-        await refreshUser(); // This triggers AuthContext update
+        localStorage.setItem("logishift_user_info", JSON.stringify(updatedUser));
+        await refreshUser();
 
-        setToast({ show: true, message: "✅ Смена открыта", type: 'success' });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2000);
-        setLoading(false);
+        setToast({
+          show: true,
+          message: "вњ… РЎРјРµРЅР° РѕС‚РєСЂС‹С‚Р°",
+          type: "success",
+        });
+        setTimeout(
+          () => setToast({ show: false, message: "", type: "success" }),
+          2000
+        );
         return;
       }
 
-      // Production mode: normal API call
       await api.post("/shifts/start", {
         truck_id: selectedTruck,
         site_id: selectedSite,
       });
 
-      // Re-fetch data and refresh user state
-      await initData();
-      await refreshUser();
+      await refreshCurrentShift({ silent: true, refreshAuthState: true });
     } catch (e: any) {
-      const errorMsg = e.response?.data?.error || e.message || "Ошибка старта";
-      setToast({ show: true, message: `❌ ${errorMsg}`, type: 'error' });
-      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      const errorMsg =
+        e.response?.data?.error || e.message || "РћС€РёР±РєР° СЃС‚Р°СЂС‚Р°";
+      setToast({ show: true, message: `вќЊ ${errorMsg}`, type: "error" });
+      setTimeout(
+        () => setToast({ show: false, message: "", type: "success" }),
+        3000
+      );
+    } finally {
       setLoading(false);
     }
   };
 
   const handleEnd = async () => {
-    if (!confirm("Завершить смену?")) return;
+    if (!confirm("Р—Р°РІРµСЂС€РёС‚СЊ СЃРјРµРЅСѓ?")) return;
     setLoading(true);
     try {
-      // Demo mode: force state update
       if (user?.tenant_id === 999) {
         setActiveShift(null);
-        localStorage.removeItem('logishift_active_shift');
+        localStorage.removeItem("logishift_active_shift");
 
-        // Update user state back to idle via refreshUser
         const updatedUser = { ...user, current_state: DriverState.IDLE };
-        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+        localStorage.setItem("logishift_user_info", JSON.stringify(updatedUser));
         await refreshUser();
 
-        setToast({ show: true, message: "✅ Смена завершена", type: 'success' });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2000);
-        setLoading(false);
+        setToast({
+          show: true,
+          message: "вњ… РЎРјРµРЅР° Р·Р°РІРµСЂС€РµРЅР°",
+          type: "success",
+        });
+        setTimeout(
+          () => setToast({ show: false, message: "", type: "success" }),
+          2000
+        );
         return;
       }
 
-      // Production mode: normal API call
       await api.post("/shifts/end", {});
-
-      // Re-fetch data and refresh user state
-      await initData();
-      await refreshUser();
+      await refreshCurrentShift({ silent: true, refreshAuthState: true });
     } catch (e: any) {
-      const errorMsg = e.response?.data?.error || e.message || "Ошибка завершения";
-      setToast({ show: true, message: `❌ ${errorMsg}`, type: 'error' });
-      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      const errorMsg =
+        e.response?.data?.error || e.message || "РћС€РёР±РєР° Р·Р°РІРµСЂС€РµРЅРёСЏ";
+      setToast({ show: true, message: `вќЊ ${errorMsg}`, type: "error" });
+      setTimeout(
+        () => setToast({ show: false, message: "", type: "success" }),
+        3000
+      );
+    } finally {
       setLoading(false);
     }
   };
@@ -180,16 +276,15 @@ export const DriverView = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset input so same file can be selected again
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
 
     const formData = new FormData();
     formData.append("photo", file);
     setLoading(true);
+
     try {
-      // Use direct fetch instead of api.post() to avoid JSON.stringify on FormData
       const uploadRes = await fetch(API_ENDPOINTS.UPLOAD_PHOTO, {
         method: "POST",
         headers: {
@@ -200,13 +295,17 @@ export const DriverView = () => {
 
       if (!uploadRes.ok) {
         const errData = await uploadRes.json().catch(() => ({}));
-        const errorMsg = (errData as any).error || `Ошибка загрузки фото (${uploadRes.status})`;
-        setToast({ show: true, message: `❌ ${errorMsg}`, type: 'error' });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+        const errorMsg =
+          (errData as any).error ||
+          `РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё С„РѕС‚Рѕ (${uploadRes.status})`;
+        setToast({ show: true, message: `вќЊ ${errorMsg}`, type: "error" });
+        setTimeout(
+          () => setToast({ show: false, message: "", type: "success" }),
+          3000
+        );
         return;
       }
 
-      // Demo mode: advance state machine
       if (user?.tenant_id === 999) {
         const currentState = user?.current_state;
         let nextState: DriverState;
@@ -225,34 +324,50 @@ export const DriverView = () => {
             nextState = DriverState.ACTIVE;
         }
 
-        // Clear active shift before initData runs so it does not restore from localStorage
         if (nextState === DriverState.IDLE) {
           setActiveShift(null);
-          localStorage.removeItem('logishift_active_shift');
+          localStorage.removeItem("logishift_active_shift");
         }
 
-        // Update user state via refreshUser to sync with AuthContext
         const updatedUser = { ...user, current_state: nextState };
-        localStorage.setItem('logishift_user_info', JSON.stringify(updatedUser));
+        localStorage.setItem("logishift_user_info", JSON.stringify(updatedUser));
         await refreshUser();
 
-        setToast({ show: true, message: "✅ Фото загружено", type: 'success' });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2000);
+        setToast({
+          show: true,
+          message: "вњ… Р¤РѕС‚Рѕ Р·Р°РіСЂСѓР¶РµРЅРѕ",
+          type: "success",
+        });
+        setTimeout(
+          () => setToast({ show: false, message: "", type: "success" }),
+          2000
+        );
       } else {
-        // Production mode
-        setToast({ show: true, message: "✅ Фото загружено", type: 'success' });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 2000);
+        setToast({
+          show: true,
+          message: "вњ… Р¤РѕС‚Рѕ Р·Р°РіСЂСѓР¶РµРЅРѕ",
+          type: "success",
+        });
+        setTimeout(
+          () => setToast({ show: false, message: "", type: "success" }),
+          2000
+        );
       }
 
-      // Re-fetch data instead of full page reload
-      await initData();
-      if (!user?.tenant_id || user.tenant_id !== 999) {
-        await refreshUser();
-      }
+      await refreshCurrentShift({
+        silent: true,
+        refreshAuthState: !isDemoMode,
+      });
     } catch (err: any) {
-      const errorMsg = err.response?.data?.error || err.message || "Ошибка загрузки фото";
-      setToast({ show: true, message: `❌ ${errorMsg}`, type: 'error' });
-      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      const errorMsg =
+        err.response?.data?.error ||
+        err.message ||
+        "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё С„РѕС‚Рѕ";
+      setToast({ show: true, message: `вќЊ ${errorMsg}`, type: "error" });
+      setTimeout(
+        () => setToast({ show: false, message: "", type: "success" }),
+        3000
+      );
     } finally {
       setLoading(false);
     }
@@ -261,7 +376,7 @@ export const DriverView = () => {
   if (loading && !activeShift && !trucks.length) {
     return (
       <div className="p-10 text-center animate-pulse text-slate-400">
-        Синхронизация...
+        РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ...
       </div>
     );
   }
@@ -281,44 +396,42 @@ export const DriverView = () => {
       <div className="flex justify-between items-center mb-8">
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Привет, {user?.full_name}
+            РџСЂРёРІРµС‚, {user?.full_name}
           </h1>
           <div className="mt-2">
             <span
               className={`inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full ${
-                !activeShift || user?.current_state === "idle"
+                !hasActiveShift
                   ? "bg-slate-100 text-slate-500"
                   : "bg-emerald-50 text-emerald-600"
               }`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full mr-2 ${
-                !activeShift || user?.current_state === "idle"
-                  ? "bg-slate-400"
-                  : "bg-emerald-500 animate-pulse"
-              }`}></span>
-              {!activeShift || user?.current_state === "idle"
-                ? "Вне смены"
-                : "В процессе"}
+              <span
+                className={`w-1.5 h-1.5 rounded-full mr-2 ${
+                  !hasActiveShift
+                    ? "bg-slate-400"
+                    : "bg-emerald-500 animate-pulse"
+                }`}
+              ></span>
+              {!hasActiveShift ? "Р’РЅРµ СЃРјРµРЅС‹" : "Р’ РїСЂРѕС†РµСЃСЃРµ"}
             </span>
           </div>
         </div>
         <button
           onClick={logout}
           className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-          aria-label="Выйти"
+          aria-label="Р’С‹Р№С‚Рё"
         >
           <LogOut size={22} />
         </button>
       </div>
 
-      {/* ГЛАВНАЯ ЛОГИКА ЭКРАНОВ */}
       {!activeShift ? (
-        // --- ЭКРАН 1: ВЫБОР (Если смены нет в БД или статус idle) ---
         <div className="space-y-5">
           <Card className="p-5 border border-slate-200 shadow-sm bg-white">
             <h3 className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
               <Truck size={16} />
-              Выберите транспорт
+              Р’С‹Р±РµСЂРёС‚Рµ С‚СЂР°РЅСЃРїРѕСЂС‚
             </h3>
             <div className="grid grid-cols-2 gap-3">
               {trucks.map((t) => (
@@ -343,7 +456,7 @@ export const DriverView = () => {
                     {t.name}
                   </div>
                   <div className="text-xs text-slate-500 font-medium">
-                    {t.plate || t.plate_number || "Без номера"}
+                    {t.plate || t.plate_number || "Р‘РµР· РЅРѕРјРµСЂР°"}
                   </div>
                 </div>
               ))}
@@ -353,7 +466,7 @@ export const DriverView = () => {
           <Card className="p-5 border border-slate-200 shadow-sm bg-white">
             <h3 className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
               <MapPin size={16} />
-              Выберите объект
+              Р’С‹Р±РµСЂРёС‚Рµ РѕР±СЉРµРєС‚
             </h3>
             <div className="space-y-3">
               {sites.map((s) => (
@@ -369,7 +482,9 @@ export const DriverView = () => {
                   <MapPin
                     size={20}
                     className={
-                      selectedSite === String(s.id) ? "text-[#0a192f]" : "text-slate-400"
+                      selectedSite === String(s.id)
+                        ? "text-[#0a192f]"
+                        : "text-slate-400"
                     }
                   />
                   <span className="text-base font-bold text-slate-800">
@@ -380,65 +495,82 @@ export const DriverView = () => {
             </div>
           </Card>
 
-          {/* Requirements Info Block */}
-          {selectedSite && (() => {
-            const selectedSiteData = sites.find(s => String(s.id) === selectedSite);
-            const requiresOdometer = selectedSiteData?.odometer_required;
-            const requiresInvoice = selectedSiteData?.invoice_required;
+          {selectedSite &&
+            (() => {
+              const selectedSiteData = sites.find(
+                (s) => String(s.id) === selectedSite
+              );
+              const requiresOdometer = selectedSiteData?.odometer_required;
+              const requiresInvoice = selectedSiteData?.invoice_required;
 
-            if (!requiresOdometer && !requiresInvoice) return null;
+              if (!requiresOdometer && !requiresInvoice) return null;
 
-            return (
-              <Card className="p-4 border border-amber-200 shadow-sm bg-amber-50">
-                <h3 className="text-xs font-semibold text-amber-700 mb-3 uppercase tracking-wider flex items-center gap-2">
-                  <AlertCircle size={14} />
-                  Требования для смены
-                </h3>
-                <div className="space-y-2">
-                  {requiresOdometer && (
-                    <div className="flex items-center gap-2 text-sm text-amber-800">
-                      <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-xs">🏁</div>
-                      <span className="font-medium">Требуется фото одометра</span>
-                    </div>
-                  )}
-                  {requiresInvoice && (
-                    <div className="flex items-center gap-2 text-sm text-amber-800">
-                      <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-xs">📄</div>
-                      <span className="font-medium">Требуется накладная</span>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            );
-          })()}
+              return (
+                <Card className="p-4 border border-amber-200 shadow-sm bg-amber-50">
+                  <h3 className="text-xs font-semibold text-amber-700 mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <AlertCircle size={14} />
+                    РўСЂРµР±РѕРІР°РЅРёСЏ РґР»СЏ СЃРјРµРЅС‹
+                  </h3>
+                  <div className="space-y-2">
+                    {requiresOdometer && (
+                      <div className="flex items-center gap-2 text-sm text-amber-800">
+                        <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-xs">
+                          рџЏЃ
+                        </div>
+                        <span className="font-medium">
+                          РўСЂРµР±СѓРµС‚СЃСЏ С„РѕС‚Рѕ РѕРґРѕРјРµС‚СЂР°
+                        </span>
+                      </div>
+                    )}
+                    {requiresInvoice && (
+                      <div className="flex items-center gap-2 text-sm text-amber-800">
+                        <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-xs">
+                          рџ“„
+                        </div>
+                        <span className="font-medium">
+                          РўСЂРµР±СѓРµС‚СЃСЏ РЅР°РєР»Р°РґРЅР°СЏ
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              );
+            })()}
 
-          {/* Shift History */}
           {shiftHistory.length > 0 && (
             <Card className="p-5 border border-slate-200 shadow-sm bg-white">
               <h3 className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
                 <Clock size={16} />
-                Мои последние смены
+                РњРѕРё РїРѕСЃР»РµРґРЅРёРµ СЃРјРµРЅС‹
               </h3>
               <div className="space-y-3">
                 {shiftHistory.slice(0, 5).map((shift) => (
-                  <div key={shift.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                  <div
+                    key={shift.id}
+                    className="p-3 bg-slate-50 rounded-lg border border-slate-100"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Truck size={14} className="text-slate-400" />
                         <span className="text-sm font-bold text-slate-700">
-                          {shift.truck?.name || shift.truck_name || '—'}
+                          {shift.truck?.name || shift.truck_name || "вЂ”"}
                         </span>
                       </div>
                       <span className="text-xs text-slate-400 font-mono">
-                        {shift.created_at ? new Date(shift.created_at).toLocaleDateString('ru-RU', {
-                          day: '2-digit',
-                          month: '2-digit'
-                        }) : '—'}
+                        {shift.created_at
+                          ? new Date(shift.created_at).toLocaleDateString(
+                              "ru-RU",
+                              {
+                                day: "2-digit",
+                                month: "2-digit",
+                              }
+                            )
+                          : "вЂ”"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-500">
                       <MapPin size={12} />
-                      <span>{shift.site?.name || shift.site_name || '—'}</span>
+                      <span>{shift.site?.name || shift.site_name || "вЂ”"}</span>
                     </div>
                   </div>
                 ))}
@@ -447,7 +579,7 @@ export const DriverView = () => {
                 onClick={() => setShowHistoryModal(true)}
                 className="w-full mt-3 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all active:scale-[0.98]"
               >
-                Показать все смены
+                РџРѕРєР°Р·Р°С‚СЊ РІСЃРµ СЃРјРµРЅС‹
               </Button>
             </Card>
           )}
@@ -459,18 +591,17 @@ export const DriverView = () => {
             isLoading={loading}
           >
             <Play size={20} fill="currentColor" />
-            ОТКРЫТЬ СМЕНУ
+            РћРўРљР Р«РўР¬ РЎРњР•РќРЈ
           </Button>
         </div>
       ) : (
-        // --- ЭКРАН 2: СМЕНА ОТКРЫТА (Работа или Фото) ---
         <div className="space-y-5">
           <Card className="p-6 border border-slate-200 shadow-md bg-white">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2 text-[#0a192f]">
                 <Clock size={20} />
                 <span className="font-bold text-base uppercase tracking-tight">
-                  Смена #{activeShift.id}
+                  РЎРјРµРЅР° #{activeShift.id}
                 </span>
               </div>
               <div className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
@@ -479,7 +610,7 @@ export const DriverView = () => {
                       hour: "2-digit",
                       minute: "2-digit",
                     })
-                  : "ОФОРМЛЕНИЕ"}
+                  : "РћР¤РћР РњР›Р•РќРР•"}
               </div>
             </div>
 
@@ -490,7 +621,7 @@ export const DriverView = () => {
                 </div>
                 <div className="flex-1">
                   <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider mb-0.5">
-                    Машина
+                    РњР°С€РёРЅР°
                   </div>
                   <div className="text-base font-bold text-slate-800">
                     {activeShift.truck?.name || "---"}
@@ -503,7 +634,7 @@ export const DriverView = () => {
                 </div>
                 <div className="flex-1">
                   <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider mb-0.5">
-                    Объект
+                    РћР±СЉРµРєС‚
                   </div>
                   <div className="text-base font-bold text-slate-800">
                     {activeShift.site?.name || "---"}
@@ -514,14 +645,13 @@ export const DriverView = () => {
           </Card>
 
           {workflowState === "active" ? (
-            // ПОД-ЭКРАН: ПРОСТО РАБОТА
             <div className="space-y-4">
               <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-4 text-emerald-800">
                 <CheckCircle2 size={28} className="shrink-0" />
                 <div className="flex-1">
-                  <div className="font-bold text-base">Смена активна</div>
+                  <div className="font-bold text-base">РЎРјРµРЅР° Р°РєС‚РёРІРЅР°</div>
                   <div className="text-sm opacity-80 mt-0.5">
-                    Вы можете завершить её в любой момент
+                    Р’С‹ РјРѕР¶РµС‚Рµ Р·Р°РІРµСЂС€РёС‚СЊ РµС‘ РІ Р»СЋР±РѕР№ РјРѕРјРµРЅС‚
                   </div>
                 </div>
               </div>
@@ -531,24 +661,25 @@ export const DriverView = () => {
                 isLoading={loading}
               >
                 <Square size={20} fill="currentColor" className="mr-3" />
-                ЗАВЕРШИТЬ РАБОТУ
+                Р—РђР’Р•Р РЁРРўР¬ Р РђР‘РћРўРЈ
               </Button>
             </div>
-          ) : ['awaiting_odo_start', 'awaiting_odo_end', 'awaiting_invoice'].includes(workflowState) ? (
-            // ПОД-ЭКРАН: ТРЕБУЕТСЯ ФОТО
+          ) : ["awaiting_odo_start", "awaiting_odo_end", "awaiting_invoice"].includes(
+              workflowState
+            ) ? (
             <div className="space-y-4">
               <div className="p-6 bg-orange-50 border border-orange-200 rounded-xl text-center">
                 <Camera size={48} className="mx-auto mb-4 text-orange-500" />
                 <h3 className="font-bold text-lg text-orange-900 uppercase tracking-tight mb-2">
-                  Нужна фотография
+                  РќСѓР¶РЅР° С„РѕС‚РѕРіСЂР°С„РёСЏ
                 </h3>
                 <p className="text-sm text-orange-700 font-medium leading-relaxed">
                   {workflowState === "awaiting_odo_start" &&
-                    "Сфотографируйте одометр ПЕРЕД началом"}
+                    "РЎС„РѕС‚РѕРіСЂР°С„РёСЂСѓР№С‚Рµ РѕРґРѕРјРµС‚СЂ РџР•Р Р•Р” РЅР°С‡Р°Р»РѕРј"}
                   {workflowState === "awaiting_odo_end" &&
-                    "Сфотографируйте одометр ПОСЛЕ работы"}
+                    "РЎС„РѕС‚РѕРіСЂР°С„РёСЂСѓР№С‚Рµ РѕРґРѕРјРµС‚СЂ РџРћРЎР›Р• СЂР°Р±РѕС‚С‹"}
                   {workflowState === "awaiting_invoice" &&
-                    "Сфотографируйте накладную (ТТН)"}
+                    "РЎС„РѕС‚РѕРіСЂР°С„РёСЂСѓР№С‚Рµ РЅР°РєР»Р°РґРЅСѓСЋ (РўРўРќ)"}
                 </p>
               </div>
               <Button
@@ -557,50 +688,56 @@ export const DriverView = () => {
                 isLoading={loading}
               >
                 <Camera size={36} />
-                ОТКРЫТЬ КАМЕРУ
+                РћРўРљР Р«РўР¬ РљРђРњР•Р РЈ
               </Button>
               <div className="flex items-start gap-3 p-4 text-slate-500 text-xs bg-white rounded-lg border border-slate-200 shadow-sm">
-                <AlertCircle size={16} className="shrink-0 text-orange-500 mt-0.5" />
+                <AlertCircle
+                  size={16}
+                  className="shrink-0 text-orange-500 mt-0.5"
+                />
                 <span className="leading-relaxed">
-                  Убедитесь, что все данные на фото видны четко. Плохое качество
-                  фото может стать причиной отклонения смены.
+                  РЈР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ РІСЃРµ РґР°РЅРЅС‹Рµ РЅР° С„РѕС‚Рѕ РІРёРґРЅС‹
+                  С‡РµС‚РєРѕ. РџР»РѕС…РѕРµ РєР°С‡РµСЃС‚РІРѕ С„РѕС‚Рѕ РјРѕР¶РµС‚ СЃС‚Р°С‚СЊ
+                  РїСЂРёС‡РёРЅРѕР№ РѕС‚РєР»РѕРЅРµРЅРёСЏ СЃРјРµРЅС‹.
                 </span>
               </div>
             </div>
           ) : (
-            // ПОД-ЭКРАН: СМЕНА ЗАВЕРШЕНА (состояние не ожидает фото)
             <div className="space-y-4">
               <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
                 <CheckCircle2 size={48} className="mx-auto mb-4 text-emerald-500" />
                 <h3 className="font-bold text-lg text-emerald-900 uppercase tracking-tight mb-2">
-                  Смена завершена
+                  РЎРјРµРЅР° Р·Р°РІРµСЂС€РµРЅР°
                 </h3>
                 <p className="text-sm text-emerald-700 font-medium">
-                  Все документы приняты. Хорошей работы!
+                  Р’СЃРµ РґРѕРєСѓРјРµРЅС‚С‹ РїСЂРёРЅСЏС‚С‹. РҐРѕСЂРѕС€РµР№ СЂР°Р±РѕС‚С‹!
                 </p>
               </div>
               <Button
                 onClick={() => {
                   setActiveShift(null);
-                  localStorage.removeItem('logishift_active_shift');
+                  localStorage.removeItem("logishift_active_shift");
                 }}
                 className="w-full py-3 bg-[#0a192f] hover:bg-[#152238] text-white font-bold text-lg shadow-lg shadow-[#0a192f]/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <Play size={20} fill="currentColor" />
-                Открыть новую смену
+                РћС‚РєСЂС‹С‚СЊ РЅРѕРІСѓСЋ СЃРјРµРЅСѓ
               </Button>
             </div>
           )}
         </div>
       )}
 
-      {/* Toast Notification */}
       {toast.show && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4">
-          <div className={`px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
-            toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-[#0a192f] text-white'
-          }`}>
-            {toast.type === 'error' ? (
+          <div
+            className={`px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+              toast.type === "error"
+                ? "bg-red-600 text-white"
+                : "bg-[#0a192f] text-white"
+            }`}
+          >
+            {toast.type === "error" ? (
               <AlertCircle size={18} className="text-white" />
             ) : (
               <CheckCircle2 size={18} className="text-green-400" />
@@ -610,7 +747,6 @@ export const DriverView = () => {
         </div>
       )}
 
-      {/* Shift History Modal */}
       {showHistoryModal && (
         <ShiftHistoryModal
           isOpen={showHistoryModal}
