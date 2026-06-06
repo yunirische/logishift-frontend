@@ -349,9 +349,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       const payload: any = {};
 
       // v1.1.2: Comment-only updates are allowed for ANY shift status
-      // Time changes require admin role and can't be done on finished shifts
+      // Time changes require admin role.
       if (timeChanged) {
-        // Time changes: need admin + active shift
+        // Time changes: need admin.
         if (!isAdmin) {
           setError("⚠️ Только администратор может изменять время смены");
           setLoading(false);
@@ -364,7 +364,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
           return;
         }
 
-        if (currentShift.status === 'finished') {
+        if (isFinishedShift && !isAdmin) {
           setError("⚠️ Нельзя изменить время завершенной смены. Используйте только поле комментария.");
           setLoading(false);
           return;
@@ -422,7 +422,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       }
       setSuccessMessage("Изменения сохранены");
       if (response?.shift) {
-        setModalShift(response.shift);
+        setModalShift((prev) => ({ ...prev, ...response.shift } as Shift));
       }
       onSave(response?.shift);
     } catch (err: any) {
@@ -572,6 +572,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     timezoneLoaded && browserTimezone && browserTimezone !== effectiveTimezone;
   const endTimeMin = startTime || undefined;
   const endTimeMax = tenantNow || undefined;
+  const shiftStatus = currentShift.status;
+  const isFinishedShift = shiftStatus === 'finished';
 
   // Validate tenant-local datetime-local values without browser timezone conversion.
   const isEndTimeBeforeStart = startTime && endTime
@@ -668,7 +670,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const needsBypassReasonForSubmit =
     isAdmin &&
     timeChanged &&
-    currentShift.status !== 'finished' &&
+    !isFinishedShift &&
     proofState.missingRequiredItems.length > 0;
 
   // v1.1.2: Smart save button validation
@@ -682,7 +684,6 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     if (timeChanged) {
       if (!isAdmin) return false; // Only admin can change times
       if (!timezoneLoaded) return false;
-      if (currentShift.status === 'finished') return false; // Can't change finished shift times
       if (isStartTimeYearInvalid || isEndTimeYearInvalid) return false;
       if (isEndTimeInvalid) return false;
       if (needsBypassReasonForSubmit && bypassReason.trim().length === 0) return false;
@@ -691,7 +692,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
     // No changes: can't save
     return false;
-  }, [isCommentOnly, timeChanged, isAdmin, timezoneLoaded, currentShift.status, isStartTimeYearInvalid, isEndTimeYearInvalid, isEndTimeInvalid, needsBypassReasonForSubmit, bypassReason]);
+  }, [isCommentOnly, timeChanged, isAdmin, timezoneLoaded, isStartTimeYearInvalid, isEndTimeYearInvalid, isEndTimeInvalid, needsBypassReasonForSubmit, bypassReason]);
 
   const renderPhotoSlot = ({
     photoType,
@@ -1355,7 +1356,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             {activeTab === 'details' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* v1.1.2: Finished shifts warning */}
-              {shift.status === 'finished' && (
+              {isFinishedShift && (
                 <div className="md:col-span-2 mb-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
                   <Lock size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
                   <div className="text-sm">
@@ -1403,7 +1404,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               <div>
                 <label htmlFor="start-time" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                   Время начала *
-                  {shift.status === 'finished' && !isAdmin && (
+                  {isFinishedShift && !isAdmin && (
                     <span className="text-amber-600 font-normal ml-1">(только чтение)</span>
                   )}
                 </label>
@@ -1415,9 +1416,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   onChange={(e) => setStartTime(e.target.value)}
                   max={endTimeMax || "2100-12-31T23:59"}
                   step="60"
-                  disabled={shift.status === 'finished' && !isAdmin}
+                  disabled={isFinishedShift && !isAdmin}
                   className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
-                    (shift.status === 'finished' && !isAdmin)
+                    (isFinishedShift && !isAdmin)
                       ? "bg-slate-50 text-slate-500 cursor-not-allowed border-slate-200"
                       : isStartTimeYearInvalid
                       ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
@@ -1455,11 +1456,11 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   <label htmlFor="end-time" className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Время окончания
                     {shift.status === 'ACTIVE' && <span className="text-slate-400 font-normal ml-1">(опционально)</span>}
-                    {shift.status === 'finished' && !isAdmin && (
+                    {isFinishedShift && !isAdmin && (
                       <span className="text-amber-600 font-normal ml-1">(только чтение)</span>
                     )}
                   </label>
-                  {isAdmin && shift.status !== 'finished' && (
+                  {isAdmin && (
                     <button
                       type="button"
                       onClick={() => setEndTime(nowInTenantTimezone(effectiveTimezone))}
@@ -1479,24 +1480,24 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   min={endTimeMin}
                   max={endTimeMax || "2100-12-31T23:59"}
                   step="60"
-                  disabled={shift.status === 'ACTIVE' || (shift.status === 'finished' && !isAdmin)}
+                  disabled={isFinishedShift && !isAdmin}
                   className={`w-full px-4 py-3 rounded-lg border outline-none transition-all text-sm ${
-                    shift.status === 'ACTIVE' || (shift.status === 'finished' && !isAdmin)
+                    isFinishedShift && !isAdmin
                       ? "bg-slate-50 text-slate-500 cursor-not-allowed border-slate-200"
                       : isEndTimeInvalid || isEndTimeYearInvalid
                         ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                         : "border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20"
                   }`}
                 />
-                {isEndTimeYearInvalid && shift.status !== 'ACTIVE' && !(shift.status === 'finished' && !isAdmin) ? (
+                {isEndTimeYearInvalid && !(isFinishedShift && !isAdmin) ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Некорректный год (1900-2100)
                   </p>
-                ) : isEndTimeBeforeStart && shift.status !== 'ACTIVE' && !(shift.status === 'finished' && !isAdmin) ? (
+                ) : isEndTimeBeforeStart && !(isFinishedShift && !isAdmin) ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Должно быть позже начала
                   </p>
-                ) : isEndTimeAfterTenantNow && shift.status !== 'ACTIVE' && !(shift.status === 'finished' && !isAdmin) ? (
+                ) : isEndTimeAfterTenantNow && !(isFinishedShift && !isAdmin) ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Не может быть позже текущего времени компании ({effectiveTimezone})
                   </p>
