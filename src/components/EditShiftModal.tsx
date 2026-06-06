@@ -319,8 +319,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
     try {
       // Check what fields changed
-      const originalStart = shift.start_time ? fromTenantISO(shift.start_time, effectiveTimezone) : "";
-      const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, effectiveTimezone) : "";
+      const originalStart = currentShift.start_time
+        ? fromTenantISO(currentShift.start_time, effectiveTimezone)
+        : "";
+      const originalEnd = currentShift.end_time
+        ? fromTenantISO(currentShift.end_time, effectiveTimezone)
+        : "";
       const timeChanged = startTime !== originalStart || endTime !== originalEnd;
       const commentChanged = newComment.trim().length > 0;
 
@@ -360,7 +364,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
           return;
         }
 
-        if (shift.status === 'finished') {
+        if (currentShift.status === 'finished') {
           setError("⚠️ Нельзя изменить время завершенной смены. Используйте только поле комментария.");
           setLoading(false);
           return;
@@ -417,6 +421,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         }
       }
       setSuccessMessage("Изменения сохранены");
+      if (response?.shift) {
+        setModalShift(response.shift);
+      }
       onSave(response?.shift);
     } catch (err: any) {
       console.error("Update shift error:", err);
@@ -648,16 +655,20 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     };
   }, [currentShift, tenantSettings]);
 
-  // v1.1.2: Determine if changes are comment-only
-  const originalStart = shift.start_time ? fromTenantISO(shift.start_time, effectiveTimezone) : "";
-  const originalEnd = shift.end_time ? fromTenantISO(shift.end_time, effectiveTimezone) : "";
+  // Use the fully loaded modal snapshot as the dirty-state baseline.
+  const originalStart = currentShift.start_time
+    ? fromTenantISO(currentShift.start_time, effectiveTimezone)
+    : "";
+  const originalEnd = currentShift.end_time
+    ? fromTenantISO(currentShift.end_time, effectiveTimezone)
+    : "";
   const timeChanged = startTime !== originalStart || endTime !== originalEnd;
   const commentChanged = newComment.trim().length > 0;
   const isCommentOnly = commentChanged && !timeChanged;
   const needsBypassReasonForSubmit =
     isAdmin &&
     timeChanged &&
-    shift.status !== 'finished' &&
+    currentShift.status !== 'finished' &&
     proofState.missingRequiredItems.length > 0;
 
   // v1.1.2: Smart save button validation
@@ -671,7 +682,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     if (timeChanged) {
       if (!isAdmin) return false; // Only admin can change times
       if (!timezoneLoaded) return false;
-      if (shift.status === 'finished') return false; // Can't change finished shift times
+      if (currentShift.status === 'finished') return false; // Can't change finished shift times
       if (isStartTimeYearInvalid || isEndTimeYearInvalid) return false;
       if (isEndTimeInvalid) return false;
       if (needsBypassReasonForSubmit && bypassReason.trim().length === 0) return false;
@@ -680,7 +691,108 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
     // No changes: can't save
     return false;
-  }, [isCommentOnly, timeChanged, isAdmin, timezoneLoaded, shift.status, isStartTimeYearInvalid, isEndTimeYearInvalid, isEndTimeInvalid, needsBypassReasonForSubmit, bypassReason]);
+  }, [isCommentOnly, timeChanged, isAdmin, timezoneLoaded, currentShift.status, isStartTimeYearInvalid, isEndTimeYearInvalid, isEndTimeInvalid, needsBypassReasonForSubmit, bypassReason]);
+
+  const renderPhotoSlot = ({
+    photoType,
+    label,
+    icon,
+    required,
+    photoUrl,
+  }: {
+    photoType: 'start' | 'end' | 'invoice';
+    label: string;
+    icon: string;
+    required: boolean;
+    photoUrl?: string;
+  }) => {
+    const hasPhoto = Boolean(photoUrl);
+    const isUploading = uploadingPhotoType === photoType;
+    const previewUrl = photoUrl ? getPhotoUrl(photoUrl) || '' : '';
+
+    return (
+      <div
+        className={`rounded-xl border p-4 transition-colors ${
+          hasPhoto
+            ? 'border-emerald-200 bg-emerald-50/70'
+            : 'border-slate-200 bg-slate-50'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">{icon}</span>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">{label}</p>
+              <p className={`text-xs mt-1 ${hasPhoto ? 'text-emerald-700' : 'text-slate-500'}`}>
+                {hasPhoto ? 'Фото загружено' : 'Перетащите или нажмите для загрузки'}
+              </p>
+            </div>
+          </div>
+          <span
+            className={`px-2 py-0.5 text-[10px] font-bold font-mono border rounded ${
+              required
+                ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                : 'bg-slate-100 text-slate-600 border-slate-200'
+            }`}
+          >
+            {required ? '[ОБЯЗАТЕЛЬНО]' : '[ОПЦИОНАЛЬНО]'}
+          </span>
+        </div>
+
+        {hasPhoto ? (
+          <div className="rounded-lg border border-emerald-200 bg-white/80 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+              <Check size={16} />
+              <span>Фото загружено</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+              >
+                <Image size={14} />
+                Просмотр
+              </a>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isUploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handlePhotoUpload(photoType, file);
+                  }}
+                />
+                <Upload size={14} />
+                {isUploading ? 'Загрузка...' : 'Заменить фото'}
+              </label>
+            </div>
+          </div>
+        ) : (
+          <label className="block cursor-pointer rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-6 text-center transition-colors hover:border-slate-400 hover:bg-slate-50">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={isUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handlePhotoUpload(photoType, file);
+              }}
+            />
+            <Upload size={22} className="mx-auto mb-2 text-slate-400" />
+            <span className="block text-sm font-semibold text-slate-700">{label}</span>
+            <span className="mt-1 block text-xs text-slate-500">
+              {isUploading ? 'Загрузка...' : 'Перетащите или нажмите для загрузки'}
+            </span>
+          </label>
+        )}
+      </div>
+    );
+  };
 
   const endTimeUtcPreview = useMemo(() => {
     if (!endTime || !timezoneLoaded || isEndTimeYearInvalid) {
@@ -959,7 +1071,14 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
                   <div className="space-y-3">
                     {/* Start Odometer Photo */}
-                    {showStartZone && (
+                    {showStartZone && renderPhotoSlot({
+                      photoType: 'start',
+                      label: 'Одометр (старт)',
+                      icon: '🏁',
+                      required: needsOdoStart,
+                      photoUrl: (currentShift as any).photo_start_url,
+                    })}
+                    {false && (
                       <div className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -1032,7 +1151,14 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                     )}
 
                     {/* End Odometer Photo */}
-                    {showEndZone && (
+                    {showEndZone && renderPhotoSlot({
+                      photoType: 'end',
+                      label: 'Одометр (финиш)',
+                      icon: '🏁',
+                      required: needsOdoEnd,
+                      photoUrl: (currentShift as any).photo_end_url,
+                    })}
+                    {false && (
                       <div className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -1105,7 +1231,14 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                     )}
 
                     {/* Invoice Photo */}
-                    {showInvoiceZone && (
+                    {showInvoiceZone && renderPhotoSlot({
+                      photoType: 'invoice',
+                      label: 'Накладная',
+                      icon: '📄',
+                      required: needsInvoice,
+                      photoUrl: (currentShift as any).photo_invoice_url,
+                    })}
+                    {false && (
                       <div className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
