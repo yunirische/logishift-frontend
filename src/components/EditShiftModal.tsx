@@ -422,11 +422,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         payload.comment = newComment.trim();
       }
 
+      const timeEditPayload: any = { tenant_timezone: effectiveTimezone };
+      if (hasStartTimeChange) timeEditPayload.start_time = startTime;
+      if (hasEndTimeChange) timeEditPayload.end_time = endTime;
+
       const response = timeChanged && !isRequestingCloseOrFinish
-        ? await api.patch(API_ENDPOINTS.UPDATE_SHIFT_TIMES(shift.id), {
-            start_time: startTime || originalStart,
-            end_time: endTime || originalEnd || nowInTenantTimezone(effectiveTimezone),
-          })
+        ? await api.patch(API_ENDPOINTS.UPDATE_SHIFT_TIMES(shift.id), timeEditPayload)
         : await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
       if (requiresBypassReasonForThisSave) {
         setBypassReason("");
