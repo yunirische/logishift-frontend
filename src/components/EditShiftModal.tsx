@@ -325,8 +325,19 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       const originalEnd = currentShift.end_time
         ? fromTenantISO(currentShift.end_time, effectiveTimezone)
         : "";
-      const timeChanged = startTime !== originalStart || endTime !== originalEnd;
+      const hasStartTimeChange = startTime !== originalStart;
+      const hasEndTimeChange = endTime !== originalEnd;
+      const timeChanged = hasStartTimeChange || hasEndTimeChange;
       const commentChanged = newComment.trim().length > 0;
+      const hasMissingRequiredProof = proofState.missingRequiredItems.length > 0;
+      const isOpenShiftWithoutRecordedEnd = currentShift.status !== 'finished' && originalEnd === "";
+      const isRequestingCloseOrFinish =
+        isOpenShiftWithoutRecordedEnd &&
+        endTime.trim().length > 0;
+      const requiresBypassReasonForThisSave =
+        isAdmin &&
+        hasMissingRequiredProof &&
+        isRequestingCloseOrFinish;
 
       // Determine if this is a comment-only update
       const isCommentOnly = commentChanged && !timeChanged;
@@ -399,7 +410,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       }
 
       // Append comment if provided (for time+comment updates)
-      if (needsBypassReasonForSubmit) {
+      if (requiresBypassReasonForThisSave) {
         if (bypassReason.trim().length === 0) {
           setError(`В смене отсутствуют обязательные подтверждения: ${proofState.missingRequiredLabels.join(", ")}. Укажите причину закрытия без обязательных фото.`);
           setLoading(false);
@@ -411,8 +422,13 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         payload.comment = newComment.trim();
       }
 
-      const response = await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
-      if (needsBypassReasonForSubmit) {
+      const response = timeChanged && !isRequestingCloseOrFinish
+        ? await api.patch(API_ENDPOINTS.UPDATE_SHIFT_TIMES(shift.id), {
+            start_time: startTime || originalStart,
+            end_time: endTime || originalEnd || nowInTenantTimezone(effectiveTimezone),
+          })
+        : await api.patch(API_ENDPOINTS.UPDATE_SHIFT(shift.id), payload);
+      if (requiresBypassReasonForThisSave) {
         setBypassReason("");
       } else if (commentChanged) {
         setNewComment("");
@@ -664,14 +680,20 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const originalEnd = currentShift.end_time
     ? fromTenantISO(currentShift.end_time, effectiveTimezone)
     : "";
-  const timeChanged = startTime !== originalStart || endTime !== originalEnd;
+  const hasStartTimeChange = startTime !== originalStart;
+  const hasEndTimeChange = endTime !== originalEnd;
+  const timeChanged = hasStartTimeChange || hasEndTimeChange;
   const commentChanged = newComment.trim().length > 0;
   const isCommentOnly = commentChanged && !timeChanged;
+  const hasMissingRequiredProof = proofState.missingRequiredItems.length > 0;
+  const isOpenShiftWithoutRecordedEnd = !isFinishedShift && originalEnd === "";
+  const isRequestingCloseOrFinish =
+    isOpenShiftWithoutRecordedEnd &&
+    endTime.trim().length > 0;
   const needsBypassReasonForSubmit =
     isAdmin &&
-    timeChanged &&
-    !isFinishedShift &&
-    proofState.missingRequiredItems.length > 0;
+    hasMissingRequiredProof &&
+    isRequestingCloseOrFinish;
 
   // v1.1.2: Smart save button validation
   const canSave = useMemo(() => {
