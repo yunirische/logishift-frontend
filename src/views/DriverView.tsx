@@ -10,12 +10,12 @@ import {
   Truck,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import ShiftHistoryModal from "../components/ShiftHistoryModal";
 import { Button, Card } from "../components/ui";
+import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
-import { API_ENDPOINTS } from "../constants";
 import { DriverState } from "../types";
-import ShiftHistoryModal from "../components/ShiftHistoryModal";
 
 export const DriverView = () => {
   const { user, logout, refreshUser } = useAuth();
@@ -31,21 +31,20 @@ export const DriverView = () => {
     message: string;
     type?: "success" | "error";
   }>({ show: false, message: "", type: "success" });
-
-  const [selectedTruck, setSelectedTruck] = useState<string>("");
-  const [selectedSite, setSelectedSite] = useState<string>("");
+  const [selectedTruck, setSelectedTruck] = useState("");
+  const [selectedSite, setSelectedSite] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isDemoMode = user?.tenant_id === 999;
   const hasActiveShift = Boolean(activeShift);
-  const workflowState = activeShift?.status || "";
+  const workflowState = String(activeShift?.status || "").toLowerCase();
 
   const loadSelectionData = useCallback(async () => {
     const [trucksRes, sitesRes, historyRes] = await Promise.all([
       api.get("/trucks"),
       api.get("/sites"),
       api
-        .get("/shifts?driver_id=" + user?.id + "&status=completed&limit=10")
+        .get(`/shifts?driver_id=${user?.id}&status=completed&limit=10`)
         .catch(() => []),
     ]);
 
@@ -77,8 +76,8 @@ export const DriverView = () => {
               const parsedShift = JSON.parse(storedShift);
               setActiveShift(parsedShift);
               return parsedShift;
-            } catch (e) {
-              console.error("Failed to parse stored shift:", e);
+            } catch (error) {
+              console.error("Failed to parse stored shift:", error);
               localStorage.removeItem("logishift_active_shift");
             }
           }
@@ -115,9 +114,9 @@ export const DriverView = () => {
         }
 
         return null;
-      } catch (e) {
+      } catch (error) {
         if (!silent) {
-          console.error("РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РґР°РЅРЅС‹С…:", e);
+          console.error("Ошибка загрузки данных:", error);
         }
         return null;
       } finally {
@@ -146,7 +145,6 @@ export const DriverView = () => {
 
     const intervalMs =
       hasActiveShift || user.current_state !== DriverState.IDLE ? 10000 : 15000;
-
     const intervalId = window.setInterval(runBackgroundRefresh, intervalMs);
 
     window.addEventListener("focus", runBackgroundRefresh);
@@ -167,12 +165,15 @@ export const DriverView = () => {
 
   const handleStart = async () => {
     if (!selectedTruck || !selectedSite) return;
+
     setLoading(true);
     try {
       if (user?.tenant_id === 999) {
-        const selectedSiteData = sites.find((s) => String(s.id) === selectedSite);
+        const selectedSiteData = sites.find(
+          (site) => String(site.id) === selectedSite
+        );
         const selectedTruckData = trucks.find(
-          (t) => String(t.id) === selectedTruck
+          (truck) => String(truck.id) === selectedTruck
         );
 
         const mockShift = {
@@ -182,12 +183,12 @@ export const DriverView = () => {
           truck: selectedTruckData || {
             id: 1,
             name: "MAN TGX",
-            plate_number: "Рђ123Р‘Р’",
+            plate_number: "А123БВ",
           },
           site: selectedSiteData || {
             id: 1,
-            name: "Р–Рљ РЎРµРІРµСЂРЅС‹Р№",
-            address: "СѓР». РџСЂРёРјРµСЂРЅР°СЏ, 1",
+            name: "ЖК Северный",
+            address: "ул. Примерная, 1",
           },
         };
 
@@ -195,8 +196,8 @@ export const DriverView = () => {
         localStorage.setItem("logishift_active_shift", JSON.stringify(mockShift));
 
         const nextState = selectedSiteData?.odometer_required
-          ? "awaiting_odo_start"
-          : "active";
+          ? DriverState.AWAITING_ODO_START
+          : DriverState.ACTIVE;
 
         const updatedUser = { ...user, current_state: nextState };
         localStorage.setItem("logishift_user_info", JSON.stringify(updatedUser));
@@ -204,7 +205,7 @@ export const DriverView = () => {
 
         setToast({
           show: true,
-          message: "вњ… РЎРјРµРЅР° РѕС‚РєСЂС‹С‚Р°",
+          message: "Смена открыта",
           type: "success",
         });
         setTimeout(
@@ -220,10 +221,10 @@ export const DriverView = () => {
       });
 
       await refreshCurrentShift({ silent: true, refreshAuthState: true });
-    } catch (e: any) {
+    } catch (error: any) {
       const errorMsg =
-        e.response?.data?.error || e.message || "РћС€РёР±РєР° СЃС‚Р°СЂС‚Р°";
-      setToast({ show: true, message: `вќЊ ${errorMsg}`, type: "error" });
+        error.response?.data?.error || error.message || "Ошибка старта";
+      setToast({ show: true, message: errorMsg, type: "error" });
       setTimeout(
         () => setToast({ show: false, message: "", type: "success" }),
         3000
@@ -234,7 +235,8 @@ export const DriverView = () => {
   };
 
   const handleEnd = async () => {
-    if (!confirm("Р—Р°РІРµСЂС€РёС‚СЊ СЃРјРµРЅСѓ?")) return;
+    if (!confirm("Завершить смену?")) return;
+
     setLoading(true);
     try {
       if (user?.tenant_id === 999) {
@@ -247,7 +249,7 @@ export const DriverView = () => {
 
         setToast({
           show: true,
-          message: "вњ… РЎРјРµРЅР° Р·Р°РІРµСЂС€РµРЅР°",
+          message: "Смена завершена",
           type: "success",
         });
         setTimeout(
@@ -259,10 +261,10 @@ export const DriverView = () => {
 
       await api.post("/shifts/end", {});
       await refreshCurrentShift({ silent: true, refreshAuthState: true });
-    } catch (e: any) {
+    } catch (error: any) {
       const errorMsg =
-        e.response?.data?.error || e.message || "РћС€РёР±РєР° Р·Р°РІРµСЂС€РµРЅРёСЏ";
-      setToast({ show: true, message: `вќЊ ${errorMsg}`, type: "error" });
+        error.response?.data?.error || error.message || "Ошибка завершения";
+      setToast({ show: true, message: errorMsg, type: "error" });
       setTimeout(
         () => setToast({ show: false, message: "", type: "success" }),
         3000
@@ -272,8 +274,8 @@ export const DriverView = () => {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     if (fileInputRef.current) {
@@ -297,8 +299,8 @@ export const DriverView = () => {
         const errData = await uploadRes.json().catch(() => ({}));
         const errorMsg =
           (errData as any).error ||
-          `РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё С„РѕС‚Рѕ (${uploadRes.status})`;
-        setToast({ show: true, message: `вќЊ ${errorMsg}`, type: "error" });
+          `Ошибка загрузки фото (${uploadRes.status})`;
+        setToast({ show: true, message: errorMsg, type: "error" });
         setTimeout(
           () => setToast({ show: false, message: "", type: "success" }),
           3000
@@ -307,7 +309,7 @@ export const DriverView = () => {
       }
 
       if (user?.tenant_id === 999) {
-        const currentState = user?.current_state;
+        const currentState = user.current_state;
         let nextState: DriverState;
 
         switch (currentState) {
@@ -332,38 +334,26 @@ export const DriverView = () => {
         const updatedUser = { ...user, current_state: nextState };
         localStorage.setItem("logishift_user_info", JSON.stringify(updatedUser));
         await refreshUser();
-
-        setToast({
-          show: true,
-          message: "вњ… Р¤РѕС‚Рѕ Р·Р°РіСЂСѓР¶РµРЅРѕ",
-          type: "success",
-        });
-        setTimeout(
-          () => setToast({ show: false, message: "", type: "success" }),
-          2000
-        );
-      } else {
-        setToast({
-          show: true,
-          message: "вњ… Р¤РѕС‚Рѕ Р·Р°РіСЂСѓР¶РµРЅРѕ",
-          type: "success",
-        });
-        setTimeout(
-          () => setToast({ show: false, message: "", type: "success" }),
-          2000
-        );
       }
+
+      setToast({
+        show: true,
+        message: "Фото загружено",
+        type: "success",
+      });
+      setTimeout(
+        () => setToast({ show: false, message: "", type: "success" }),
+        2000
+      );
 
       await refreshCurrentShift({
         silent: true,
         refreshAuthState: !isDemoMode,
       });
-    } catch (err: any) {
+    } catch (error: any) {
       const errorMsg =
-        err.response?.data?.error ||
-        err.message ||
-        "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё С„РѕС‚Рѕ";
-      setToast({ show: true, message: `вќЊ ${errorMsg}`, type: "error" });
+        error.response?.data?.error || error.message || "Ошибка загрузки фото";
+      setToast({ show: true, message: errorMsg, type: "error" });
       setTimeout(
         () => setToast({ show: false, message: "", type: "success" }),
         3000
@@ -375,8 +365,8 @@ export const DriverView = () => {
 
   if (loading && !activeShift && !trucks.length) {
     return (
-      <div className="p-10 text-center animate-pulse text-slate-400">
-        РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ...
+      <div className="p-10 text-center text-slate-400 animate-pulse">
+        Синхронизация...
       </div>
     );
   }
@@ -392,35 +382,34 @@ export const DriverView = () => {
         onChange={handleFileUpload}
       />
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            РџСЂРёРІРµС‚, {user?.full_name}
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Привет, {user?.full_name}
           </h1>
           <div className="mt-2">
             <span
-              className={`inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full ${
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                 !hasActiveShift
                   ? "bg-slate-100 text-slate-500"
                   : "bg-emerald-50 text-emerald-600"
               }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full mr-2 ${
+                className={`mr-2 h-1.5 w-1.5 rounded-full ${
                   !hasActiveShift
                     ? "bg-slate-400"
                     : "bg-emerald-500 animate-pulse"
                 }`}
-              ></span>
-              {!hasActiveShift ? "Р’РЅРµ СЃРјРµРЅС‹" : "Р’ РїСЂРѕС†РµСЃСЃРµ"}
+              />
+              {!hasActiveShift ? "Вне смены" : "В процессе"}
             </span>
           </div>
         </div>
         <button
           onClick={logout}
-          className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-          aria-label="Р’С‹Р№С‚Рё"
+          className="rounded-lg p-3 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
+          aria-label="Выйти"
         >
           <LogOut size={22} />
         </button>
@@ -428,77 +417,81 @@ export const DriverView = () => {
 
       {!activeShift ? (
         <div className="space-y-5">
-          <Card className="p-5 border border-slate-200 shadow-sm bg-white">
-            <h3 className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+          <Card className="border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <Truck size={16} />
-              Р’С‹Р±РµСЂРёС‚Рµ С‚СЂР°РЅСЃРїРѕСЂС‚
+              Выберите транспорт
             </h3>
             <div className="grid grid-cols-2 gap-3">
-              {trucks.map((t) => (
-                <div
-                  key={t.id}
-                  onClick={() => setSelectedTruck(t.id)}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all active:scale-95 min-h-[88px] flex flex-col justify-center ${
-                    selectedTruck === t.id
-                      ? "border-[#0a192f] bg-[#0a192f]/5 shadow-md shadow-[#0a192f]/10"
-                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                  }`}
-                >
-                  <Truck
-                    size={20}
-                    className={`mb-2 ${
-                      selectedTruck === t.id
-                        ? "text-[#0a192f]"
-                        : "text-slate-400"
+              {trucks.map((truck) => {
+                const truckId = String(truck.id);
+                const isSelected = selectedTruck === truckId;
+
+                return (
+                  <div
+                    key={truck.id}
+                    onClick={() => setSelectedTruck(truckId)}
+                    className={`flex min-h-[88px] cursor-pointer flex-col justify-center rounded-xl border-2 p-4 transition-all active:scale-95 ${
+                      isSelected
+                        ? "border-[#0a192f] bg-[#0a192f]/5 shadow-md shadow-[#0a192f]/10"
+                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                     }`}
-                  />
-                  <div className="font-bold text-base text-slate-800">
-                    {t.name}
+                  >
+                    <Truck
+                      size={20}
+                      className={`mb-2 ${
+                        isSelected ? "text-[#0a192f]" : "text-slate-400"
+                      }`}
+                    />
+                    <div className="text-base font-bold text-slate-800">
+                      {truck.name}
+                    </div>
+                    <div className="text-xs font-medium text-slate-500">
+                      {truck.plate || truck.plate_number || "Без номера"}
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-500 font-medium">
-                    {t.plate || t.plate_number || "Р‘РµР· РЅРѕРјРµСЂР°"}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
 
-          <Card className="p-5 border border-slate-200 shadow-sm bg-white">
-            <h3 className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+          <Card className="border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <MapPin size={16} />
-              Р’С‹Р±РµСЂРёС‚Рµ РѕР±СЉРµРєС‚
+              Выберите объект
             </h3>
             <div className="space-y-3">
-              {sites.map((s) => (
-                <div
-                  key={s.id}
-                  onClick={() => setSelectedSite(String(s.id))}
-                  className={`p-4 rounded-xl border flex items-center gap-3 cursor-pointer transition-all active:scale-[0.98] min-h-[60px] ${
-                    selectedSite === String(s.id)
-                      ? "border-[#0a192f] bg-[#0a192f]/5 shadow-md shadow-[#0a192f]/10"
-                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                  }`}
-                >
-                  <MapPin
-                    size={20}
-                    className={
-                      selectedSite === String(s.id)
-                        ? "text-[#0a192f]"
-                        : "text-slate-400"
-                    }
-                  />
-                  <span className="text-base font-bold text-slate-800">
-                    {s.name}
-                  </span>
-                </div>
-              ))}
+              {sites.map((site) => {
+                const siteId = String(site.id);
+                const isSelected = selectedSite === siteId;
+
+                return (
+                  <div
+                    key={site.id}
+                    onClick={() => setSelectedSite(siteId)}
+                    className={`flex min-h-[60px] cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all active:scale-[0.98] ${
+                      isSelected
+                        ? "border-[#0a192f] bg-[#0a192f]/5 shadow-md shadow-[#0a192f]/10"
+                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    <MapPin
+                      size={20}
+                      className={isSelected ? "text-[#0a192f]" : "text-slate-400"}
+                    />
+                    <span className="text-base font-bold text-slate-800">
+                      {site.name}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </Card>
 
           {selectedSite &&
             (() => {
               const selectedSiteData = sites.find(
-                (s) => String(s.id) === selectedSite
+                (site) => String(site.id) === selectedSite
               );
               const requiresOdometer = selectedSiteData?.odometer_required;
               const requiresInvoice = selectedSiteData?.invoice_required;
@@ -506,29 +499,29 @@ export const DriverView = () => {
               if (!requiresOdometer && !requiresInvoice) return null;
 
               return (
-                <Card className="p-4 border border-amber-200 shadow-sm bg-amber-50">
-                  <h3 className="text-xs font-semibold text-amber-700 mb-3 uppercase tracking-wider flex items-center gap-2">
+                <Card className="border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-700">
                     <AlertCircle size={14} />
-                    РўСЂРµР±РѕРІР°РЅРёСЏ РґР»СЏ СЃРјРµРЅС‹
+                    Требования для смены
                   </h3>
                   <div className="space-y-2">
                     {requiresOdometer && (
                       <div className="flex items-center gap-2 text-sm text-amber-800">
-                        <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-xs">
-                          рџЏЃ
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-200 text-[9px] font-bold">
+                          ODO
                         </div>
                         <span className="font-medium">
-                          РўСЂРµР±СѓРµС‚СЃСЏ С„РѕС‚Рѕ РѕРґРѕРјРµС‚СЂР°
+                          Требуется фото одометра
                         </span>
                       </div>
                     )}
                     {requiresInvoice && (
                       <div className="flex items-center gap-2 text-sm text-amber-800">
-                        <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-xs">
-                          рџ“„
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-200 text-[9px] font-bold">
+                          ТТН
                         </div>
                         <span className="font-medium">
-                          РўСЂРµР±СѓРµС‚СЃСЏ РЅР°РєР»Р°РґРЅР°СЏ
+                          Требуется накладная
                         </span>
                       </div>
                     )}
@@ -538,25 +531,25 @@ export const DriverView = () => {
             })()}
 
           {shiftHistory.length > 0 && (
-            <Card className="p-5 border border-slate-200 shadow-sm bg-white">
-              <h3 className="text-xs font-semibold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+            <Card className="border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <Clock size={16} />
-                РњРѕРё РїРѕСЃР»РµРґРЅРёРµ СЃРјРµРЅС‹
+                Мои последние смены
               </h3>
               <div className="space-y-3">
                 {shiftHistory.slice(0, 5).map((shift) => (
                   <div
                     key={shift.id}
-                    className="p-3 bg-slate-50 rounded-lg border border-slate-100"
+                    className="rounded-lg border border-slate-100 bg-slate-50 p-3"
                   >
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Truck size={14} className="text-slate-400" />
                         <span className="text-sm font-bold text-slate-700">
-                          {shift.truck?.name || shift.truck_name || "вЂ”"}
+                          {shift.truck?.name || shift.truck_name || "-"}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-400 font-mono">
+                      <span className="font-mono text-xs text-slate-400">
                         {shift.created_at
                           ? new Date(shift.created_at).toLocaleDateString(
                               "ru-RU",
@@ -565,21 +558,21 @@ export const DriverView = () => {
                                 month: "2-digit",
                               }
                             )
-                          : "вЂ”"}
+                          : "-"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-500">
                       <MapPin size={12} />
-                      <span>{shift.site?.name || shift.site_name || "вЂ”"}</span>
+                      <span>{shift.site?.name || shift.site_name || "-"}</span>
                     </div>
                   </div>
                 ))}
               </div>
               <Button
                 onClick={() => setShowHistoryModal(true)}
-                className="w-full mt-3 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all active:scale-[0.98]"
+                className="mt-3 w-full border-2 border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
               >
-                РџРѕРєР°Р·Р°С‚СЊ РІСЃРµ СЃРјРµРЅС‹
+                Показать все смены
               </Button>
             </Card>
           )}
@@ -587,41 +580,41 @@ export const DriverView = () => {
           <Button
             onClick={handleStart}
             disabled={!selectedTruck || !selectedSite}
-            className="w-full py-3 rounded-lg bg-[#0a192f] hover:bg-[#152238] text-white font-bold text-lg shadow-lg shadow-[#0a192f]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-lg font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
             isLoading={loading}
           >
             <Play size={20} fill="currentColor" />
-            РћРўРљР Р«РўР¬ РЎРњР•РќРЈ
+            ОТКРЫТЬ СМЕНУ
           </Button>
         </div>
       ) : (
         <div className="space-y-5">
-          <Card className="p-6 border border-slate-200 shadow-md bg-white">
-            <div className="flex items-center justify-between mb-5">
+          <Card className="border border-slate-200 bg-white p-6 shadow-md">
+            <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#0a192f]">
                 <Clock size={20} />
-                <span className="font-bold text-base uppercase tracking-tight">
-                  РЎРјРµРЅР° #{activeShift.id}
+                <span className="text-base font-bold uppercase tracking-tight">
+                  Смена #{activeShift.id}
                 </span>
               </div>
-              <div className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
+              <div className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-500">
                 {activeShift.start_time
                   ? new Date(activeShift.start_time).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })
-                  : "РћР¤РћР РњР›Р•РќРР•"}
+                  : "ОФОРМЛЕНИЕ"}
               </div>
             </div>
 
             <div className="space-y-4 border-t border-slate-100 pt-5">
               <div className="flex items-center gap-4">
-                <div className="w-11 h-11 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 shrink-0">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
                   <Truck size={22} />
                 </div>
                 <div className="flex-1">
-                  <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider mb-0.5">
-                    РњР°С€РёРЅР°
+                  <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    Машина
                   </div>
                   <div className="text-base font-bold text-slate-800">
                     {activeShift.truck?.name || "---"}
@@ -629,12 +622,12 @@ export const DriverView = () => {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <div className="w-11 h-11 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 shrink-0">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
                   <MapPin size={22} />
                 </div>
                 <div className="flex-1">
-                  <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider mb-0.5">
-                    РћР±СЉРµРєС‚
+                  <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    Объект
                   </div>
                   <div className="text-base font-bold text-slate-800">
                     {activeShift.site?.name || "---"}
@@ -646,71 +639,75 @@ export const DriverView = () => {
 
           {workflowState === "active" ? (
             <div className="space-y-4">
-              <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-4 text-emerald-800">
+              <div className="flex items-center gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
                 <CheckCircle2 size={28} className="shrink-0" />
                 <div className="flex-1">
-                  <div className="font-bold text-base">РЎРјРµРЅР° Р°РєС‚РёРІРЅР°</div>
-                  <div className="text-sm opacity-80 mt-0.5">
-                    Р’С‹ РјРѕР¶РµС‚Рµ Р·Р°РІРµСЂС€РёС‚СЊ РµС‘ РІ Р»СЋР±РѕР№ РјРѕРјРµРЅС‚
+                  <div className="text-base font-bold">Смена активна</div>
+                  <div className="mt-0.5 text-sm opacity-80">
+                    Вы можете завершить ее в любой момент
                   </div>
                 </div>
               </div>
               <Button
                 onClick={handleEnd}
-                className="w-full py-6 bg-red-500 hover:bg-red-600 text-white font-bold text-lg shadow-xl shadow-red-100 transition-all active:scale-[0.98]"
+                className="w-full bg-red-500 py-6 text-lg font-bold text-white shadow-xl shadow-red-100 transition-all hover:bg-red-600 active:scale-[0.98]"
                 isLoading={loading}
               >
                 <Square size={20} fill="currentColor" className="mr-3" />
-                Р—РђР’Р•Р РЁРРўР¬ Р РђР‘РћРўРЈ
+                ЗАВЕРШИТЬ РАБОТУ
               </Button>
             </div>
-          ) : ["awaiting_odo_start", "awaiting_odo_end", "awaiting_invoice"].includes(
-              workflowState
-            ) ? (
+          ) : [
+              "awaiting_odo_start",
+              "awaiting_odo_end",
+              "awaiting_invoice",
+            ].includes(workflowState) ? (
             <div className="space-y-4">
-              <div className="p-6 bg-orange-50 border border-orange-200 rounded-xl text-center">
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-6 text-center">
                 <Camera size={48} className="mx-auto mb-4 text-orange-500" />
-                <h3 className="font-bold text-lg text-orange-900 uppercase tracking-tight mb-2">
-                  РќСѓР¶РЅР° С„РѕС‚РѕРіСЂР°С„РёСЏ
+                <h3 className="mb-2 text-lg font-bold uppercase tracking-tight text-orange-900">
+                  Нужна фотография
                 </h3>
-                <p className="text-sm text-orange-700 font-medium leading-relaxed">
+                <p className="text-sm font-medium leading-relaxed text-orange-700">
                   {workflowState === "awaiting_odo_start" &&
-                    "РЎС„РѕС‚РѕРіСЂР°С„РёСЂСѓР№С‚Рµ РѕРґРѕРјРµС‚СЂ РџР•Р Р•Р” РЅР°С‡Р°Р»РѕРј"}
+                    "Сфотографируйте одометр ПЕРЕД началом"}
                   {workflowState === "awaiting_odo_end" &&
-                    "РЎС„РѕС‚РѕРіСЂР°С„РёСЂСѓР№С‚Рµ РѕРґРѕРјРµС‚СЂ РџРћРЎР›Р• СЂР°Р±РѕС‚С‹"}
+                    "Сфотографируйте одометр ПОСЛЕ работы"}
                   {workflowState === "awaiting_invoice" &&
-                    "РЎС„РѕС‚РѕРіСЂР°С„РёСЂСѓР№С‚Рµ РЅР°РєР»Р°РґРЅСѓСЋ (РўРўРќ)"}
+                    "Сфотографируйте накладную (ТТН)"}
                 </p>
               </div>
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-10 bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold shadow-2xl shadow-orange-200 flex flex-col items-center gap-2 transition-all active:scale-[0.98]"
+                className="flex w-full flex-col items-center gap-2 bg-orange-500 py-10 text-xl font-bold text-white shadow-2xl shadow-orange-200 transition-all hover:bg-orange-600 active:scale-[0.98]"
                 isLoading={loading}
               >
                 <Camera size={36} />
-                РћРўРљР Р«РўР¬ РљРђРњР•Р РЈ
+                ОТКРЫТЬ КАМЕРУ
               </Button>
-              <div className="flex items-start gap-3 p-4 text-slate-500 text-xs bg-white rounded-lg border border-slate-200 shadow-sm">
+              <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-500 shadow-sm">
                 <AlertCircle
                   size={16}
-                  className="shrink-0 text-orange-500 mt-0.5"
+                  className="mt-0.5 shrink-0 text-orange-500"
                 />
                 <span className="leading-relaxed">
-                  РЈР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ РІСЃРµ РґР°РЅРЅС‹Рµ РЅР° С„РѕС‚Рѕ РІРёРґРЅС‹
-                  С‡РµС‚РєРѕ. РџР»РѕС…РѕРµ РєР°С‡РµСЃС‚РІРѕ С„РѕС‚Рѕ РјРѕР¶РµС‚ СЃС‚Р°С‚СЊ
-                  РїСЂРёС‡РёРЅРѕР№ РѕС‚РєР»РѕРЅРµРЅРёСЏ СЃРјРµРЅС‹.
+                  Убедитесь, что все данные на фото видны четко. Плохое качество
+                  фото может стать причиной отклонения смены.
                 </span>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
-                <CheckCircle2 size={48} className="mx-auto mb-4 text-emerald-500" />
-                <h3 className="font-bold text-lg text-emerald-900 uppercase tracking-tight mb-2">
-                  РЎРјРµРЅР° Р·Р°РІРµСЂС€РµРЅР°
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
+                <CheckCircle2
+                  size={48}
+                  className="mx-auto mb-4 text-emerald-500"
+                />
+                <h3 className="mb-2 text-lg font-bold uppercase tracking-tight text-emerald-900">
+                  Смена завершена
                 </h3>
-                <p className="text-sm text-emerald-700 font-medium">
-                  Р’СЃРµ РґРѕРєСѓРјРµРЅС‚С‹ РїСЂРёРЅСЏС‚С‹. РҐРѕСЂРѕС€РµР№ СЂР°Р±РѕС‚С‹!
+                <p className="text-sm font-medium text-emerald-700">
+                  Все документы приняты. Хорошей работы!
                 </p>
               </div>
               <Button
@@ -718,10 +715,10 @@ export const DriverView = () => {
                   setActiveShift(null);
                   localStorage.removeItem("logishift_active_shift");
                 }}
-                className="w-full py-3 bg-[#0a192f] hover:bg-[#152238] text-white font-bold text-lg shadow-lg shadow-[#0a192f]/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                className="flex w-full items-center justify-center gap-2 bg-[#0a192f] py-3 text-lg font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
               >
                 <Play size={20} fill="currentColor" />
-                РћС‚РєСЂС‹С‚СЊ РЅРѕРІСѓСЋ СЃРјРµРЅСѓ
+                Открыть новую смену
               </Button>
             </div>
           )}
@@ -729,9 +726,9 @@ export const DriverView = () => {
       )}
 
       {toast.show && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4">
+        <div className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-20 left-1/2 z-50 -translate-x-1/2 transform">
           <div
-            className={`px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+            className={`flex items-center gap-2 rounded-lg px-6 py-3 shadow-lg ${
               toast.type === "error"
                 ? "bg-red-600 text-white"
                 : "bg-[#0a192f] text-white"

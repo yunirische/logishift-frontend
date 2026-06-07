@@ -575,7 +575,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       }
 
       const refreshedShift = await refreshCurrentShift();
-      onSave(refreshedShift, { refreshList: false });
+      onSave(refreshedShift);
       setSuccessMessage('Фото успешно загружено');
     } catch (err: any) {
       setError(err.message || 'Ошибка загрузки фото');

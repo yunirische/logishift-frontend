@@ -1,31 +1,74 @@
-import React, { useEffect, useState, useCallback, Suspense } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
+import { Filter, X, ChevronDown, Download } from "lucide-react";
 import { API_ENDPOINTS } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift, UserRole } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
-import { Filter, X, ChevronDown, Download } from "lucide-react";
 
-// Dynamic import for code splitting
+const PAGE_SIZE = 20;
+
 const EditShiftModal = React.lazy(() => import("./EditShiftModal"));
 
-// Memoized component to prevent unnecessary re-renders
-const PhotoLink = React.memo(({ url, icon, title }: { url?: string; icon: string; title: string }) => {
-  const photoUrl = getPhotoUrl(url);
-  if (!photoUrl) return null;
-  return (
-    <a
-      href={photoUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#0a192f] transition-colors"
-      title={title}
-    >
-      {icon}
-    </a>
-  );
-});
+const PhotoLink = React.memo(
+  ({
+    url,
+    icon,
+    title,
+  }: {
+    url?: string;
+    icon: string;
+    title: string;
+  }) => {
+    const photoUrl = getPhotoUrl(url);
+    if (!photoUrl) return null;
+
+    return (
+      <a
+        href={photoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex h-8 w-8 items-center justify-center text-slate-400 transition-colors hover:text-[#0a192f]"
+        title={title}
+      >
+        {icon}
+      </a>
+    );
+  }
+);
 
 PhotoLink.displayName = "PhotoLink";
+
+type ShiftListResponse = {
+  items: Shift[];
+  total: number;
+};
+
+const normalizeShiftResponse = (response: any): ShiftListResponse => {
+  if (response && typeof response === "object") {
+    if (Array.isArray(response.data)) {
+      return {
+        items: response.data,
+        total: response.total || response.count || response.data.length,
+      };
+    }
+
+    if (Array.isArray(response)) {
+      return {
+        items: response,
+        total: response.length,
+      };
+    }
+  }
+
+  if (Array.isArray(response)) {
+    return {
+      items: response,
+      total: response.length,
+    };
+  }
+
+  return { items: [], total: 0 };
+};
 
 const Shifts: React.FC = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -35,21 +78,15 @@ const Shifts: React.FC = () => {
   const [timezoneLoaded, setTimezoneLoaded] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  // Фильтры
   const [filters, setFilters] = useState({
     driver_id: "",
     truck_id: "",
     date: "",
   });
   const [showFilters, setShowFilters] = useState(false);
-
-  // Пагинация
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-
-  // Данные для фильтров
   const [drivers, setDrivers] = useState<any[]>([]);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [exporting, setExporting] = useState(false);
@@ -65,149 +102,218 @@ const Shifts: React.FC = () => {
       const response = await fetch(API_ENDPOINTS.REPORTS_EXCEL, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         alert((err as any).error || `Ошибка экспорта (${response.status})`);
         return;
       }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const cd = response.headers.get("Content-Disposition");
-      const match = cd?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-      a.download = match?.[1]?.replace(/['"]/g, "") || "logishift-shifts-report.xlsx";
-      document.body.appendChild(a);
-      a.click();
+      const link = document.createElement("a");
+      link.href = url;
+
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const match = contentDisposition?.match(
+        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+      );
+      link.download =
+        match?.[1]?.replace(/['"]/g, "") || "logishift-shifts-report.xlsx";
+
+      document.body.appendChild(link);
+      link.click();
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (e: any) {
-      alert(e.message || "Не удалось скачать отчёт");
+      document.body.removeChild(link);
+    } catch (error: any) {
+      alert(error.message || "Не удалось скачать отчет");
     } finally {
       setExporting(false);
     }
   };
 
-  // Загрузка данных для фильтров
   useEffect(() => {
     const fetchFilterData = async () => {
-      if (isAdmin) {
-        try {
-          const [driversRes, trucksRes] = await Promise.all([
-            api.get(API_ENDPOINTS.DRIVERS),
-            api.get(API_ENDPOINTS.TRUCKS),
-          ]);
-          setDrivers(Array.isArray(driversRes) ? driversRes : []);
-          setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
-        } catch (err) {
-          console.error("Failed to load filter data:", err);
-        }
+      if (!isAdmin) return;
+
+      try {
+        const [driversRes, trucksRes] = await Promise.all([
+          api.get(API_ENDPOINTS.DRIVERS),
+          api.get(API_ENDPOINTS.TRUCKS),
+        ]);
+
+        setDrivers(Array.isArray(driversRes) ? driversRes : []);
+        setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
+      } catch (error) {
+        console.error("Failed to load filter data:", error);
       }
     };
-    fetchFilterData();
+
+    void fetchFilterData();
   }, [isAdmin]);
 
-  // Построение Query String параметров
-  const buildQueryString = useCallback(() => {
-    const params = new URLSearchParams();
-    params.append("page", page.toString());
-    params.append("limit", "20");
+  const buildQueryString = useCallback(
+    (pageNumber: number) => {
+      const params = new URLSearchParams();
+      params.append("page", pageNumber.toString());
+      params.append("limit", PAGE_SIZE.toString());
 
-    if (filters.driver_id) params.append("driver_id", filters.driver_id);
-    if (filters.truck_id) params.append("truck_id", filters.truck_id);
-    if (filters.date) params.append("date", filters.date);
+      if (filters.driver_id) params.append("driver_id", filters.driver_id);
+      if (filters.truck_id) params.append("truck_id", filters.truck_id);
+      if (filters.date) params.append("date", filters.date);
 
-    return params.toString();
-  }, [page, filters]);
+      return params.toString();
+    },
+    [filters]
+  );
 
-  const fetchShifts = useCallback(async (loadMore = false, showLoader = true) => {
-    try {
-      if (loadMore) {
-        setLoadingMore(true);
-      } else if (showLoader) {
-        setLoading(true);
-      }
+  const updateShiftSnapshot = useCallback((items: Shift[], total: number) => {
+    setShifts(items);
+    setHasMore(items.length < total);
+    setTotalCount(total);
+    setEditingShift((current) => {
+      if (!current) return current;
+      return items.find((item) => item.id === current.id) || current;
+    });
+  }, []);
 
-      const queryString = buildQueryString();
-      const url = `${API_ENDPOINTS.SHIFTS}?${queryString}`;
-      const response = await api.get(url);
+  const requestShiftPage = useCallback(
+    async (pageNumber: number) => {
+      const queryString = buildQueryString(pageNumber);
+      const response = await api.get(`${API_ENDPOINTS.SHIFTS}?${queryString}`);
+      return normalizeShiftResponse(response);
+    },
+    [buildQueryString]
+  );
 
-      // API может вернуть данные в разных форматах
-      let newData = [];
-      let totalCountValue = 0;
-
-      if (response && typeof response === 'object') {
-        if (response.data && Array.isArray(response.data)) {
-          newData = response.data;
-          totalCountValue = response.total || response.count || newData.length;
-        } else if (Array.isArray(response)) {
-          newData = response;
-          totalCountValue = newData.length;
+  const fetchShifts = useCallback(
+    async ({
+      pageNumber = page,
+      append = false,
+      showLoader = true,
+      preserveVisiblePages = false,
+    }: {
+      pageNumber?: number;
+      append?: boolean;
+      showLoader?: boolean;
+      preserveVisiblePages?: boolean;
+    } = {}) => {
+      try {
+        if (append) {
+          setLoadingMore(true);
+        } else if (showLoader) {
+          setLoading(true);
         }
-      } else if (Array.isArray(response)) {
-        newData = response;
-        totalCountValue = newData.length;
-      }
 
-      if (loadMore) {
-        setShifts((prev) => {
-          const updated = [...prev, ...newData];
-          setHasMore(newData.length === 20 && updated.length < totalCountValue);
-          return updated;
-        });
-      } else {
-        setShifts(newData);
-        setHasMore(newData.length === 20 && newData.length < totalCountValue);
-        setEditingShift((current) => {
-          if (!current) return current;
-          return (newData as Shift[]).find((item) => item.id === current.id) || current;
-        });
-      }
+        if (preserveVisiblePages && pageNumber > 1) {
+          const pageRequests = Array.from(
+            { length: pageNumber },
+            (_, index) => requestShiftPage(index + 1)
+          );
+          const pages = await Promise.all(pageRequests);
+          const mergedItems = pages.flatMap((pageData) => pageData.items);
+          const total = pages.at(-1)?.total || mergedItems.length;
+          updateShiftSnapshot(mergedItems, total);
+          return;
+        }
 
-      setTotalCount(totalCountValue);
-    } catch (err) {
-      console.error("Shifts fetch error:", err);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [buildQueryString]); // Removed shifts.length dependency
+        const { items, total } = await requestShiftPage(pageNumber);
+
+        if (append) {
+          setShifts((prev) => {
+            const existingIds = new Set(prev.map((item) => item.id));
+            const appendedItems = items.filter(
+              (item) => !existingIds.has(item.id)
+            );
+            const updated = [...prev, ...appendedItems];
+            setHasMore(updated.length < total);
+            return updated;
+          });
+          setTotalCount(total);
+        } else {
+          updateShiftSnapshot(items, total);
+        }
+      } catch (error) {
+        console.error("Shifts fetch error:", error);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [page, requestShiftPage, updateShiftSnapshot]
+  );
 
   useEffect(() => {
-    fetchShifts();
-  }, [filters, page]);
+    void fetchShifts({
+      pageNumber: page,
+      append: page > 1,
+      showLoader: page === 1,
+    });
+  }, [fetchShifts, page]);
+
+  const refreshVisibleShifts = useCallback(() => {
+    if (!isAdmin || document.visibilityState !== "visible" || loadingMore) {
+      return;
+    }
+
+    void fetchShifts({
+      pageNumber: page,
+      showLoader: false,
+      preserveVisiblePages: true,
+    });
+  }, [fetchShifts, isAdmin, loadingMore, page]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        refreshVisibleShifts();
+      }
+    };
+
+    const intervalId = window.setInterval(refreshVisibleShifts, 15000);
+
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+    };
+  }, [isAdmin, refreshVisibleShifts]);
 
   useEffect(() => {
     const fetchTimezone = async () => {
       try {
         const data = await api.get(API_ENDPOINTS.TENANT_SETTINGS);
         setTimezone(data.timezone || "Europe/Moscow");
-      } catch (err) {
-        console.error("Failed to fetch timezone:", err);
+      } catch (error) {
+        console.error("Failed to fetch timezone:", error);
         setTimezone("Europe/Moscow");
       } finally {
         setTimezoneLoaded(true);
       }
     };
-    fetchTimezone();
+
+    void fetchTimezone();
   }, []);
 
   const displayShifts = isAdmin
     ? shifts
-    : shifts.filter((s) => s.driver_name === user?.full_name);
+    : shifts.filter((shift) => shift.driver_name === user?.full_name);
 
-  // Сброс фильтров
   const resetFilters = () => {
     setFilters({ driver_id: "", truck_id: "", date: "" });
     setPage(1);
     setShifts([]);
   };
 
-  // Изменили тип на any и добавили .toLowerCase() для надежности
   const getStatusStyle = (status: any) => {
-    const s = (status || "").toLowerCase();
+    const normalizedStatus = (status || "").toLowerCase();
 
-    switch (s) {
+    switch (normalizedStatus) {
       case "active":
         return "bg-indigo-50 text-[#0a192f] border-indigo-100";
       case "pending_invoice":
@@ -221,115 +327,124 @@ const Shifts: React.FC = () => {
     }
   };
 
-  // Проверка валидности даты
   const isValidDate = (dateString: string | null | undefined): boolean => {
     if (!dateString) return false;
     const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date.getTime());
+    return date instanceof Date && !Number.isNaN(date.getTime());
   };
 
-  // Format time display based on shift status
-  const formatShiftTime = (s: Shift) => {
-    const status = (s.status || "").toLowerCase();
+  const formatShiftTime = (shift: Shift) => {
+    const status = (shift.status || "").toLowerCase();
 
-    // For finished shifts, show start and end time range with date
     if (status === "finished" || status === "completed") {
-      if (isValidDate(s.start_time) && isValidDate(s.end_time)) {
-        const startDate = formatForDisplay(s.start_time!, timezone, "DD.MM.YYYY");
-        const startTime = formatForDisplay(s.start_time!, timezone, "HH:mm");
-        const endDate = formatForDisplay(s.end_time!, timezone, "DD.MM.YYYY");
-        const endTime = formatForDisplay(s.end_time!, timezone, "HH:mm");
+      if (isValidDate(shift.start_time) && isValidDate(shift.end_time)) {
+        const startDate = formatForDisplay(
+          shift.start_time!,
+          timezone,
+          "DD.MM.YYYY"
+        );
+        const startTime = formatForDisplay(shift.start_time!, timezone, "HH:mm");
+        const endDate = formatForDisplay(shift.end_time!, timezone, "DD.MM.YYYY");
+        const endTime = formatForDisplay(shift.end_time!, timezone, "HH:mm");
 
-        // Check if start and end are on the same day
         if (startDate === endDate) {
-          // Same day: show date once on the left
           return `${startDate} ${startTime} - ${endTime}`;
-        } else {
-          // Different days: show both dates
-          return `${startDate} ${startTime} - ${endDate} ${endTime}`;
         }
+
+        return `${startDate} ${startTime} - ${endDate} ${endTime}`;
       }
     }
 
-    // For active shifts, show start time with date
-    if (status === "active" && isValidDate(s.start_time)) {
-      const startDate = formatForDisplay(s.start_time!, timezone, "DD.MM.YYYY");
-      const startTime = formatForDisplay(s.start_time!, timezone, "HH:mm");
-      return `${startDate} ${startTime} —`;
+    if (status === "active" && isValidDate(shift.start_time)) {
+      const startDate = formatForDisplay(
+        shift.start_time!,
+        timezone,
+        "DD.MM.YYYY"
+      );
+      const startTime = formatForDisplay(shift.start_time!, timezone, "HH:mm");
+      return `${startDate} ${startTime} -`;
     }
 
-    // For other shifts, show created_at time with date
-    if (isValidDate(s.created_at)) {
-      const date = new Date(s.created_at!);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
+    if (isValidDate(shift.created_at)) {
+      const date = new Date(shift.created_at!);
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
       return `${day}.${month}.${year} ${hours}:${minutes}`;
     }
 
-    return "—";
+    return "-";
   };
 
-  // Форматирование пробега
   const formatMileage = (mileage: number | null | undefined): string => {
     if (mileage === null || mileage === undefined || mileage === 0) {
-      return "—";
+      return "-";
     }
-    return mileage.toLocaleString('ru-RU');
+
+    return mileage.toLocaleString("ru-RU");
   };
 
   const loadMore = () => {
     setPage((prev) => prev + 1);
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="p-20 text-center animate-pulse font-semibold text-[#0a192f] uppercase tracking-widest text-[10px]">
+      <div className="animate-pulse p-20 text-center text-[10px] font-semibold uppercase tracking-widest text-[#0a192f]">
         Загрузка истории...
       </div>
     );
+  }
 
-  const hasActiveFilters = filters.driver_id || filters.truck_id || filters.date;
+  const hasActiveFilters =
+    filters.driver_id || filters.truck_id || filters.date;
 
   return (
     <div className="space-y-4">
-      {/* Панель фильтров */}
       {isAdmin && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-50 p-4">
+        <div className="rounded-lg border border-slate-50 bg-white p-4 shadow-sm">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-[#0a192f] transition-colors"
+            className="flex items-center gap-2 text-sm font-semibold text-slate-700 transition-colors hover:text-[#0a192f]"
           >
             <Filter size={16} />
             Фильтры
             {hasActiveFilters && (
-              <span className="px-2 py-0.5 bg-indigo-100 text-[#0a192f] text-xs rounded-full">
-                {[filters.driver_id, filters.truck_id, filters.date].filter(Boolean).length}
+              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-[#0a192f]">
+                {
+                  [filters.driver_id, filters.truck_id, filters.date].filter(
+                    Boolean
+                  ).length
+                }
               </span>
             )}
             <ChevronDown
               size={16}
-              className={`transition-transform ${showFilters ? "rotate-180" : ""}`}
+              className={`transition-transform ${
+                showFilters ? "rotate-180" : ""
+              }`}
             />
           </button>
 
           {showFilters && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Фильтр по водителю */}
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase text-slate-500">
                   Водитель
                 </label>
                 <select
                   value={filters.driver_id}
-                  onChange={(e) => {
-                    setFilters(prev => ({ ...prev, driver_id: e.target.value }));
+                  onChange={(event) => {
+                    setFilters((prev) => ({
+                      ...prev,
+                      driver_id: event.target.value,
+                    }));
                     setPage(1);
                     setShifts([]);
                   }}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm bg-white"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 >
                   <option value="">Все водители</option>
                   {drivers.map((driver) => (
@@ -340,19 +455,21 @@ const Shifts: React.FC = () => {
                 </select>
               </div>
 
-              {/* Фильтр по машине */}
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase text-slate-500">
                   Машина
                 </label>
                 <select
                   value={filters.truck_id}
-                  onChange={(e) => {
-                    setFilters(prev => ({ ...prev, truck_id: e.target.value }));
+                  onChange={(event) => {
+                    setFilters((prev) => ({
+                      ...prev,
+                      truck_id: event.target.value,
+                    }));
                     setPage(1);
                     setShifts([]);
                   }}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm bg-white"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 >
                   <option value="">Все машины</option>
                   {trucks.map((truck) => (
@@ -363,29 +480,30 @@ const Shifts: React.FC = () => {
                 </select>
               </div>
 
-              {/* Фильтр по дате */}
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase text-slate-500">
                   Дата
                 </label>
                 <input
                   type="date"
                   value={filters.date}
-                  onChange={(e) => {
-                    setFilters(prev => ({ ...prev, date: e.target.value }));
+                  onChange={(event) => {
+                    setFilters((prev) => ({
+                      ...prev,
+                      date: event.target.value,
+                    }));
                     setPage(1);
                     setShifts([]);
                   }}
-                  className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm"
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
               </div>
 
-              {/* Кнопка сброса */}
               {hasActiveFilters && (
-                <div className="md:col-span-3 flex justify-end">
+                <div className="flex justify-end md:col-span-3">
                   <button
                     onClick={resetFilters}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:text-red-600 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 transition-colors hover:text-red-600"
                   >
                     <X size={16} />
                     Сбросить фильтры
@@ -397,22 +515,24 @@ const Shifts: React.FC = () => {
         </div>
       )}
 
-      {/* Таблица смен */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-50 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+      <div className="overflow-hidden rounded-lg border border-slate-50 bg-white shadow-sm">
+        <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-50 px-6 py-4 md:flex-row md:items-center">
           <div>
             <h2 className="text-xl font-semibold text-[#1B254B]">
               {isAdmin ? "Реестр всех смен" : "Мои записи"}
             </h2>
-            <p className="text-slate-400 text-[10px] font-medium mt-0.5">
-              {totalCount > 0 ? `Показано: ${displayShifts.length} из ${totalCount}` : `Отображено: ${displayShifts.length}`}
+            <p className="mt-0.5 text-[10px] font-medium text-slate-400">
+              {totalCount > 0
+                ? `Показано: ${displayShifts.length} из ${totalCount}`
+                : `Отображено: ${displayShifts.length}`}
             </p>
           </div>
+
           {isAdmin && (
             <button
               onClick={handleExcelExport}
               disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download size={15} />
               {exporting ? "Загрузка..." : "Выгрузить в Excel"}
@@ -421,73 +541,87 @@ const Shifts: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-slate-50/50 text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+              <tr className="bg-slate-50/50 text-[9px] font-semibold uppercase tracking-wider text-slate-400">
                 <th className="px-4 py-2">ID смены</th>
-                <th className="px-4 py-2">{isAdmin ? "Водитель" : "Машина"}</th>
-                <th className="px-4 py-2 hidden md:table-cell">Объект</th>
-                <th className="px-4 py-2 hidden md:table-cell">Время</th>
-                <th className="px-4 py-2 hidden md:table-cell">Пробег</th>
+                <th className="px-4 py-2">
+                  {isAdmin ? "Водитель" : "Машина"}
+                </th>
+                <th className="hidden px-4 py-2 md:table-cell">Объект</th>
+                <th className="hidden px-4 py-2 md:table-cell">Время</th>
+                <th className="hidden px-4 py-2 md:table-cell">Пробег</th>
                 <th className="px-4 py-2">Статус</th>
                 <th className="px-4 py-2 text-right">Детали</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-xs">
               {displayShifts.length > 0 ? (
-                displayShifts.map((s) => (
+                displayShifts.map((shift) => (
                   <tr
-                    key={s.id}
-                    className="hover:bg-indigo-50/10 transition-colors"
+                    key={shift.id}
+                    className="transition-colors hover:bg-indigo-50/10"
                   >
                     <td className="px-4 py-2">
-                      <span className="text-xs font-semibold text-slate-600 font-mono">
-                        #{s.id}
+                      <span className="font-mono text-xs font-semibold text-slate-600">
+                        #{shift.id}
                       </span>
                     </td>
                     <td className="px-4 py-2">
-                      <p className="font-semibold text-[#1B254B] text-xs">
-                        {isAdmin ? s.driver_name : s.truck_name}
+                      <p className="text-xs font-semibold text-[#1B254B]">
+                        {isAdmin ? shift.driver_name : shift.truck_name}
                       </p>
                       {isAdmin && (
                         <p className="text-[10px] font-semibold text-slate-400">
-                          {s.truck_name}
+                          {shift.truck_name}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-2 font-medium text-slate-600 hidden md:table-cell text-xs">
-                      {(s as any).site?.name || s.site_name || "—"}
+                    <td className="hidden px-4 py-2 text-xs font-medium text-slate-600 md:table-cell">
+                      {(shift as any).site?.name || shift.site_name || "-"}
                     </td>
-                    <td className="px-4 py-2 text-[11px] font-mono text-slate-500 hidden md:table-cell">
-                      {formatShiftTime(s)}
+                    <td className="hidden px-4 py-2 font-mono text-[11px] text-slate-500 md:table-cell">
+                      {formatShiftTime(shift)}
                     </td>
-                    <td className="px-4 py-2 text-[11px] font-mono text-slate-500 hidden md:table-cell">
-                      {formatMileage((s as any).mileage)}
+                    <td className="hidden px-4 py-2 font-mono text-[11px] text-slate-500 md:table-cell">
+                      {formatMileage((shift as any).mileage)}
                     </td>
                     <td className="px-4 py-2">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase border ${getStatusStyle(
-                          s.status
+                        className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase ${getStatusStyle(
+                          shift.status
                         )}`}
                       >
-                        {s.status}
+                        {shift.status}
                       </span>
                     </td>
                     <td className="px-4 py-2 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <PhotoLink url={(s as any).photo_start_url} icon="🏁" title="Одометр (старт)" />
-                        <PhotoLink url={(s as any).photo_end_url} icon="🏁" title="Одометр (финиш)" />
-                        <PhotoLink url={(s as any).photo_invoice_url} icon="📄" title="Накладная" />
+                        <PhotoLink
+                          url={(shift as any).photo_start_url}
+                          icon="S"
+                          title="Одометр (старт)"
+                        />
+                        <PhotoLink
+                          url={(shift as any).photo_end_url}
+                          icon="F"
+                          title="Одометр (финиш)"
+                        />
+                        <PhotoLink
+                          url={(shift as any).photo_invoice_url}
+                          icon="I"
+                          title="Накладная"
+                        />
                         {isAdmin && (
                           <button
                             onClick={() => {
-                              setEditingShift(s);
+                              setEditingShift(shift);
                               setIsEditModalOpen(true);
                             }}
-                            className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-[#0a192f] transition-colors text-xs"
+                            className="flex h-7 w-7 items-center justify-center text-xs text-slate-400 transition-colors hover:text-[#0a192f]"
                             title="Редактировать"
                           >
-                            ✏️
+                            Edit
                           </button>
                         )}
                       </div>
@@ -496,11 +630,10 @@ const Shifts: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="py-12 text-center text-slate-300 italic"
-                  >
-                    {hasActiveFilters ? "Нет данных, соответствующих фильтрам" : "Данных нет"}
+                  <td colSpan={7} className="py-12 text-center italic text-slate-300">
+                    {hasActiveFilters
+                      ? "Нет данных, соответствующих фильтрам"
+                      : "Данных нет"}
                   </td>
                 </tr>
               )}
@@ -508,13 +641,12 @@ const Shifts: React.FC = () => {
           </table>
         </div>
 
-        {/* Кнопка "Загрузить еще" */}
         {hasMore && !loading && (
-          <div className="p-4 border-t border-slate-50 flex justify-center">
+          <div className="flex justify-center border-t border-slate-50 p-4">
             <button
               onClick={loadMore}
               disabled={loadingMore}
-              className="px-6 py-2 bg-indigo-50 text-[#0a192f] font-semibold text-sm rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="flex items-center gap-2 rounded-lg bg-indigo-50 px-6 py-2 text-sm font-semibold text-[#0a192f] transition-colors hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loadingMore ? "Загрузка..." : "Загрузить еще"}
               {totalCount > 0 && ` (${displayShifts.length}/${totalCount})`}
@@ -524,7 +656,13 @@ const Shifts: React.FC = () => {
       </div>
 
       {isEditModalOpen && editingShift && (
-        <Suspense fallback={<div className="p-8 text-center text-slate-400 text-sm">Загрузка...</div>}>
+        <Suspense
+          fallback={
+            <div className="p-8 text-center text-sm text-slate-400">
+              Загрузка...
+            </div>
+          }
+        >
           <EditShiftModal
             isOpen={isEditModalOpen}
             onClose={() => {
@@ -533,13 +671,24 @@ const Shifts: React.FC = () => {
             }}
             onSave={(updatedShift, options) => {
               if (updatedShift) {
-                setEditingShift((current) => current ? { ...current, ...updatedShift } : current);
-                setShifts((prev) => prev.map((item) =>
-                  item.id === updatedShift.id ? { ...item, ...updatedShift } : item
-                ));
+                setEditingShift((current) =>
+                  current ? { ...current, ...updatedShift } : current
+                );
+                setShifts((prev) =>
+                  prev.map((item) =>
+                    item.id === updatedShift.id
+                      ? { ...item, ...updatedShift }
+                      : item
+                  )
+                );
               }
+
               if (options?.refreshList !== false) {
-                fetchShifts(false, false);
+                void fetchShifts({
+                  pageNumber: page,
+                  showLoader: false,
+                  preserveVisiblePages: true,
+                });
               }
             }}
             shift={editingShift}
