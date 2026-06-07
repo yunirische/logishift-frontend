@@ -1746,9 +1746,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="relative flex-1 px-6 py-3 rounded-lg border border-slate-200 text-transparent font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed after:absolute after:inset-0 after:flex after:items-center after:justify-center after:text-slate-600 after:content-['Закрыть']"
+              className="flex-1 px-6 py-3 rounded-lg border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Отмена
+              Закрыть
             </button>
             <button
               type="submit"

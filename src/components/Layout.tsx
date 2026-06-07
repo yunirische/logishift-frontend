@@ -46,11 +46,11 @@ const Layout: React.FC<LayoutProps> = ({
       id: "dashboard",
       label: isDemoDriverMode ? "Приложение водителя" : "Главная",
       icon: Home,
-      roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
+      roles: [UserRole.ADMIN, UserRole.FOREMAN],
     },
     {
       id: "my-shifts",
-      label: "Мой рабочий день",
+      label: "Моя смена",
       icon: Clock,
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
     },

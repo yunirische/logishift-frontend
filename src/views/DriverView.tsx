@@ -372,7 +372,7 @@ export const DriverView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 pb-10">
+    <div className="min-h-screen bg-slate-50 p-4 pb-28">
       <input
         type="file"
         ref={fileInputRef}
@@ -402,7 +402,7 @@ export const DriverView = () => {
                     : "bg-emerald-500 animate-pulse"
                 }`}
               />
-              {!hasActiveShift ? "Вне смены" : "В процессе"}
+              {!hasActiveShift ? "Не на смене" : "На смене"}
             </span>
           </div>
         </div>
@@ -576,16 +576,6 @@ export const DriverView = () => {
               </Button>
             </Card>
           )}
-
-          <Button
-            onClick={handleStart}
-            disabled={!selectedTruck || !selectedSite}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-lg font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-            isLoading={loading}
-          >
-            <Play size={20} fill="currentColor" />
-            ОТКРЫТЬ СМЕНУ
-          </Button>
         </div>
       ) : (
         <div className="space-y-5">
@@ -648,14 +638,6 @@ export const DriverView = () => {
                   </div>
                 </div>
               </div>
-              <Button
-                onClick={handleEnd}
-                className="w-full bg-red-500 py-6 text-lg font-bold text-white shadow-xl shadow-red-100 transition-all hover:bg-red-600 active:scale-[0.98]"
-                isLoading={loading}
-              >
-                <Square size={20} fill="currentColor" className="mr-3" />
-                ЗАВЕРШИТЬ РАБОТУ
-              </Button>
             </div>
           ) : [
               "awaiting_odo_start",
@@ -677,14 +659,6 @@ export const DriverView = () => {
                     "Сфотографируйте накладную (ТТН)"}
                 </p>
               </div>
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex w-full flex-col items-center gap-2 bg-orange-500 py-10 text-xl font-bold text-white shadow-2xl shadow-orange-200 transition-all hover:bg-orange-600 active:scale-[0.98]"
-                isLoading={loading}
-              >
-                <Camera size={36} />
-                ОТКРЫТЬ КАМЕРУ
-              </Button>
               <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-500 shadow-sm">
                 <AlertCircle
                   size={16}
@@ -710,23 +684,57 @@ export const DriverView = () => {
                   Все документы приняты. Хорошей работы!
                 </p>
               </div>
-              <Button
-                onClick={() => {
-                  setActiveShift(null);
-                  localStorage.removeItem("logishift_active_shift");
-                }}
-                className="flex w-full items-center justify-center gap-2 bg-[#0a192f] py-3 text-lg font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
-              >
-                <Play size={20} fill="currentColor" />
-                Открыть новую смену
-              </Button>
             </div>
           )}
         </div>
       )}
 
+      {/* Sticky primary action bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
+        {!activeShift ? (
+          <Button
+            onClick={handleStart}
+            disabled={!selectedTruck || !selectedSite}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            isLoading={loading}
+          >
+            <Play size={18} fill="currentColor" />
+            Начать смену
+          </Button>
+        ) : workflowState === "active" ? (
+          <Button
+            onClick={handleEnd}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
+            isLoading={loading}
+          >
+            <Square size={18} fill="currentColor" />
+            Завершить смену
+          </Button>
+        ) : ["awaiting_odo_start", "awaiting_odo_end", "awaiting_invoice"].includes(workflowState) ? (
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 py-3 text-base font-bold text-white shadow-lg shadow-orange-200 transition-all hover:bg-orange-600 active:scale-[0.98]"
+            isLoading={loading}
+          >
+            <Camera size={18} />
+            Открыть камеру
+          </Button>
+        ) : (
+          <Button
+            onClick={() => {
+              setActiveShift(null);
+              localStorage.removeItem("logishift_active_shift");
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
+          >
+            <Play size={18} fill="currentColor" />
+            Открыть новую смену
+          </Button>
+        )}
+      </div>
+
       {toast.show && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-20 left-1/2 z-50 -translate-x-1/2 transform">
+        <div className="animate-in fade-in slide-in-from-top-2 fixed left-1/2 top-4 z-50 -translate-x-1/2 transform">
           <div
             className={`flex items-center gap-2 rounded-lg px-6 py-3 shadow-lg ${
               toast.type === "error"
