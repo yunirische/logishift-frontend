@@ -68,12 +68,16 @@ export const clearAuth = () => {
   localStorage.removeItem(USER_KEY);
 };
 
+export const normalizeLoginEmail = (login: string) => login.trim().toLowerCase();
+
 export const loginUser = async (login: string, password: string) => {
+  const normalizedLogin = normalizeLoginEmail(login);
+
   try {
     const response = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ login, password }),
+      body: JSON.stringify({ login: normalizedLogin, password }),
     });
 
     if (!response.ok) {

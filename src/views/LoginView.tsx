@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { normalizeLoginEmail } from '../services/api';
 import { Button, Input, Card } from '../components/ui';
 import { User, Lock, AlertCircle } from 'lucide-react';
 import { API_ENDPOINTS } from '../constants';
@@ -15,12 +16,16 @@ export const LoginView = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    const normalizedForm = {
+      ...form,
+      login: normalizeLoginEmail(form.login),
+    };
     
     try {
       const res = await fetch(API_ENDPOINTS.AUTH_LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(normalizedForm),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Ошибка авторизации');
