@@ -18,7 +18,13 @@ import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
 import { DriverState } from "../types";
 
-export const DriverView = () => {
+interface DriverViewProps {
+  focusHistory?: boolean;
+}
+
+export const DriverView: React.FC<DriverViewProps> = ({
+  focusHistory = false,
+}) => {
   const { user, logout, refreshUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -36,9 +42,26 @@ export const DriverView = () => {
   const [selectedSite, setSelectedSite] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingHistoryOpenRef = useRef(false);
   const isDemoMode = isDemoTenantId(user?.tenant_id);
   const hasActiveShift = Boolean(activeShift);
   const workflowState = String(activeShift?.status || "").toLowerCase();
+
+  useEffect(() => {
+    if (focusHistory) {
+      pendingHistoryOpenRef.current = true;
+    } else {
+      pendingHistoryOpenRef.current = false;
+      setShowHistoryModal(false);
+    }
+  }, [focusHistory]);
+
+  useEffect(() => {
+    if (pendingHistoryOpenRef.current && !loading) {
+      setShowHistoryModal(true);
+      pendingHistoryOpenRef.current = false;
+    }
+  }, [loading]);
 
   const loadSelectionData = useCallback(async () => {
     const [trucksRes, sitesRes, historyRes] = await Promise.all([

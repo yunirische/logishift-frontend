@@ -36,6 +36,7 @@ const AppContent: React.FC = () => {
 
   // Check if user is in demo mode
   const isDemoMode = isDemoTenantId(user?.tenant_id);
+  const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
 
   // Check if on register page
   const isRegisterPage = window.location.pathname === '/register';
@@ -155,14 +156,18 @@ const AppContent: React.FC = () => {
 
   if (!isAuthenticated) return <Login />;
 
-  // If demo mode and persona is driver, show DriverView instead of admin interface
-  if (isDemoMode && demoPersona === 'driver') {
+  if (isDemoDriverMode) {
     return (
       <ErrorBoundary>
         <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
-          <Layout activeTab="driver" setActiveTab={() => {}} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
+          <Layout
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            demoPersona={demoPersona}
+            setDemoPersona={setDemoPersona}
+          >
             <ErrorBoundary>
-              <DriverView />
+              <DriverView focusHistory={activeTab === "my-shifts"} />
             </ErrorBoundary>
           </Layout>
         </div>

@@ -54,7 +54,7 @@ const Layout: React.FC<LayoutProps> = ({
     },
     {
       id: "my-shifts",
-      label: "Моя смена",
+      label: "Мои смены",
       icon: Clock,
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
     },
@@ -97,7 +97,7 @@ const Layout: React.FC<LayoutProps> = ({
 
   const handleLogout = () => {
     if (confirm("Завершить сессию и выйти из системы?")) {
-      // 1. Очищаем токен через API сервис
+      // 1. Очистка токена через API сервис
       api.clearAuth();
       // 2. Полная зачистка хранилищ браузера
       localStorage.clear();
@@ -197,7 +197,12 @@ const Layout: React.FC<LayoutProps> = ({
             </p>
             <div className="space-y-1">
               {mainItems
-                .filter(item => !isDemoDriverMode || item.id === 'dashboard')
+                .filter(
+                  (item) =>
+                    !isDemoDriverMode ||
+                    item.id === "dashboard" ||
+                    item.id === "my-shifts"
+                )
                 .map(renderButton)}
             </div>
           </div>
@@ -258,7 +263,11 @@ const Layout: React.FC<LayoutProps> = ({
             </button>
             <div>
               <h2 className="text-xl font-semibold text-[#1B254B] capitalize tracking-tight">
-                {isDemoMode && demoPersona === 'driver' ? 'Водитель' : activeTab}
+                {isDemoMode && demoPersona === 'driver'
+                  ? activeTab === 'my-shifts'
+                    ? 'Мои смены'
+                    : 'Водитель'
+                  : activeTab}
                 {isDemoMode && demoPersona === 'driver' && (
                   <span className="ml-2 px-2 py-0.5 bg-amber-500 text-slate-900 text-[10px] font-bold uppercase rounded">
                     DEMO
