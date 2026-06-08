@@ -1,6 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getDemoAppUrl, isDemoHostname, isProductionAppHostname } from '../config/demo';
+import {
+  getDemoAppUrl,
+  isDemoHostname,
+  isProductionAppHostname,
+} from '../config/demo';
 import { loginUser } from '../services/api';
 
 const Login: React.FC = () => {
@@ -10,6 +14,7 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const { login } = useAuth();
+  const hasTriggeredAutoDemoLogin = useRef(false);
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   const shouldShowDirectDemoLogin =
     isDemoHostname(hostname) || !isProductionAppHostname(hostname);
@@ -83,6 +88,19 @@ const Login: React.FC = () => {
       setIsDemoLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (
+      hasTriggeredAutoDemoLogin.current ||
+      typeof window === 'undefined' ||
+      !isDemoHostname(window.location.hostname)
+    ) {
+      return;
+    }
+
+    hasTriggeredAutoDemoLogin.current = true;
+    void handleDemoLogin();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
