@@ -19,6 +19,9 @@ import DemoBanner from './DemoBanner';
 // Demo persona type
 type DemoPersona = 'admin' | 'driver';
 
+const DEMO_HOSTNAME = 'demo.kontrolsmen.ru';
+const DEMO_TENANT_ID = 999;
+
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
@@ -37,7 +40,11 @@ const Layout: React.FC<LayoutProps> = ({
   const user = api.getUserInfo();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
-  const isDemoMode = user?.tenant_id === 999;
+  const tenantId = user?.tenant_id;
+  const isDemoMode = tenantId === DEMO_TENANT_ID || String(tenantId) === String(DEMO_TENANT_ID);
+  const isDemoHost =
+    typeof window !== 'undefined' && window.location.hostname === DEMO_HOSTNAME;
+  const shouldShowDemoBanner = isDemoHost || isDemoMode;
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -279,7 +286,7 @@ const Layout: React.FC<LayoutProps> = ({
         </header>
 
         <div className="flex-1 p-6 lg:p-10 overflow-x-hidden">
-          {isDemoMode && setDemoPersona && (
+          {shouldShowDemoBanner && setDemoPersona && (
             <DemoBanner demoPersona={demoPersona} setDemoPersona={setDemoPersona} />
           )}
           {children}
