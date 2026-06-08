@@ -12,7 +12,13 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import ShiftHistoryModal from "../components/ShiftHistoryModal";
 import { Button, Card } from "../components/ui";
-import { isDemoTenantId } from "../config/demo";
+import {
+  DEMO_FALLBACK_PERSONA,
+  DemoDriverPersona,
+  demoActiveShiftKey,
+  isDemoTenantId,
+  pickDemoDriverPersona,
+} from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
@@ -44,6 +50,16 @@ export const DriverView: React.FC<DriverViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingHistoryOpenRef = useRef(false);
   const isDemoMode = isDemoTenantId(user?.tenant_id);
+  // Demo-driver mode: substitute persona at the view layer only.
+  // AuthContext.user is never mutated.
+  const [demoPersona, setDemoPersona] = useState<DemoDriverPersona | null>(null);
+  const isDemoDriverMode = isDemoMode && user?.role === "admin";
+  const effectiveDriverId: number | null = isDemoDriverMode
+    ? demoPersona?.id ?? null
+    : user?.id ?? null;
+  const effectiveDriverName: string = isDemoDriverMode
+    ? demoPersona?.full_name || DEMO_FALLBACK_PERSONA.full_name
+    : user?.full_name || "";
   const hasActiveShift = Boolean(activeShift);
   const workflowState = String(activeShift?.status || "").toLowerCase();
 
@@ -56,6 +72,31 @@ export const DriverView: React.FC<DriverViewProps> = ({
     }
   }, [focusHistory]);
 
+  // Demo-driver mode: fetch tenant users once and pick a driver persona.
+  // Falls back to a synthetic persona if /users fails or has no drivers.
+  useEffect(() => {
+    if (!isDemoDriverMode) {
+      if (demoPersona !== null) setDemoPersona(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const users = await api.get("/users");
+        if (cancelled) return;
+        const picked = pickDemoDriverPersona(users) || DEMO_FALLBACK_PERSONA;
+        setDemoPersona(picked);
+      } catch {
+        if (!cancelled) setDemoPersona(DEMO_FALLBACK_PERSONA);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // demoPersona intentionally excluded — we only want to fetch once per mode entry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemoDriverMode]);
+
   useEffect(() => {
     if (pendingHistoryOpenRef.current && !loading) {
       setShowHistoryModal(true);
@@ -64,18 +105,35 @@ export const DriverView: React.FC<DriverViewProps> = ({
   }, [loading]);
 
   const loadSelectionData = useCallback(async () => {
+    // History query targets the effective driver:
+    //  - production: the authenticated user
+    //  - demo-driver: the substituted demo persona (real seeded driver id)
+    // If demo persona has no real id (id=0), skip the history call and show
+    // an empty (synthetic) history rather than firing a query that would
+    // either fail validation or return unrelated data.
+    const historyDriverId = effectiveDriverId && effectiveDriverId > 0 ? effectiveDriverId : null;
+
     const [trucksRes, sitesRes, historyRes] = await Promise.all([
       api.get("/trucks"),
       api.get("/sites"),
-      api
-        .get(`/shifts?driver_id=${user?.id}&status=completed&limit=10`)
-        .catch(() => []),
+      historyDriverId != null
+        ? api
+            .get(`/shifts?driver_id=${historyDriverId}&status=finished&limit=20`)
+            .catch(() => [])
+        : Promise.resolve([]),
     ]);
 
     setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
     setSites(Array.isArray(sitesRes) ? sitesRes : []);
-    setShiftHistory(Array.isArray(historyRes) ? historyRes : []);
-  }, [user?.id]);
+    // /shifts returns { data, total, page, lastPage } for paginated; some
+    // callers return a bare array. Accept both shapes.
+    const historyArr = Array.isArray(historyRes)
+      ? historyRes
+      : Array.isArray((historyRes as any)?.data)
+      ? (historyRes as any).data
+      : [];
+    setShiftHistory(historyArr);
+  }, [effectiveDriverId]);
 
   const refreshCurrentShift = useCallback(
     async ({
@@ -93,7 +151,10 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
       try {
         if (isDemoTenantId(user.tenant_id)) {
-          const storedShift = localStorage.getItem("logishift_active_shift");
+          // Demo: active shift is stored client-side, keyed per persona so
+          // switching demo drivers does not leak state between personas.
+          const storageKey = demoActiveShiftKey(effectiveDriverId);
+          const storedShift = localStorage.getItem(storageKey);
 
           if (storedShift) {
             try {
@@ -102,20 +163,18 @@ export const DriverView: React.FC<DriverViewProps> = ({
               return parsedShift;
             } catch (error) {
               console.error("Failed to parse stored shift:", error);
-              localStorage.removeItem("logishift_active_shift");
+              localStorage.removeItem(storageKey);
             }
-          }
-
-          if (user.current_state === DriverState.IDLE) {
+          } else {
+            // No active mock shift for this persona — ensure UI shows picker.
             setActiveShift(null);
-            localStorage.removeItem("logishift_active_shift");
           }
 
           await loadSelectionData();
 
-          if (refreshAuthState) {
-            await refreshUser();
-          }
+          // Demo: do NOT call refreshUser() — it would re-fetch /users/me for
+          // the admin auth user and clobber any local UI state. Identity in
+          // demo-driver mode comes from `demoPersona`, not from AuthContext.
 
           return null;
         }
@@ -149,7 +208,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
         }
       }
     },
-    [loadSelectionData, refreshUser, user]
+    [effectiveDriverId, loadSelectionData, refreshUser, user]
   );
 
   useEffect(() => {
@@ -202,7 +261,9 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
         const mockShift = {
           id: 999,
-          status: "active",
+          status: selectedSiteData?.odometer_required
+            ? "awaiting_odo_start"
+            : "active",
           start_time: new Date().toISOString(),
           truck: selectedTruckData || {
             id: 1,
@@ -217,15 +278,12 @@ export const DriverView: React.FC<DriverViewProps> = ({
         };
 
         setActiveShift(mockShift);
-        localStorage.setItem("logishift_active_shift", JSON.stringify(mockShift));
-
-        const nextState = selectedSiteData?.odometer_required
-          ? DriverState.AWAITING_ODO_START
-          : DriverState.ACTIVE;
-
-        const updatedUser = { ...user, current_state: nextState };
-        localStorage.setItem("logishift_user_info", JSON.stringify(updatedUser));
-        await refreshUser();
+        localStorage.setItem(
+          demoActiveShiftKey(effectiveDriverId),
+          JSON.stringify(mockShift)
+        );
+        // Demo: do not mutate cached user / AuthContext. UI gating is driven
+        // by `activeShift.status`, not by `user.current_state`.
 
         setToast({
           show: true,
@@ -265,11 +323,11 @@ export const DriverView: React.FC<DriverViewProps> = ({
     try {
       if (isDemoTenantId(user?.tenant_id)) {
         setActiveShift(null);
-        localStorage.removeItem("logishift_active_shift");
-
-        const updatedUser = { ...user, current_state: DriverState.IDLE };
-        localStorage.setItem("logishift_user_info", JSON.stringify(updatedUser));
-        await refreshUser();
+        localStorage.removeItem(demoActiveShiftKey(effectiveDriverId));
+        // Demo: do not mutate cached user / AuthContext.
+        // Refresh selection data + history so the picker re-appears with
+        // up-to-date "last shifts" list for the persona.
+        await loadSelectionData();
 
         setToast({
           show: true,
@@ -333,31 +391,34 @@ export const DriverView: React.FC<DriverViewProps> = ({
       }
 
       if (isDemoTenantId(user?.tenant_id)) {
-        const currentState = user.current_state;
-        let nextState: DriverState;
-
-        switch (currentState) {
-          case DriverState.AWAITING_ODO_START:
-            nextState = DriverState.ACTIVE;
+        // Demo: advance the mock shift status locally based on its current
+        // status, mirroring the backend state machine (driven by activeShift,
+        // not by AuthContext.user).
+        const currentStatus = String(activeShift?.status || "").toLowerCase();
+        let nextStatus: string;
+        switch (currentStatus) {
+          case "awaiting_odo_start":
+            nextStatus = "active";
             break;
-          case DriverState.AWAITING_ODO_END:
-            nextState = DriverState.AWAITING_INVOICE;
+          case "awaiting_odo_end":
+            nextStatus = "awaiting_invoice";
             break;
-          case DriverState.AWAITING_INVOICE:
-            nextState = DriverState.IDLE;
+          case "awaiting_invoice":
+            nextStatus = "finished";
             break;
           default:
-            nextState = DriverState.ACTIVE;
+            nextStatus = "active";
         }
 
-        if (nextState === DriverState.IDLE) {
+        const storageKey = demoActiveShiftKey(effectiveDriverId);
+        if (nextStatus === "finished") {
           setActiveShift(null);
-          localStorage.removeItem("logishift_active_shift");
+          localStorage.removeItem(storageKey);
+        } else if (activeShift) {
+          const advanced = { ...activeShift, status: nextStatus };
+          setActiveShift(advanced);
+          localStorage.setItem(storageKey, JSON.stringify(advanced));
         }
-
-        const updatedUser = { ...user, current_state: nextState };
-        localStorage.setItem("logishift_user_info", JSON.stringify(updatedUser));
-        await refreshUser();
       }
 
       setToast({
@@ -409,7 +470,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
       <div className="mb-8 flex items-center justify-between">
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Привет, {user?.full_name}
+            Привет, {effectiveDriverName}
           </h1>
           <div className="mt-2">
             <span
@@ -747,7 +808,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
           <Button
             onClick={() => {
               setActiveShift(null);
-              localStorage.removeItem("logishift_active_shift");
+              localStorage.removeItem(demoActiveShiftKey(effectiveDriverId));
             }}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
           >
