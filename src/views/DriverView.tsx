@@ -12,6 +12,7 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import ShiftHistoryModal from "../components/ShiftHistoryModal";
 import { Button, Card } from "../components/ui";
+import { isDemoTenantId } from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
@@ -35,7 +36,7 @@ export const DriverView = () => {
   const [selectedSite, setSelectedSite] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isDemoMode = user?.tenant_id === 999;
+  const isDemoMode = isDemoTenantId(user?.tenant_id);
   const hasActiveShift = Boolean(activeShift);
   const workflowState = String(activeShift?.status || "").toLowerCase();
 
@@ -68,7 +69,7 @@ export const DriverView = () => {
       }
 
       try {
-        if (user.tenant_id === 999) {
+        if (isDemoTenantId(user.tenant_id)) {
           const storedShift = localStorage.getItem("logishift_active_shift");
 
           if (storedShift) {
@@ -168,7 +169,7 @@ export const DriverView = () => {
 
     setLoading(true);
     try {
-      if (user?.tenant_id === 999) {
+      if (isDemoTenantId(user?.tenant_id)) {
         const selectedSiteData = sites.find(
           (site) => String(site.id) === selectedSite
         );
@@ -239,7 +240,7 @@ export const DriverView = () => {
 
     setLoading(true);
     try {
-      if (user?.tenant_id === 999) {
+      if (isDemoTenantId(user?.tenant_id)) {
         setActiveShift(null);
         localStorage.removeItem("logishift_active_shift");
 
@@ -308,7 +309,7 @@ export const DriverView = () => {
         return;
       }
 
-      if (user?.tenant_id === 999) {
+      if (isDemoTenantId(user?.tenant_id)) {
         const currentState = user.current_state;
         let nextState: DriverState;
 

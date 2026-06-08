@@ -5,6 +5,7 @@ import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import RegisterView from "./views/RegisterView";
 import { DriverView } from "./views/DriverView";
+import { isDemoTenantId } from "./config/demo";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Bundle optimization: lazy load heavy components (bundle-dynamic-imports)
@@ -34,7 +35,7 @@ const AppContent: React.FC = () => {
   }, [demoPersona]);
 
   // Check if user is in demo mode
-  const isDemoMode = user?.tenant_id === 999;
+  const isDemoMode = isDemoTenantId(user?.tenant_id);
 
   // Check if on register page
   const isRegisterPage = window.location.pathname === '/register';

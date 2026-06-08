@@ -15,12 +15,10 @@ import {
   LucideIcon,
 } from "lucide-react";
 import DemoBanner from './DemoBanner';
+import { isDemoHostname, isDemoTenantId } from "../config/demo";
 
 // Demo persona type
 type DemoPersona = 'admin' | 'driver';
-
-const DEMO_HOSTNAME = 'demo.kontrolsmen.ru';
-const DEMO_TENANT_ID = 999;
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -40,10 +38,9 @@ const Layout: React.FC<LayoutProps> = ({
   const user = api.getUserInfo();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
-  const tenantId = user?.tenant_id;
-  const isDemoMode = tenantId === DEMO_TENANT_ID || String(tenantId) === String(DEMO_TENANT_ID);
+  const isDemoMode = isDemoTenantId(user?.tenant_id);
   const isDemoHost =
-    typeof window !== 'undefined' && window.location.hostname === DEMO_HOSTNAME;
+    typeof window !== 'undefined' && isDemoHostname(window.location.hostname);
   const shouldShowDemoBanner = isDemoHost || isDemoMode;
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
   const [sidebarOpen, setSidebarOpen] = useState(false);
