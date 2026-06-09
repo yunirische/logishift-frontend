@@ -6,6 +6,7 @@ import {
   X,
   Home,
   Clock,
+  History,
   Users,
   Truck,
   Building,
@@ -45,18 +46,51 @@ const Layout: React.FC<LayoutProps> = ({
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const getTabTitle = (tabId: string) => {
+    switch (tabId) {
+      case "dashboard":
+        return "Главная";
+      case "my-shifts":
+        return "Мой рабочий день";
+      case "driver-history":
+        return "Мои смены";
+      case "analytics":
+        return "Аналитика";
+      case "shifts":
+        return "Реестр смен";
+      case "drivers":
+        return "Персонал";
+      case "fleet":
+        return "Техника";
+      case "objects":
+        return "Объекты";
+      case "audit":
+        return "Журнал событий";
+      case "settings":
+        return "Система";
+      default:
+        return tabId;
+    }
+  };
+
   const mainItems = [
     {
       id: "dashboard",
-      label: isDemoDriverMode ? "Приложение водителя" : "Главная",
+      label: "Главная",
       icon: Home,
       roles: [UserRole.ADMIN, UserRole.FOREMAN],
     },
     {
       id: "my-shifts",
-      label: "Мои смены",
+      label: "Мой рабочий день",
       icon: Clock,
       roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
+    },
+    {
+      id: "driver-history",
+      label: "Мои смены",
+      icon: History,
+      roles: [UserRole.DRIVER],
     },
     {
       id: "analytics",
@@ -66,9 +100,9 @@ const Layout: React.FC<LayoutProps> = ({
     },
     {
       id: "shifts",
-      label: isAdmin ? "Реестр смен" : "Мои смены",
+      label: "Реестр смен",
       icon: ScrollText,
-      roles: [UserRole.ADMIN, UserRole.DRIVER, UserRole.FOREMAN],
+      roles: [UserRole.ADMIN, UserRole.FOREMAN],
     },
     {
       id: "drivers",
@@ -113,7 +147,14 @@ const Layout: React.FC<LayoutProps> = ({
     icon: LucideIcon;
     roles: string[];
   }) => {
-    if (!user || !item.roles.includes(user.role)) return null;
+    if (!user) return null;
+
+    const canAccessItem =
+      item.id === "driver-history"
+        ? user.role === UserRole.DRIVER || isDemoDriverMode
+        : item.roles.includes(user.role);
+
+    if (!canAccessItem) return null;
 
     return (
       <button
@@ -193,15 +234,15 @@ const Layout: React.FC<LayoutProps> = ({
         <nav className="flex-1 px-6 space-y-8 overflow-y-auto">
           <div>
             <p className="px-5 mb-4 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
-              {isDemoDriverMode ? "Меню" : (isAdmin ? "Управление" : "Меню водителя")}
+              {isDemoDriverMode ? "Меню водителя" : (isAdmin ? "Управление" : "Меню водителя")}
             </p>
             <div className="space-y-1">
               {mainItems
                 .filter(
                   (item) =>
                     !isDemoDriverMode ||
-                    item.id === "dashboard" ||
-                    item.id === "my-shifts"
+                    item.id === "my-shifts" ||
+                    item.id === "driver-history"
                 )
                 .map(renderButton)}
             </div>
@@ -263,11 +304,7 @@ const Layout: React.FC<LayoutProps> = ({
             </button>
             <div>
               <h2 className="text-xl font-semibold text-[#1B254B] capitalize tracking-tight">
-                {isDemoMode && demoPersona === 'driver'
-                  ? activeTab === 'my-shifts'
-                    ? 'Мои смены'
-                    : 'Водитель'
-                  : activeTab}
+                {getTabTitle(activeTab)}
                 {isDemoMode && demoPersona === 'driver' && (
                   <span className="ml-2 px-2 py-0.5 bg-amber-500 text-slate-900 text-[10px] font-bold uppercase rounded">
                     DEMO

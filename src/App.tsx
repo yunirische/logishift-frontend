@@ -19,15 +19,75 @@ const Analytics = lazy(() => import("./components/Analytics"));
 
 // Demo persona type
 type DemoPersona = 'admin' | 'driver';
+type AppTab =
+  | "dashboard"
+  | "my-shifts"
+  | "driver-history"
+  | "analytics"
+  | "shifts"
+  | "drivers"
+  | "fleet"
+  | "objects"
+  | "audit"
+  | "settings"
+  | "users";
+
+const getAllowedTabs = ({
+  role,
+  isDemoDriverMode,
+}: {
+  role?: string;
+  isDemoDriverMode: boolean;
+}): AppTab[] => {
+  if (isDemoDriverMode) {
+    return ["my-shifts", "driver-history"];
+  }
+
+  switch (role) {
+    case "admin":
+      return [
+        "dashboard",
+        "my-shifts",
+        "analytics",
+        "shifts",
+        "drivers",
+        "fleet",
+        "objects",
+        "audit",
+        "settings",
+      ];
+    case "foreman":
+      return ["dashboard", "my-shifts", "analytics", "shifts", "drivers", "objects"];
+    case "driver":
+      return ["my-shifts", "driver-history"];
+    default:
+      return ["dashboard"];
+  }
+};
+
+const getDefaultTab = ({
+  role,
+  isDemoDriverMode,
+}: {
+  role?: string;
+  isDemoDriverMode: boolean;
+}): AppTab => {
+  if (isDemoDriverMode || role === "driver") {
+    return "my-shifts";
+  }
+
+  return "dashboard";
+};
 
 const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
   // Initialize from localStorage or default to 'admin'
   const [demoPersona, setDemoPersona] = useState<DemoPersona>(() => {
     const saved = localStorage.getItem('demoPersona');
     return (saved === 'driver' || saved === 'admin') ? saved : 'admin';
   });
   const { isAuthenticated, isLoading, error, clearError, user } = useAuth();
+  const handleSetActiveTab = (tab: string) => setActiveTab(tab as AppTab);
 
   // Persist to localStorage on change
   useEffect(() => {
@@ -37,6 +97,24 @@ const AppContent: React.FC = () => {
   // Check if user is in demo mode
   const isDemoMode = isDemoTenantId(user?.tenant_id);
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
+
+  useEffect(() => {
+    if (!user) return;
+
+    const allowedTabs = getAllowedTabs({
+      role: user.role,
+      isDemoDriverMode,
+    });
+
+    if (!allowedTabs.includes(activeTab)) {
+      setActiveTab(
+        getDefaultTab({
+          role: user.role,
+          isDemoDriverMode,
+        })
+      );
+    }
+  }, [activeTab, isDemoDriverMode, user]);
 
   // Check if on register page
   const isRegisterPage = window.location.pathname === '/register';
@@ -94,6 +172,8 @@ const AppContent: React.FC = () => {
         return <Dashboard />;
       case "my-shifts":
         return <DriverView />;
+      case "driver-history":
+        return <DriverView focusHistory />;
       case "analytics":
         return (
           <Suspense fallback={loadingFallback}>
@@ -162,12 +242,12 @@ const AppContent: React.FC = () => {
         <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
           <Layout
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={handleSetActiveTab}
             demoPersona={demoPersona}
             setDemoPersona={setDemoPersona}
           >
             <ErrorBoundary>
-              <DriverView focusHistory={activeTab === "my-shifts"} />
+              <DriverView focusHistory={activeTab === "driver-history"} />
             </ErrorBoundary>
           </Layout>
         </div>
@@ -178,7 +258,7 @@ const AppContent: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
-        <Layout activeTab={activeTab} setActiveTab={setActiveTab} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
+        <Layout activeTab={activeTab} setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
           <ErrorBoundary>
             {renderContent()}
           </ErrorBoundary>
