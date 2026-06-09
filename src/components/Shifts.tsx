@@ -1,5 +1,6 @@
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Filter, X, ChevronDown, Download } from "lucide-react";
+import { isDemoTenantId } from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift, UserRole } from "../types";
@@ -14,13 +15,26 @@ const PhotoLink = React.memo(
     url,
     icon,
     title,
+    isDemoMode = false,
   }: {
     url?: string;
     icon: string;
     title: string;
+    isDemoMode?: boolean;
   }) => {
     const photoUrl = getPhotoUrl(url);
     if (!photoUrl) return null;
+
+    if (isDemoMode) {
+      return (
+        <span
+          className="inline-flex h-8 items-center rounded-full bg-amber-50 px-2 text-[10px] font-semibold text-amber-700"
+          title={`${title}: фото недоступно в демо`}
+        >
+          Демо
+        </span>
+      );
+    }
 
     return (
       <a
@@ -94,6 +108,7 @@ const Shifts: React.FC = () => {
   const user = api.getUserInfo();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
+  const isDemoMode = isDemoTenantId(user?.tenant_id);
 
   const handleExcelExport = async () => {
     setExporting(true);
@@ -601,16 +616,19 @@ const Shifts: React.FC = () => {
                           url={(shift as any).photo_start_url}
                           icon="S"
                           title="Одометр (старт)"
+                          isDemoMode={isDemoMode}
                         />
                         <PhotoLink
                           url={(shift as any).photo_end_url}
                           icon="F"
                           title="Одометр (финиш)"
+                          isDemoMode={isDemoMode}
                         />
                         <PhotoLink
                           url={(shift as any).photo_invoice_url}
                           icon="I"
                           title="Накладная"
+                          isDemoMode={isDemoMode}
                         />
                         {isAdmin && (
                           <button

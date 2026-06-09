@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { isDemoTenantId } from "../config/demo";
 import { API_ENDPOINTS, API_BASE_URL } from "../constants";
 import api, { getPhotoUrl } from "../services/api";
 import { Shift } from "../types";
@@ -50,6 +51,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   // Get current user role
   const currentUser = getUserInfo();
   const isAdmin = currentUser?.role === 'admin';
+  const isDemoMode = isDemoTenantId(currentUser?.tenant_id);
   const effectiveTimezone = timezone || "Europe/Moscow";
 
   // Time fields
@@ -733,6 +735,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     const hasPhoto = Boolean(photoUrl);
     const isUploading = uploadingPhotoType === photoType;
     const previewUrl = photoUrl ? getPhotoUrl(photoUrl) || '' : '';
+    const showDemoUnavailable = isDemoMode && hasPhoto;
 
     return (
       <div
@@ -770,15 +773,22 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               <span>Фото загружено</span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <a
-                href={previewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
-              >
-                <Image size={14} />
-                Просмотр
-              </a>
+              {showDemoUnavailable ? (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">
+                  <Image size={14} />
+                  Фото недоступно в демо
+                </span>
+              ) : (
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                >
+                  <Image size={14} />
+                  Просмотр
+                </a>
+              )}
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                 <input
                   type="file"
