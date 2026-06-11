@@ -41,7 +41,7 @@ export const API_ENDPOINTS = {
   HEALTH: `${API_BASE_URL}/health`,
 
   // Auth
-  AUTH_ONBOARD: `${API_BASE_URL}/auth/onboard`,
+  AUTH_REGISTER_TENANT: `${API_BASE_URL}/auth/register-tenant`,
 
   // Maintenance & Monitoring
   MAINTENANCE_CLEANUP: `${API_BASE_URL}/maintenance/cleanup`,
@@ -75,6 +75,6 @@ export const API_ENDPOINTS = {
 
   // Telegram
   AUTH_LINK_TOKEN: `${API_BASE_URL}/auth/link-token`,
-  TELEGRAM_LINK_CODE: `${API_BASE_URL}/telegram/link-code`,
+  TELEGRAM_LINK_CODE: `${API_BASE_URL}/auth/link-token`,
   TELEGRAM_UNLINK: `${API_BASE_URL}/users/telegram-link`,
 };

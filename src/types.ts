@@ -179,6 +179,6 @@ export interface SubscriptionInfo {
 }
 
 export interface ChangePasswordRequest {
-  current_password: string;
-  new_password: string;
+  currentPassword: string;
+  newPassword: string;
 }

@@ -396,8 +396,8 @@ export const getPhotoUrl = (path?: string | null): string | null => {
 
 export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
   await post(API_ENDPOINTS.AUTH_PASSWORD, {
-    current_password: currentPassword,
-    new_password: newPassword,
+    currentPassword,
+    newPassword,
   });
 };
 
@@ -447,7 +447,7 @@ export const acceptInvite = async (data: {
 
 /**
  * Get Telegram link code for connecting the bot.
- * GET /telegram/link-code
+ * GET /auth/link-token
  */
 export const getTelegramLinkCode = async (): Promise<{ code: string }> => {
   return await get(API_ENDPOINTS.TELEGRAM_LINK_CODE);

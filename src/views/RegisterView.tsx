@@ -12,7 +12,7 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  company_name: string;
+  companyName: string;
 }
 
 interface PasswordChecks {
@@ -30,7 +30,7 @@ const RegisterView: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    company_name: '',
+    companyName: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -69,7 +69,7 @@ const RegisterView: React.FC = () => {
       return false;
     }
     // Admin mode requires company name
-    if (mode === 'admin' && !formData.company_name.trim()) {
+    if (mode === 'admin' && !formData.companyName.trim()) {
       setError('Введите название компании');
       return false;
     }
@@ -123,9 +123,9 @@ const RegisterView: React.FC = () => {
     try {
       if (mode === 'admin') {
         // Admin registration - create tenant
-        await api.post(API_ENDPOINTS.AUTH_ONBOARD, {
-          company_name: formData.company_name.trim(),
-          admin_name: formData.full_name.trim(),
+        await api.post(API_ENDPOINTS.AUTH_REGISTER_TENANT, {
+          companyName: formData.companyName.trim(),
+          adminName: formData.full_name.trim(),
           email: formData.email.trim().toLowerCase(),
           password: formData.password,
         });
@@ -271,15 +271,15 @@ const RegisterView: React.FC = () => {
           {/* Company Name (Admin mode only) */}
           {mode === 'admin' && (
             <div className="space-y-1">
-              <label htmlFor="company_name" className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest">
+              <label htmlFor="companyName" className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest">
                 Название компании <span className="text-red-500">*</span>
               </label>
               <input
-                id="company_name"
-                name="company_name"
+                id="companyName"
+                name="companyName"
                 type="text"
-                value={formData.company_name}
-                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                value={formData.companyName}
+                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                 placeholder="ООО Ваша Компания"
                 className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
                 required={mode === 'admin'}
