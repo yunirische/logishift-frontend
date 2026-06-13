@@ -43,6 +43,11 @@ export const DriverView: React.FC<DriverViewProps> = ({
     message: string;
     type?: "success" | "error";
   }>({ show: false, message: "", type: "success" });
+  const [actionMessage, setActionMessage] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({ show: false, message: "", type: "info" });
   const [selectedTruck, setSelectedTruck] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
 
@@ -60,6 +65,21 @@ export const DriverView: React.FC<DriverViewProps> = ({
     : user?.full_name || "";
   const hasActiveShift = Boolean(activeShift);
   const workflowState = String(activeShift?.status || "").toLowerCase();
+  const startDisabledReason =
+    !selectedTruck && !selectedSite
+      ? "Выберите машину и объект, чтобы начать смену."
+      : !selectedTruck
+      ? "Выберите машину."
+      : !selectedSite
+      ? "Выберите объект."
+      : "";
+  const currentShiftBannerMessage = hasActiveShift
+    ? workflowState === "active"
+      ? "Смена активна."
+      : workflowState === "finished"
+      ? "Смена завершена."
+      : "Текущая смена загружена."
+    : startDisabledReason || "Готово к началу смены.";
 
   // Demo-driver mode: fetch tenant users once and pick a driver persona.
   // Falls back to a synthetic persona if /users fails or has no drivers.
@@ -305,6 +325,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
     if (!selectedTruck || !selectedSite) return;
 
     setLoading(true);
+    setActionMessage({ show: false, message: "", type: "info" });
     try {
       if (isDemoTenantId(user?.tenant_id)) {
         const selectedSiteData = sites.find(
@@ -345,6 +366,11 @@ export const DriverView: React.FC<DriverViewProps> = ({
           message: "Смена открыта",
           type: "success",
         });
+        setActionMessage({
+          show: true,
+          message: "Смена открыта.",
+          type: "success",
+        });
         setTimeout(
           () => setToast({ show: false, message: "", type: "success" }),
           2000
@@ -358,10 +384,20 @@ export const DriverView: React.FC<DriverViewProps> = ({
       });
 
       await refreshCurrentShift({ silent: true, refreshAuthState: true });
+      setActionMessage({
+        show: true,
+        message: "Смена начата.",
+        type: "success",
+      });
     } catch (error: any) {
       const errorMsg =
         error.response?.data?.error || error.message || "Ошибка старта";
       setToast({ show: true, message: errorMsg, type: "error" });
+      setActionMessage({
+        show: true,
+        message: errorMsg,
+        type: "error",
+      });
       setTimeout(
         () => setToast({ show: false, message: "", type: "success" }),
         3000
@@ -375,6 +411,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
     if (!confirm("Завершить смену?")) return;
 
     setLoading(true);
+    setActionMessage({ show: false, message: "", type: "info" });
     try {
       if (isDemoTenantId(user?.tenant_id)) {
         setActiveShift(null);
@@ -389,6 +426,11 @@ export const DriverView: React.FC<DriverViewProps> = ({
           message: "Смена завершена",
           type: "success",
         });
+        setActionMessage({
+          show: true,
+          message: "Смена завершена.",
+          type: "success",
+        });
         setTimeout(
           () => setToast({ show: false, message: "", type: "success" }),
           2000
@@ -398,10 +440,20 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
       await api.post("/shifts/end", {});
       await refreshCurrentShift({ silent: true, refreshAuthState: true });
+      setActionMessage({
+        show: true,
+        message: "Смена завершена.",
+        type: "success",
+      });
     } catch (error: any) {
       const errorMsg =
         error.response?.data?.error || error.message || "Ошибка завершения";
       setToast({ show: true, message: errorMsg, type: "error" });
+      setActionMessage({
+        show: true,
+        message: errorMsg,
+        type: "error",
+      });
       setTimeout(
         () => setToast({ show: false, message: "", type: "success" }),
         3000
@@ -542,7 +594,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 pb-28">
+    <div className="min-h-screen bg-slate-50 p-4 pb-48">
       <input
         type="file"
         ref={fileInputRef}
@@ -596,30 +648,50 @@ export const DriverView: React.FC<DriverViewProps> = ({
               {trucks.map((truck) => {
                 const truckId = String(truck.id);
                 const isSelected = selectedTruck === truckId;
+                const truckLabel = `${truck.name || "Машина"} ${
+                  truck.plate || truck.plate_number
+                    ? `— ${truck.plate || truck.plate_number}`
+                    : ""
+                }`.trim();
 
                 return (
-                  <div
+                  <button
                     key={truck.id}
+                    type="button"
                     onClick={() => setSelectedTruck(truckId)}
-                    className={`flex min-h-[88px] cursor-pointer flex-col justify-center rounded-xl border-2 p-4 transition-all active:scale-95 ${
+                    aria-pressed={isSelected}
+                    aria-label={truckLabel}
+                    data-testid={`driver-truck-card-${truck.id}`}
+                    data-selected={isSelected ? "true" : "false"}
+                    className={`flex min-h-[88px] cursor-pointer flex-col justify-center rounded-xl border-2 p-4 text-left transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a192f] ${
                       isSelected
                         ? "border-[#0a192f] bg-[#0a192f]/5 shadow-md shadow-[#0a192f]/10"
                         : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
-                    <Truck
-                      size={20}
-                      className={`mb-2 ${
-                        isSelected ? "text-[#0a192f]" : "text-slate-400"
-                      }`}
-                    />
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <Truck
+                        size={20}
+                        className={`shrink-0 ${
+                          isSelected ? "text-[#0a192f]" : "text-slate-400"
+                        }`}
+                      />
+                      {isSelected && (
+                        <span
+                          className="rounded-full bg-[#0a192f] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
+                          data-testid={`driver-truck-selected-${truck.id}`}
+                        >
+                          Выбрано
+                        </span>
+                      )}
+                    </div>
                     <div className="text-base font-bold text-slate-800">
                       {truck.name}
                     </div>
                     <div className="text-xs font-medium text-slate-500">
                       {truck.plate || truck.plate_number || "Без номера"}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -628,18 +700,24 @@ export const DriverView: React.FC<DriverViewProps> = ({
           <Card className="border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <MapPin size={16} />
-              Выберите объект
+              Выберите объект / площадку
             </h3>
             <div className="space-y-3">
               {sites.map((site) => {
                 const siteId = String(site.id);
                 const isSelected = selectedSite === siteId;
+                const siteLabel = `${site.name || "Объект"}`;
 
                 return (
-                  <div
+                  <button
                     key={site.id}
+                    type="button"
                     onClick={() => setSelectedSite(siteId)}
-                    className={`flex min-h-[60px] cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all active:scale-[0.98] ${
+                    aria-pressed={isSelected}
+                    aria-label={siteLabel}
+                    data-testid={`driver-site-card-${site.id}`}
+                    data-selected={isSelected ? "true" : "false"}
+                    className={`flex min-h-[60px] cursor-pointer items-center gap-3 rounded-xl border p-4 text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a192f] ${
                       isSelected
                         ? "border-[#0a192f] bg-[#0a192f]/5 shadow-md shadow-[#0a192f]/10"
                         : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
@@ -649,10 +727,20 @@ export const DriverView: React.FC<DriverViewProps> = ({
                       size={20}
                       className={isSelected ? "text-[#0a192f]" : "text-slate-400"}
                     />
-                    <span className="text-base font-bold text-slate-800">
-                      {site.name}
-                    </span>
-                  </div>
+                    <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                      <span className="truncate text-base font-bold text-slate-800">
+                        {site.name}
+                      </span>
+                      {isSelected && (
+                        <span
+                          className="rounded-full bg-[#0a192f] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
+                          data-testid={`driver-site-selected-${site.id}`}
+                        >
+                          Выбрано
+                        </span>
+                      )}
+                    </div>
+                  </button>
                 );
               })}
             </div>
@@ -703,7 +791,8 @@ export const DriverView: React.FC<DriverViewProps> = ({
         </div>
       ) : (
         <div className="space-y-5">
-          <Card className="border border-slate-200 bg-white p-6 shadow-md">
+          <div data-testid="current-shift-status">
+            <Card className="border border-slate-200 bg-white p-6 shadow-md">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#0a192f]">
                 <Clock size={20} />
@@ -749,11 +838,15 @@ export const DriverView: React.FC<DriverViewProps> = ({
                 </div>
               </div>
             </div>
-          </Card>
+            </Card>
+          </div>
 
           {workflowState === "active" ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
+              <div
+                className="flex items-center gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800"
+                data-testid="active-shift-status"
+              >
                 <CheckCircle2 size={28} className="shrink-0" />
                 <div className="flex-1">
                   <div className="text-base font-bold">Смена активна</div>
@@ -816,18 +909,30 @@ export const DriverView: React.FC<DriverViewProps> = ({
       {/* Sticky primary action bar */}
       <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
         {!activeShift ? (
-          <Button
-            onClick={handleStart}
-            disabled={!selectedTruck || !selectedSite}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-            isLoading={loading}
-          >
-            <Play size={18} fill="currentColor" />
-            Начать смену
-          </Button>
+          <div className="space-y-2">
+            <Button
+              onClick={handleStart}
+              disabled={!selectedTruck || !selectedSite}
+              data-testid="start-shift-button"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+              isLoading={loading}
+            >
+              <Play size={18} fill="currentColor" />
+              Начать смену
+            </Button>
+            <div
+              className="min-h-5 text-center text-xs font-medium text-slate-500"
+              data-testid="start-shift-disabled-reason"
+              role="status"
+              aria-live="polite"
+            >
+              {startDisabledReason || "Смена может быть начата."}
+            </div>
+          </div>
         ) : workflowState === "active" ? (
           <Button
             onClick={handleEnd}
+            data-testid="end-shift-button"
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
             isLoading={loading}
           >
@@ -855,6 +960,22 @@ export const DriverView: React.FC<DriverViewProps> = ({
             Открыть новую смену
           </Button>
         )}
+        <div
+          className={`mt-3 rounded-lg border px-4 py-3 text-sm shadow-sm ${
+            actionMessage.show
+              ? actionMessage.type === "error"
+                ? "border-red-200 bg-red-50 text-red-700"
+                : actionMessage.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-slate-200 bg-white text-slate-700"
+              : "border-slate-200 bg-white text-slate-500"
+          }`}
+          data-testid="driver-shift-message"
+          role={actionMessage.show && actionMessage.type === "error" ? "alert" : "status"}
+          aria-live={actionMessage.show && actionMessage.type === "error" ? "assertive" : "polite"}
+        >
+          {actionMessage.show ? actionMessage.message : currentShiftBannerMessage}
+        </div>
       </div>
 
       {toast.show && (
