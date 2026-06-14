@@ -227,7 +227,7 @@ const Shifts: React.FC = () => {
           );
           const pages = await Promise.all(pageRequests);
           const mergedItems = pages.flatMap((pageData) => pageData.items);
-          const total = pages.at(-1)?.total || mergedItems.length;
+          const total = pages[pages.length - 1]?.total || mergedItems.length;
           updateShiftSnapshot(mergedItems, total);
           return;
         }

@@ -34,9 +34,13 @@ const System: React.FC = () => {
   const fetchSystemData = async () => {
     try {
       setLoading(true);
+      const fallbackSubscription: SubscriptionInfo = {
+        status: "active",
+        expires_at: null,
+      };
       const [settingsData, subscriptionData, usageData] = await Promise.all([
         api.get(API_ENDPOINTS.TENANT_SETTINGS),
-        getSubscription().catch(() => ({ status: 'active', expires_at: null })),
+        getSubscription().catch(() => fallbackSubscription),
         getAnalyticsUsage().catch(() => null),
       ]);
 

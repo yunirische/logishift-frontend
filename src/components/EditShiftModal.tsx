@@ -24,6 +24,8 @@ interface Comment {
   mentions?: string[]; // Array of mentioned usernames
 }
 
+const isNotNull = <T,>(value: T | null): value is T => value !== null;
+
 interface EditShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -166,7 +168,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
 
     const currentYear = new Date().getFullYear();
-    return commentValue
+    const parsedComments: Array<Comment | null> = commentValue
       .split('\n')
       .map((line, index) => {
         const trimmed = line.trim();
@@ -203,8 +205,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               : normalizedRole,
           created_at: Number.isNaN(createdAt.getTime()) ? new Date().toISOString() : createdAt.toISOString(),
         };
-      })
-      .filter((comment): comment is Comment => Boolean(comment));
+      });
+
+    return parsedComments.filter(isNotNull);
   };
 
   // Load comment history using GET /shifts/:id endpoint with tab-specific loading
