@@ -534,12 +534,12 @@ const Shifts: React.FC = () => {
         <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-50 px-6 py-4 md:flex-row md:items-center">
           <div>
             <h2 className="text-xl font-semibold text-[#1B254B]">
-              {isAdmin ? "Реестр всех смен" : "Мои записи"}
+              {isAdmin ? "Реестр смен" : "Мои записи"}
             </h2>
             <p className="mt-0.5 text-[10px] font-medium text-slate-400">
               {totalCount > 0
                 ? `Показано: ${displayShifts.length} из ${totalCount}`
-                : `Отображено: ${displayShifts.length}`}
+                : "История и текущий статус смен водителей."}
             </p>
           </div>
 
@@ -648,10 +648,15 @@ const Shifts: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center italic text-slate-300">
-                    {hasActiveFilters
-                      ? "Нет данных, соответствующих фильтрам"
-                      : "Данных нет"}
+                  <td colSpan={7} className="py-12 text-center">
+                    <h3 className="text-lg font-semibold text-[#1B254B]">
+                      {hasActiveFilters ? "Нет данных, соответствующих фильтрам" : "Смен пока нет"}
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-500">
+                      {hasActiveFilters
+                        ? "Попробуйте изменить фильтры или сбросить их."
+                        : "Когда водитель начнет смену, она появится здесь. Для проверки можно создать смену вручную на главной странице."}
+                    </p>
                   </td>
                 </tr>
               )}

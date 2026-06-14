@@ -16,6 +16,19 @@ interface Driver {
   hourly_rate?: number;
 }
 
+const getRoleLabel = (role: UserRole): string => {
+  switch (role) {
+    case UserRole.ADMIN:
+      return "Администратор";
+    case UserRole.FOREMAN:
+      return "Диспетчер";
+    case UserRole.DRIVER:
+      return "Водитель";
+    default:
+      return role;
+  }
+};
+
 const Drivers: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,7 +155,7 @@ const Drivers: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-semibold text-[#1B254B]">Персонал</h2>
-          <p className="text-sm text-slate-400 font-medium">Управление сотрудниками</p>
+          <p className="text-sm text-slate-400 font-medium">Водители и диспетчеры, которые работают со сменами.</p>
         </div>
         <button
           onClick={handleInvite}
@@ -163,8 +176,19 @@ const Drivers: React.FC = () => {
       {/* Таблица персонала */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
         {drivers.length === 0 && !error ? (
-          <div className="p-16 text-center text-slate-400 italic">
-            Список водителей пуст
+          <div className="p-16 text-center">
+            <h3 className="text-lg font-semibold text-[#1B254B]">Водителей пока нет</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Пригласите водителя по ссылке. После регистрации он сможет открыть смену с телефона.
+            </p>
+            <button
+              onClick={handleInvite}
+              disabled={inviteLoading}
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#0a192f] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#152238] disabled:opacity-50"
+            >
+              <Plus size={18} />
+              {inviteLoading ? "Создание..." : "Пригласить водителя"}
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -191,7 +215,7 @@ const Drivers: React.FC = () => {
                         <span className="font-semibold text-[#1B254B]">{driver.full_name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{driver.role}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{getRoleLabel(driver.role)}</td>
                     <td className="px-4 py-3">
                       <span className="text-xs font-semibold text-[#1B254B]">
                         {driver.hourly_rate ? `${driver.hourly_rate} ₽/ч` : '—'}
@@ -333,7 +357,7 @@ const Drivers: React.FC = () => {
                 >
                   <option value={UserRole.DRIVER}>Водитель</option>
                   <option value={UserRole.ADMIN}>Администратор</option>
-                  <option value={UserRole.FOREMAN}>Прораб</option>
+                    <option value={UserRole.FOREMAN}>Диспетчер</option>
                 </select>
               </div>
               <div>

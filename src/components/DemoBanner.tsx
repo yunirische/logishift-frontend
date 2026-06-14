@@ -22,10 +22,16 @@ const DemoBanner: React.FC<DemoBannerProps> = ({ demoPersona, setDemoPersona }) 
             зарегистрируйте компанию
           </a>.
         </p>
+        <p className="text-xs text-amber-700 mt-2 leading-relaxed">
+          Попробуйте сценарий: водитель начинает смену, а диспетчер видит ее в реестре.
+        </p>
       </div>
       <div className="shrink-0">
         <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-widest mb-1.5">
           Демо-переключатель роли
+        </p>
+        <p className="text-[11px] text-amber-700 mb-2">
+          Переключайтесь между ролями, чтобы увидеть путь водителя и администратора.
         </p>
         <div className="flex gap-1.5">
           <button

@@ -21,6 +21,19 @@ import { isDemoHostname, isDemoTenantId } from "../config/demo";
 // Demo persona type
 type DemoPersona = 'admin' | 'driver';
 
+const getRoleLabel = (role?: string) => {
+  switch (role) {
+    case UserRole.ADMIN:
+      return "Администратор";
+    case UserRole.FOREMAN:
+      return "Диспетчер";
+    case UserRole.DRIVER:
+      return "Водитель";
+    default:
+      return role || "Пользователь";
+  }
+};
+
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
@@ -275,7 +288,7 @@ const Layout: React.FC<LayoutProps> = ({
               {user?.full_name}
             </p>
             <p className="text-[9px] font-semibold text-[#3b82f6] uppercase mt-1">
-              {user?.role}
+              {getRoleLabel(user?.role)}
             </p>
           </div>
           <button

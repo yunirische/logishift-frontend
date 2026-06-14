@@ -111,7 +111,11 @@ const Objects: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Кнопка добавления */}
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-[#1B254B]">Объекты</h2>
+          <p className="text-sm text-slate-400 font-medium">Места работ: стройки, склады, точки доставки или объекты клиента.</p>
+        </div>
         <button
           onClick={handleAddClick}
           className="flex items-center gap-2 px-6 py-3 bg-[#0a192f] text-white rounded-xl font-bold hover:bg-[#152238] transition-colors shadow-lg shadow-indigo-200"
@@ -122,9 +126,24 @@ const Objects: React.FC = () => {
       </div>
 
       {/* Сетка объектов */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
-        {sites.map((s) => (
-          <div key={s.id} className={`bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative group ${s.is_active ? 'border-slate-200' : 'border-slate-200 opacity-60'}`}>
+      {sites.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-16 text-center animate-in fade-in">
+          <h3 className="text-lg font-semibold text-[#1B254B]">Объектов пока нет</h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Создайте первый объект работы. Здесь можно включить требования к фото одометра или накладной.
+          </p>
+          <button
+            onClick={handleAddClick}
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#0a192f] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#152238]"
+          >
+            <Plus size={18} />
+            Добавить объект
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
+          {sites.map((s) => (
+            <div key={s.id} className={`bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative group ${s.is_active ? 'border-slate-200' : 'border-slate-200 opacity-60'}`}>
             
             {/* Кнопки действий */}
             <div className="absolute top-4 right-4 flex gap-2">
@@ -173,9 +192,10 @@ const Objects: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Модальное окно (с исправленной логикой видимости) */}
       {isModalOpen && (

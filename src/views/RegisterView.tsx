@@ -181,6 +181,11 @@ const RegisterView: React.FC = () => {
           <p className="text-slate-500 mb-6">
             {mode === 'admin' ? 'Компания успешно создана!' : 'Добро пожаловать в команду LogiShift!'}
           </p>
+          {mode === 'admin' && (
+            <p className="text-sm text-slate-500 mb-4">
+              Дальше вы попадете в кабинет администратора: добавьте объект, технику и водителей, чтобы провести первую смену.
+            </p>
+          )}
           <p className="text-sm text-slate-400">Перенаправление на страницу входа...</p>
         </div>
       </div>
@@ -195,6 +200,9 @@ const RegisterView: React.FC = () => {
             <span className="text-[#3b82f6]">LOGI</span>SHIFT
           </h1>
           <p className="text-slate-400 text-sm mt-2 font-medium">Регистрация в системе</p>
+          <p className="text-slate-500 text-sm mt-3 leading-relaxed">
+            После регистрации вы попадете в кабинет администратора: добавьте объект, технику и водителей, чтобы провести первую смену.
+          </p>
         </div>
 
         {/* Mode Toggle */}

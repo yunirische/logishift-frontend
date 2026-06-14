@@ -17,9 +17,6 @@ import { DriverView } from "../views/DriverView";
 // Dynamic import for manual shift modal
 const ManualShiftModal = React.lazy(() => import("./ManualShiftModal"));
 
-// Лог версии для проверки очистки кэша
-console.log("Dashboard Version 2.0 Loaded");
-
 // Вспомогательная функция проверки URL фото
 const isValidPhotoUrl = (url: any): boolean => {
   return url && typeof url === 'string' && url.startsWith('/');
@@ -108,6 +105,26 @@ const Dashboard: React.FC = () => {
     currentUser?.role === UserRole.FOREMAN;
 
   const isLoading = loading || !shiftCheckComplete;
+  const onboardingSteps = [
+    {
+      label: "Добавьте объект работы",
+      done: Boolean(usage?.sites.current),
+    },
+    {
+      label: "Добавьте машину или технику",
+      done: Boolean(usage?.trucks.current),
+    },
+    {
+      label: "Пригласите водителя",
+      done: Boolean(usage?.drivers.current),
+    },
+    {
+      label: "Проверьте первую смену в реестре",
+      done: stats.activeShifts > 0,
+    },
+  ];
+  const shouldHighlightOnboarding =
+    isAdminView && usage !== null && onboardingSteps.some((step) => !step.done);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -153,24 +170,12 @@ const Dashboard: React.FC = () => {
         getAnalyticsUsage().catch(() => null), // Gracefully handle analytics errors
       ]);
 
-      // Debug: Log API response structure to identify field naming
-      console.log("[Dashboard] DASHBOARD_STATS API response:", statsRes);
-      console.log("[Dashboard] Response fields:", Object.keys(statsRes));
-
       // Handle both camelCase (frontend) and snake_case (backend) field names
       const activeShifts = statsRes.activeShifts ?? statsRes.active_shifts ?? 0;
       const activeDrivers = statsRes.activeDrivers ?? statsRes.active_drivers ?? 0;
       const trucksInWork = statsRes.trucksInWork ?? statsRes.trucks_in_work;
       const currentPlan = statsRes.currentPlan ?? statsRes.current_plan ?? { name: '', billingUrl: '' };
       const activeShiftsDetails = statsRes.activeShiftsDetails ?? statsRes.active_shifts_details ?? [];
-
-      console.log("[Dashboard] Mapped values:", {
-        activeShifts,
-        activeDrivers,
-        trucksInWork,
-        currentPlan,
-        activeShiftsDetailsCount: activeShiftsDetails.length
-      });
 
       setStats({
         activeShifts,
@@ -220,7 +225,7 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-col items-center justify-center h-64">
         <div className="w-12 h-12 border-4 border-[#0a192f] border-t-transparent rounded-full animate-spin"></div>
         <p className="mt-4 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
-          Синхронизация стейт-машины...
+          Загрузка текущих смен...
         </p>
       </div>
     );
@@ -251,7 +256,7 @@ const Dashboard: React.FC = () => {
               {stats.activeDrivers}
             </p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-              Водителей в рейсе
+              Водителей на смене
             </p>
           </div>
           <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
@@ -270,6 +275,45 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {shouldHighlightOnboarding && (
+          <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm">
+            <h3 className="text-lg font-semibold text-[#1B254B] mb-2">
+              Начните работу за 4 шага
+            </h3>
+            <p className="text-sm text-slate-500 mb-6">
+              После этого водитель сможет открыть смену с телефона, а диспетчер увидит ее в реестре.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {onboardingSteps.map((step, index) => (
+                <div
+                  key={step.label}
+                  className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${
+                    step.done
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-slate-200 bg-slate-50"
+                  }`}
+                >
+                  <div
+                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                      step.done
+                        ? "bg-emerald-500 text-white"
+                        : "bg-[#0a192f] text-white"
+                    }`}
+                  >
+                    {step.done ? "✓" : index + 1}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#1B254B]">{step.label}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {step.done ? "Шаг уже выполнен." : "Следующий шаг настройки кабинета."}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* НОВЫЙ РАЗДЕЛ: Usage Limits (Лимиты тарифа) */}
         <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm">
@@ -357,9 +401,6 @@ const Dashboard: React.FC = () => {
                   getAnalyticsUsage().catch(() => null),
                 ]);
 
-                // Debug: Log API response structure
-                console.log("[Dashboard] Manual refresh - DASHBOARD_STATS API response:", statsRes);
-
                 // Handle both camelCase (frontend) and snake_case (backend) field names
                 const activeShifts = statsRes.activeShifts ?? statsRes.active_shifts ?? 0;
                 const activeDrivers = statsRes.activeDrivers ?? statsRes.active_drivers ?? 0;
@@ -385,9 +426,9 @@ const Dashboard: React.FC = () => {
         )}
 
         <div className="bg-white p-8 rounded-lg border border-slate-100">
-          <h3 className="text-lg font-semibold text-[#1B254B] mb-6">Мониторинг</h3>
+          <h3 className="text-lg font-semibold text-[#1B254B] mb-6">Что видно диспетчеру</h3>
           <p className="text-slate-400 text-sm">
-            Панель администратора в режиме просмотра данных.
+            Здесь собраны активные смены, лимиты тарифа и текущая ситуация по работе техники и водителей.
           </p>
         </div>
       </div>

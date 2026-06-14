@@ -130,7 +130,7 @@ const Fleet: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
            <h2 className="text-2xl font-semibold text-[#1B254B]">Техника</h2>
-           <p className="text-sm text-slate-400 font-medium">Управление парком машин</p>
+           <p className="text-sm text-slate-400 font-medium">Машины и оборудование, которые выходят на смены.</p>
         </div>
         <button
           onClick={handleAddClick}
@@ -144,8 +144,18 @@ const Fleet: React.FC = () => {
       {/* Таблица техники */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in">
         {trucks.length === 0 ? (
-          <div className="text-center py-16 text-slate-400 italic">
-            В автопарке пока нет машин
+          <div className="py-16 text-center">
+            <h3 className="text-lg font-semibold text-[#1B254B]">Техника еще не добавлена</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Добавьте первую машину, чтобы водитель мог выбрать ее при старте смены.
+            </p>
+            <button
+              onClick={handleAddClick}
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#0a192f] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#152238]"
+            >
+              <Plus size={18} />
+              Добавить машину
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -177,7 +187,7 @@ const Fleet: React.FC = () => {
                         t.is_busy ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'
                       }`}>
                         <Power size={10} fill="currentColor" />
-                        {t.is_busy ? 'В рейсе' : 'Свободна'}
+                        {t.is_busy ? 'На смене' : 'Свободна'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -190,7 +200,7 @@ const Fleet: React.FC = () => {
                               : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'
                           }`}
                         >
-                          {t.is_busy ? 'Освободить' : 'В рейс'}
+                          {t.is_busy ? 'Освободить' : 'На смену'}
                         </button>
                         <button
                           onClick={() => handleEditClick(t)}
