@@ -1,4 +1,6 @@
 export const DEMO_TENANT_ID = 999;
+export const MARKETING_HOSTNAME = "kontrolsmen.ru";
+export const WWW_MARKETING_HOSTNAME = "www.kontrolsmen.ru";
 export const DEMO_HOSTNAME = "demo.kontrolsmen.ru";
 export const APP_HOSTNAME = "app.kontrolsmen.ru";
 
@@ -11,7 +13,12 @@ export const isDemoHostname = (hostname: string): boolean =>
 export const isProductionAppHostname = (hostname: string): boolean =>
   hostname === APP_HOSTNAME;
 
+export const isMarketingHostname = (hostname: string): boolean =>
+  hostname === MARKETING_HOSTNAME || hostname === WWW_MARKETING_HOSTNAME;
+
 export const getDemoAppUrl = (): string => `https://${DEMO_HOSTNAME}`;
+export const getProductionAppUrl = (pathname: string = "/"): string =>
+  `https://${APP_HOSTNAME}${pathname}`;
 
 // Demo driver persona ----------------------------------------------------
 // Demo-only: when an admin previews the driver UI on demo.kontrolsmen.ru,

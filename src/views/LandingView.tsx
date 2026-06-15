@@ -13,7 +13,7 @@ import {
   Truck,
   Users,
 } from "lucide-react";
-import { getDemoAppUrl } from "../config/demo";
+import { getDemoAppUrl, getProductionAppUrl } from "../config/demo";
 
 const problemPoints = [
   "Кто вышел на смену и когда начал работу",
@@ -99,17 +99,11 @@ const pricing = [
 ];
 
 const openLogin = () => {
-  const url = new URL(window.location.href);
-  url.pathname = "/login";
-  url.search = "";
-  window.location.href = url.toString();
+  window.location.href = getProductionAppUrl("/login");
 };
 
 const openRegister = () => {
-  const url = new URL(window.location.href);
-  url.pathname = "/register";
-  url.search = "";
-  window.location.href = url.toString();
+  window.location.href = getProductionAppUrl("/register");
 };
 
 const openTry = () => {

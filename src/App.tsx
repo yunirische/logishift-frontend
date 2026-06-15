@@ -8,7 +8,12 @@ import RegisterView from "./views/RegisterView";
 import ForgotPasswordView from "./views/ForgotPasswordView";
 import ResetPasswordView from "./views/ResetPasswordView";
 import { DriverView } from "./views/DriverView";
-import { isDemoHostname, isDemoTenantId } from "./config/demo";
+import {
+  isDemoHostname,
+  isDemoTenantId,
+  isMarketingHostname,
+  isProductionAppHostname,
+} from "./config/demo";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Bundle optimization: lazy load heavy components (bundle-dynamic-imports)
@@ -126,7 +131,11 @@ const AppContent: React.FC = () => {
   const isRegisterPage = pathname === "/register";
   const isForgotPasswordPage = pathname === "/forgot-password";
   const isResetPasswordPage = pathname === "/reset-password";
-  const shouldForceLoginOnRoot = isLandingPage && isDemoHostname(hostname);
+  const isMarketingHost = isMarketingHostname(hostname);
+  const isAppHost = isProductionAppHostname(hostname);
+  const isDemoHost = isDemoHostname(hostname);
+  const shouldShowLandingOnRoot = isLandingPage && isMarketingHost;
+  const shouldForceLoginOnRoot = isLandingPage && !isMarketingHost;
 
   if (isRegisterPage) {
     return <RegisterView />;
@@ -140,7 +149,7 @@ const AppContent: React.FC = () => {
     return <ResetPasswordView />;
   }
 
-  if (!isAuthenticated && isLandingPage && !shouldForceLoginOnRoot) {
+  if (!isAuthenticated && shouldShowLandingOnRoot) {
     return <LandingView />;
   }
 
@@ -255,7 +264,7 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    if (isLoginPage || shouldForceLoginOnRoot || !isLandingPage) {
+    if (isLoginPage || shouldForceLoginOnRoot || !isLandingPage || isAppHost || isDemoHost) {
       return <Login />;
     }
     return <LandingView />;
