@@ -3,11 +3,12 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
+import LandingView from "./views/LandingView";
 import RegisterView from "./views/RegisterView";
 import ForgotPasswordView from "./views/ForgotPasswordView";
 import ResetPasswordView from "./views/ResetPasswordView";
 import { DriverView } from "./views/DriverView";
-import { isDemoTenantId } from "./config/demo";
+import { isDemoHostname, isDemoTenantId } from "./config/demo";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Bundle optimization: lazy load heavy components (bundle-dynamic-imports)
@@ -90,6 +91,8 @@ const AppContent: React.FC = () => {
   });
   const { isAuthenticated, isLoading, error, clearError, user } = useAuth();
   const handleSetActiveTab = (tab: string) => setActiveTab(tab as AppTab);
+  const pathname = window.location.pathname;
+  const hostname = window.location.hostname;
 
   // Persist to localStorage on change
   useEffect(() => {
@@ -118,10 +121,12 @@ const AppContent: React.FC = () => {
     }
   }, [activeTab, isDemoDriverMode, user]);
 
-  // Check if on auth-related public pages
-  const isRegisterPage = window.location.pathname === '/register';
-  const isForgotPasswordPage = window.location.pathname === '/forgot-password';
-  const isResetPasswordPage = window.location.pathname === '/reset-password';
+  const isLandingPage = pathname === "/";
+  const isLoginPage = pathname === "/login";
+  const isRegisterPage = pathname === "/register";
+  const isForgotPasswordPage = pathname === "/forgot-password";
+  const isResetPasswordPage = pathname === "/reset-password";
+  const shouldForceLoginOnRoot = isLandingPage && isDemoHostname(hostname);
 
   if (isRegisterPage) {
     return <RegisterView />;
@@ -133,6 +138,10 @@ const AppContent: React.FC = () => {
 
   if (isResetPasswordPage) {
     return <ResetPasswordView />;
+  }
+
+  if (!isAuthenticated && isLandingPage && !shouldForceLoginOnRoot) {
+    return <LandingView />;
   }
 
   // Show error if auth error exists
@@ -245,7 +254,12 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated) return <Login />;
+  if (!isAuthenticated) {
+    if (isLoginPage || shouldForceLoginOnRoot || !isLandingPage) {
+      return <Login />;
+    }
+    return <LandingView />;
+  }
 
   if (isDemoDriverMode) {
     return (
