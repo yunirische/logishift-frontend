@@ -69,6 +69,8 @@ export const API_ENDPOINTS = {
 
   // Auth & Security
   AUTH_PASSWORD: `${API_BASE_URL}/auth/password`,
+  AUTH_RESET_PASSWORD_REQUEST: `${API_BASE_URL}/auth/reset-password/request`,
+  AUTH_RESET_PASSWORD_CONFIRM: `${API_BASE_URL}/auth/reset-password/confirm`,
 
   // Subscription
   TENANT_SUBSCRIPTION: `${API_BASE_URL}/tenant/subscription`,

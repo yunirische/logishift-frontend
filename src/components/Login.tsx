@@ -34,6 +34,13 @@ const Login: React.FC = () => {
     window.location.href = url.toString();
   };
 
+  const navigateToForgotPassword = () => {
+    const url = new URL(window.location.href);
+    url.pathname = '/forgot-password';
+    url.search = '';
+    window.location.href = url.toString();
+  };
+
   const navigateToDemo = () => {
     window.location.href = getDemoAppUrl();
   };
@@ -160,6 +167,16 @@ const Login: React.FC = () => {
               className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
               required
             />
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={navigateToForgotPassword}
+              className="text-sm text-slate-500 hover:text-[#0a192f] transition-colors"
+            >
+              Забыли пароль?
+            </button>
           </div>
 
           <button

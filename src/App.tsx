@@ -4,6 +4,8 @@ import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import RegisterView from "./views/RegisterView";
+import ForgotPasswordView from "./views/ForgotPasswordView";
+import ResetPasswordView from "./views/ResetPasswordView";
 import { DriverView } from "./views/DriverView";
 import { isDemoTenantId } from "./config/demo";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -116,12 +118,21 @@ const AppContent: React.FC = () => {
     }
   }, [activeTab, isDemoDriverMode, user]);
 
-  // Check if on register page
+  // Check if on auth-related public pages
   const isRegisterPage = window.location.pathname === '/register';
+  const isForgotPasswordPage = window.location.pathname === '/forgot-password';
+  const isResetPasswordPage = window.location.pathname === '/reset-password';
 
-  // Show register page
   if (isRegisterPage) {
     return <RegisterView />;
+  }
+
+  if (isForgotPasswordPage) {
+    return <ForgotPasswordView />;
+  }
+
+  if (isResetPasswordPage) {
+    return <ResetPasswordView />;
   }
 
   // Show error if auth error exists

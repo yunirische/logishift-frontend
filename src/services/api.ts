@@ -401,6 +401,51 @@ export const changePassword = async (currentPassword: string, newPassword: strin
   });
 };
 
+export const requestPasswordReset = async (email: string): Promise<{ message: string }> => {
+  const response = await fetch(API_ENDPOINTS.AUTH_RESET_PASSWORD_REQUEST, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: normalizeLoginEmail(email) }),
+  });
+
+  if (!response.ok) {
+    let errorMessage = "Не удалось отправить запрос на восстановление";
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage;
+    } catch {
+      errorMessage = response.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+};
+
+export const confirmPasswordReset = async (
+  token: string,
+  newPassword: string
+): Promise<{ message: string }> => {
+  const response = await fetch(API_ENDPOINTS.AUTH_RESET_PASSWORD_CONFIRM, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+
+  if (!response.ok) {
+    let errorMessage = "Не удалось обновить пароль";
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage;
+    } catch {
+      errorMessage = response.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+};
+
 export const getSubscription = async (): Promise<SubscriptionInfo> => {
   const data = await get(API_ENDPOINTS.TENANT_SUBSCRIPTION);
 
@@ -501,6 +546,8 @@ const api = {
   clearAuth,
   getPhotoUrl,
   changePassword,
+  requestPasswordReset,
+  confirmPasswordReset,
   getSubscription,
   getCurrentShift,
   acceptInvite,
