@@ -307,13 +307,18 @@ const Layout: React.FC<LayoutProps> = ({
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-50 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-30">
           <div className="flex items-center gap-4">
             <button
-              className="lg:hidden p-2"
+              className={`lg:hidden flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                shouldShowDemoBanner
+                  ? "border-amber-300 bg-amber-50 text-amber-800"
+                  : "border-transparent text-[#1B254B] hover:bg-slate-100"
+              }`}
               onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label={sidebarOpen ? "Закрыть меню" : "Открыть меню"}
               aria-expanded={sidebarOpen}
               aria-controls="sidebar-navigation"
             >
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+              {shouldShowDemoBanner && <span>Меню демо</span>}
             </button>
             <div>
               <h2 className="text-xl font-semibold text-[#1B254B] capitalize tracking-tight">
@@ -344,6 +349,17 @@ const Layout: React.FC<LayoutProps> = ({
         <div className="flex-1 p-6 lg:p-10 overflow-x-hidden">
           {shouldShowDemoBanner && setDemoPersona && (
             <DemoBanner demoPersona={demoPersona} setDemoPersona={setDemoPersona} />
+          )}
+          {shouldShowDemoBanner && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 shadow-sm transition-colors hover:bg-amber-100 lg:hidden"
+              aria-controls="sidebar-navigation"
+            >
+              <Menu size={18} />
+              Открыть меню разделов демо
+            </button>
           )}
           {children}
         </div>
