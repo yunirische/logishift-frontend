@@ -39,6 +39,45 @@ const benefits = [
   "проще контролировать технику",
 ];
 
+const tariffs = [
+  {
+    name: "Бесплатный",
+    price: "0 ₽",
+    meta: "без ограничения по времени",
+    details: [
+      "до 2 машин",
+      "до 2 объектов",
+      "до 2 водителей",
+      "чтобы попробовать сервис на реальных сменах",
+    ],
+    featured: true,
+  },
+  {
+    name: "Старт",
+    price: "2 900 ₽/мес",
+    meta: "до 5 машин",
+    details: ["водители", "техника", "объекты", "смены с фото"],
+  },
+  {
+    name: "Бизнес",
+    price: "4 900 ₽/мес",
+    meta: "до 10 машин",
+    details: ["для регулярного контроля парка и смен"],
+  },
+  {
+    name: "Компания",
+    price: "8 900 ₽/мес",
+    meta: "до 20 машин",
+    details: ["для нескольких объектов", "для большего количества смен"],
+  },
+  {
+    name: "Индивидуальный",
+    price: "по договорённости",
+    meta: "от 20 машин",
+    details: ["отдельное внедрение", "особые требования", "корпоративные условия"],
+  },
+];
+
 const openLogin = () => {
   window.location.href = getProductionAppUrl("/login");
 };
@@ -214,59 +253,55 @@ const LandingView: React.FC = () => {
           </div>
         </section>
 
-        <section className="mt-16 rounded-[28px] border border-[#77c2ff]/40 bg-[linear-gradient(135deg,_#041627_0%,_#1a2b3c_58%,_#004f79_100%)] p-6 text-white shadow-[0_30px_70px_rgba(4,22,39,0.18)] sm:p-8 lg:p-10">
-          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-            <div>
-              <div className="text-sm font-semibold uppercase tracking-[0.22em] text-[#92ccff]">
-                Временное предложение
-              </div>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight">
-                Сейчас набираем первые компании для тестового подключения
-              </h2>
-              <p className="mt-4 max-w-xl text-base leading-7 text-slate-200">
-                Поможем настроить компанию, водителей, технику и объекты. Первым участникам предложим бесплатный тестовый период и ранние условия запуска.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {["5-10 компаний", "помощь с настройкой", "бесплатный тестовый период", "ранние условия запуска"].map((item) => (
-                <div key={item} className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                  <div className="flex gap-3">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#92ccff]" />
-                    <div className="text-sm font-medium leading-6 text-slate-100">{item}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section className="mt-16">
           <div className="max-w-3xl">
             <div className="text-sm font-semibold uppercase tracking-[0.22em] text-[#006497]">
-              Тарифы
+              Предварительные тарифы
             </div>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#041627] sm:text-4xl">
-              Простой старт
+              Показываем порядок стоимости заранее
             </h2>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Онлайн-оплата появится позже. Сейчас можно начать с базового варианта или обсудить расширенный запуск.
+              Показываем порядок стоимости заранее, чтобы после начала работы не было неприятных сюрпризов.
+              Тарифы предварительные и могут уточняться по мере запуска.
             </p>
           </div>
-          <div className="mt-8 grid gap-5 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-[#006497]">Free</div>
-              <div className="mt-3 text-3xl font-bold tracking-tight text-[#041627]">до 5 машин</div>
-              <p className="mt-4 text-sm leading-6 text-slate-600">
-                Базовый учет смен, техники, водителей, объектов, фото и истории.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-[#006497]">Расширенный</div>
-              <div className="mt-3 text-3xl font-bold tracking-tight text-[#041627]">по заявке</div>
-              <p className="mt-4 text-sm leading-6 text-slate-600">
-                Для компаний, которым нужна помощь с запуском и настройкой процесса.
-              </p>
-            </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {tariffs.map((tariff) => (
+              <div
+                key={tariff.name}
+                className={`rounded-2xl border p-5 shadow-sm ${
+                  tariff.featured
+                    ? "border-[#77c2ff] bg-[#eef8ff]"
+                    : "border-slate-200 bg-white"
+                }`}
+              >
+                <div className="min-h-[4.5rem]">
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#006497]">
+                    {tariff.name}
+                  </div>
+                  <div className="mt-3 text-2xl font-bold tracking-tight text-[#041627]">
+                    {tariff.price}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-600">{tariff.meta}</div>
+                </div>
+                <ul className="mt-5 space-y-2">
+                  {tariff.details.map((detail) => (
+                    <li key={detail} className="flex gap-2 text-sm leading-5 text-slate-600">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#27ae60]" />
+                      {detail}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-600 shadow-sm">
+            Для первых компаний доступно тестовое подключение: помощь в настройке и специальные условия на первые месяцы работы.
+          </div>
+          <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-600 shadow-sm">
+            Для крупного парка, отдельного внедрения или особых требований подготовим индивидуальные условия.
+            Онлайн-оплата появится позже.
           </div>
         </section>
 
