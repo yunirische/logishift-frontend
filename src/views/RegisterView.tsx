@@ -23,7 +23,7 @@ interface PasswordChecks {
 }
 
 const RegisterView: React.FC = () => {
-  const [mode, setMode] = useState<RegisterMode>('driver');
+  const [mode, setMode] = useState<RegisterMode>('admin');
   const [formData, setFormData] = useState<RegisterFormData>({
     code: '',
     full_name: '',
@@ -201,27 +201,12 @@ const RegisterView: React.FC = () => {
           </h1>
           <p className="text-slate-400 text-sm mt-2 font-medium">Регистрация в системе</p>
           <p className="text-slate-500 text-sm mt-3 leading-relaxed">
-            После регистрации вы попадете в кабинет администратора: добавьте объект, технику и водителей, чтобы провести первую смену.
+            Компания или администратор создаёт аккаунт компании. Водитель подключается по приглашению или ссылке-приглашению.
           </p>
         </div>
 
         {/* Mode Toggle */}
         <div className="mb-8 bg-[#F4F7FE] rounded-lg p-1 flex">
-          <button
-            type="button"
-            onClick={() => {
-              setMode('driver');
-              setError(null);
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-md text-sm font-bold transition-all ${
-              mode === 'driver'
-                ? 'bg-[#0a192f] text-white shadow-lg'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <User className="w-4 h-4" />
-            Водитель
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -236,6 +221,21 @@ const RegisterView: React.FC = () => {
           >
             <Building className="w-4 h-4" />
             Компания
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode('driver');
+              setError(null);
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-md text-sm font-bold transition-all ${
+              mode === 'driver'
+                ? 'bg-[#0a192f] text-white shadow-lg'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Водитель
           </button>
         </div>
 
