@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, Loader2, Lock } from "lucide-react";
 import { confirmPasswordReset } from "../services/api";
 import BrandLogo from "../components/BrandLogo";
+import LegalLinks from "../components/LegalLinks";
 
 const INVALID_LINK_MESSAGE =
   "Ссылка недействительна или устарела. Запросите восстановление ещё раз.";
@@ -189,9 +190,9 @@ const ResetPasswordView: React.FC = () => {
           </button>
         </div>
 
-        <p className="text-center text-[10px] text-slate-300 mt-8 uppercase font-bold tracking-[0.24em]">
-          LOGISHIFT
-        </p>
+        <div className="mt-8 border-t border-slate-100 pt-6">
+          <LegalLinks compact />
+        </div>
       </div>
     </div>
   );

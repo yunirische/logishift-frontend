@@ -10,6 +10,13 @@ import {
 import { getDemoAppUrl, getProductionAppUrl } from "../config/demo";
 import { PUBLIC_TARIFFS } from "../config/tariffs";
 import BrandLogo from "../components/BrandLogo";
+import LegalLinks from "../components/LegalLinks";
+import {
+  SUPPORT_EMAIL,
+  SUPPORT_EMAIL_HREF,
+  SUPPORT_PHONE,
+  SUPPORT_TELEGRAM_URL,
+} from "../config/legal";
 
 const workSteps = [
   {
@@ -298,6 +305,38 @@ const LandingView: React.FC = () => {
           </div>
         </section>
       </main>
+
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-10">
+          <div className="max-w-xl">
+            <BrandLogo imageClassName="h-auto w-[12rem] max-w-full" />
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              LogiShift помогает организациям и ИП вести учет смен, техники, объектов и рабочих записей в одном онлайн-сервисе.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
+              <a href={SUPPORT_EMAIL_HREF} className="transition-colors hover:text-[#041627]">
+                {SUPPORT_EMAIL}
+              </a>
+              <a href="tel:+73472163237" className="transition-colors hover:text-[#041627]">
+                {SUPPORT_PHONE}
+              </a>
+              <a
+                href={SUPPORT_TELEGRAM_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="transition-colors hover:text-[#041627]"
+              >
+                Написать в поддержку
+              </a>
+            </div>
+          </div>
+          <LegalLinks
+            className="lg:justify-self-end"
+            supportClassName="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500 lg:justify-end"
+            linksClassName="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500 lg:justify-end"
+          />
+        </div>
+      </footer>
     </div>
   );
 };

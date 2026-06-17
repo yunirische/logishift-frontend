@@ -8,6 +8,7 @@ import RegisterView from "./views/RegisterView";
 import ForgotPasswordView from "./views/ForgotPasswordView";
 import ResetPasswordView from "./views/ResetPasswordView";
 import BillingView from "./views/BillingView";
+import LegalDocumentView from "./views/LegalDocumentView";
 import { DriverView } from "./views/DriverView";
 import {
   isDemoHostname,
@@ -177,11 +178,31 @@ const AppContent: React.FC = () => {
   const isRegisterPage = pathname === "/register";
   const isForgotPasswordPage = pathname === "/forgot-password";
   const isResetPasswordPage = pathname === "/reset-password";
+  const isOfferPage = pathname === "/offer";
+  const isPrivacyPage = pathname === "/privacy";
+  const isPaymentAndRefundPage = pathname === "/payment-and-refund";
+  const isContactsPage = pathname === "/contacts";
   const isMarketingHost = isMarketingHostname(hostname);
   const isAppHost = isProductionAppHostname(hostname);
   const isDemoHost = isDemoHostname(hostname);
   const shouldShowLandingOnRoot = isLandingPage && isMarketingHost;
   const shouldForceLoginOnRoot = isLandingPage && !isMarketingHost;
+
+  if (isOfferPage) {
+    return <LegalDocumentView documentKey="offer" />;
+  }
+
+  if (isPrivacyPage) {
+    return <LegalDocumentView documentKey="privacy" />;
+  }
+
+  if (isPaymentAndRefundPage) {
+    return <LegalDocumentView documentKey="payment-and-refund" />;
+  }
+
+  if (isContactsPage) {
+    return <LegalDocumentView documentKey="contacts" />;
+  }
 
   if (isRegisterPage) {
     return <RegisterView />;

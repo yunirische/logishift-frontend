@@ -7,6 +7,7 @@ import {
 } from '../config/demo';
 import { loginUser } from '../services/api';
 import BrandLogo from './BrandLogo';
+import LegalLinks from './LegalLinks';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -258,9 +259,9 @@ const Login: React.FC = () => {
           </button>
         </div>
 
-        <p className="text-center text-[10px] text-slate-300 mt-8 uppercase font-bold tracking-[0.24em]">
-          LOGISHIFT
-        </p>
+        <div className="mt-8 border-t border-slate-100 pt-6">
+          <LegalLinks compact />
+        </div>
       </div>
     </div>
   );

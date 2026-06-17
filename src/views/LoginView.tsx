@@ -6,6 +6,7 @@ import { Button, Input, Card } from '../components/ui';
 import { User, Lock, AlertCircle } from 'lucide-react';
 import { API_ENDPOINTS } from '../constants';
 import BrandLogo from '../components/BrandLogo';
+import LegalLinks from '../components/LegalLinks';
 
 export const LoginView = () => {
   const { login } = useAuth();
@@ -74,6 +75,9 @@ export const LoginView = () => {
             Войти
           </Button>
         </form>
+        <div className="mt-8 border-t border-slate-100 pt-6">
+          <LegalLinks compact />
+        </div>
       </Card>
     </div>
   );

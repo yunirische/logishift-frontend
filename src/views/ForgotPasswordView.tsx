@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Mail, Loader2, ArrowLeft } from "lucide-react";
 import { requestPasswordReset } from "../services/api";
 import BrandLogo from "../components/BrandLogo";
+import LegalLinks from "../components/LegalLinks";
 
 const SUCCESS_MESSAGE =
   "Если email зарегистрирован, инструкция для восстановления будет отправлена.";
@@ -127,9 +128,9 @@ const ForgotPasswordView: React.FC = () => {
           </button>
         </div>
 
-        <p className="text-center text-[10px] text-slate-300 mt-8 uppercase font-bold tracking-[0.24em]">
-          LOGISHIFT
-        </p>
+        <div className="mt-8 border-t border-slate-100 pt-6">
+          <LegalLinks compact />
+        </div>
       </div>
     </div>
   );

@@ -21,8 +21,9 @@ import {
 } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { BILLING_CHECKOUT_PLAN_CODES, PUBLIC_TARIFFS } from "../config/tariffs";
+import { SUPPORT_TELEGRAM_URL } from "../config/legal";
 
-const SUPPORT_URL = "https://t.me/logishift_support";
+const SUPPORT_URL = SUPPORT_TELEGRAM_URL;
 const CHECKOUT_UNAVAILABLE_MESSAGE =
   "Онлайн-оплата пока недоступна. Напишите в поддержку.";
 const BILLING_LOAD_ERROR_MESSAGE =
