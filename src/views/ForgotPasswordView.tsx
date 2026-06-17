@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Mail, Loader2, ArrowLeft } from "lucide-react";
 import { requestPasswordReset } from "../services/api";
+import BrandLogo from "../components/BrandLogo";
 
 const SUCCESS_MESSAGE =
   "Если email зарегистрирован, инструкция для восстановления будет отправлена.";
@@ -42,9 +43,10 @@ const ForgotPasswordView: React.FC = () => {
     <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-lg shadow-2xl p-10 border border-slate-50">
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-semibold text-[#1B254B] flex items-center justify-center gap-2">
-            <span className="text-[#3b82f6]">LOGI</span>SHIFT
-          </h1>
+          <BrandLogo
+            className="flex justify-center"
+            imageClassName="h-auto w-full max-w-[17rem]"
+          />
           <p className="text-slate-400 text-sm mt-2 font-medium">Восстановление пароля</p>
           <p className="text-slate-500 text-sm mt-3 leading-relaxed">
             Введите email администратора или сотрудника. Если восстановление подключено и email
@@ -125,8 +127,8 @@ const ForgotPasswordView: React.FC = () => {
           </button>
         </div>
 
-        <p className="text-center text-[10px] text-slate-300 mt-8 uppercase font-bold tracking-widest">
-          KONTROLSMEN v2.0 Enterprise
+        <p className="text-center text-[10px] text-slate-300 mt-8 uppercase font-bold tracking-[0.24em]">
+          LOGISHIFT
         </p>
       </div>
     </div>

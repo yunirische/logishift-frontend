@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.png', 'apple-touch-icon.png'],
       workbox: {
         // ДОБАВЬ ЭТИ СТРОКИ - форсируй обновление и очистку
         cleanupOutdatedCaches: true,
@@ -41,11 +41,11 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: 'LogiShift Driver',
+        name: 'LogiShift',
         short_name: 'LogiShift',
-        description: 'Приложение для водителей LogiShift',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        description: 'LogiShift - контроль смен, техники и объектов',
+        theme_color: '#041627',
+        background_color: '#f7f9fc',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

@@ -5,6 +5,7 @@ import { normalizeLoginEmail } from '../services/api';
 import { Button, Input, Card } from '../components/ui';
 import { User, Lock, AlertCircle } from 'lucide-react';
 import { API_ENDPOINTS } from '../constants';
+import BrandLogo from '../components/BrandLogo';
 
 export const LoginView = () => {
   const { login } = useAuth();
@@ -40,7 +41,9 @@ export const LoginView = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8">
-        <h1 className="text-2xl font-bold text-center mb-6">Вход LogiShift</h1>
+        <div className="mb-6 flex justify-center">
+          <BrandLogo imageClassName="h-auto w-full max-w-[15rem]" />
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Логин</label>

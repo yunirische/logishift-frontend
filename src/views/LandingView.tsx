@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { getDemoAppUrl, getProductionAppUrl } from "../config/demo";
 import { PUBLIC_TARIFFS } from "../config/tariffs";
+import BrandLogo from "../components/BrandLogo";
 
 const workSteps = [
   {
@@ -59,12 +60,10 @@ const LandingView: React.FC = () => {
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,22,39,0.04)_1px,transparent_1px),linear-gradient(rgba(4,22,39,0.04)_1px,transparent_1px)] bg-[size:36px_36px]" />
         <div className="relative mx-auto flex max-w-7xl flex-col px-5 pb-12 pt-5 sm:px-6 lg:px-10 lg:pb-20">
           <header className="mb-10 flex items-center justify-between gap-4">
-            <div>
-              <div className="text-xl font-bold tracking-tight text-[#041627]">LogiShift</div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                Контроль смен
-              </div>
-            </div>
+            <BrandLogo
+              className="min-w-0"
+              imageClassName="h-auto w-[11rem] max-w-full sm:w-[13.5rem]"
+            />
             <div className="flex items-center gap-2 sm:gap-3">
               <button
                 type="button"

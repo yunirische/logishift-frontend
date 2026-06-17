@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import DemoBanner from './DemoBanner';
 import { isDemoHostname, isDemoTenantId } from "../config/demo";
+import BrandLogo from "./BrandLogo";
 
 // Demo persona type
 type DemoPersona = 'admin' | 'driver';
@@ -232,10 +233,12 @@ const Layout: React.FC<LayoutProps> = ({
         aria-label="Основная навигация"
       >
         <div className="p-8">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-white">
-              <span className="text-[#3b82f6]">LOGI</span>SHIFT
-            </h1>
+          <div className="flex items-start gap-3">
+            <BrandLogo
+              variant="dark"
+              className="min-w-0"
+              imageClassName="h-auto w-[11.5rem] max-w-full"
+            />
             {isDemoMode && (
               <span
                 className="px-2 py-1 bg-amber-500 text-slate-900 text-[9px] font-bold uppercase tracking-wider rounded"
@@ -248,7 +251,7 @@ const Layout: React.FC<LayoutProps> = ({
           <div className="flex items-center gap-2 mt-1">
             <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse"></div>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
-              LOGISHIFT V2.5 Stable
+              Контроль смен
             </p>
           </div>
         </div>
