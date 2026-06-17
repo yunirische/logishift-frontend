@@ -266,13 +266,11 @@ const System: React.FC = () => {
               </div>
             )}
             <a
-              href="https://t.me/logishift_support"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/?tab=billing"
               className="mt-4 flex items-center justify-center gap-2 w-full px-4 py-3 bg-[#0a192f] hover:bg-[#152238] text-white font-bold rounded-lg transition-all shadow-lg shadow-[#0a192f]/30 active:scale-95"
             >
-              <ExternalLink className="w-4 h-4" />
-              Продлить подписку
+              <CreditCard className="w-4 h-4" />
+              Открыть оплату
             </a>
           </div>
         </div>

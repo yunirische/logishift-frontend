@@ -74,6 +74,9 @@ export const API_ENDPOINTS = {
 
   // Subscription
   TENANT_SUBSCRIPTION: `${API_BASE_URL}/tenant/subscription`,
+  TENANT_BILLING: `${API_BASE_URL}/tenant/billing`,
+  BILLING_PAYMENTS: `${API_BASE_URL}/billing/payments`,
+  BILLING_CHECKOUT: `${API_BASE_URL}/billing/checkout`,
 
   // Telegram
   AUTH_LINK_TOKEN: `${API_BASE_URL}/auth/link-token`,

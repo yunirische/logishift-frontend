@@ -8,6 +8,7 @@ import {
   Truck,
 } from "lucide-react";
 import { getDemoAppUrl, getProductionAppUrl } from "../config/demo";
+import { PUBLIC_TARIFFS } from "../config/tariffs";
 
 const workSteps = [
   {
@@ -37,45 +38,6 @@ const benefits = [
   "видно, кто и где работает",
   "фото и история смен под рукой",
   "проще контролировать технику",
-];
-
-const tariffs = [
-  {
-    name: "Бесплатный",
-    price: "0 ₽",
-    meta: "без ограничения по времени",
-    details: [
-      "до 2 машин",
-      "до 2 объектов",
-      "до 2 водителей",
-      "чтобы попробовать сервис на реальных сменах",
-    ],
-    featured: true,
-  },
-  {
-    name: "Старт",
-    price: "2 900 ₽/мес",
-    meta: "до 5 машин",
-    details: ["водители", "техника", "объекты", "смены с фото"],
-  },
-  {
-    name: "Бизнес",
-    price: "4 900 ₽/мес",
-    meta: "до 10 машин",
-    details: ["для регулярного контроля парка и смен"],
-  },
-  {
-    name: "Компания",
-    price: "8 900 ₽/мес",
-    meta: "до 20 машин",
-    details: ["для нескольких объектов", "для большего количества смен"],
-  },
-  {
-    name: "Индивидуальный",
-    price: "по договорённости",
-    meta: "от 20 машин",
-    details: ["отдельное внедрение", "особые требования", "корпоративные условия"],
-  },
 ];
 
 const openLogin = () => {
@@ -267,9 +229,9 @@ const LandingView: React.FC = () => {
             </p>
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {tariffs.map((tariff) => (
+            {PUBLIC_TARIFFS.map((tariff) => (
               <div
-                key={tariff.name}
+                key={tariff.code}
                 className={`rounded-2xl border p-5 shadow-sm ${
                   tariff.featured
                     ? "border-[#77c2ff] bg-[#eef8ff]"
@@ -281,7 +243,7 @@ const LandingView: React.FC = () => {
                     {tariff.name}
                   </div>
                   <div className="mt-3 text-2xl font-bold tracking-tight text-[#041627]">
-                    {tariff.price}
+                    {tariff.priceLabel}
                   </div>
                   <div className="mt-1 text-sm font-semibold text-slate-600">{tariff.meta}</div>
                 </div>

@@ -1,5 +1,15 @@
 import { API_ENDPOINTS, API_BASE_URL, STATIC_BASE_URL } from "../constants";
-import { User, AnalyticsUsage, AnalyticsTrend, AnalyticsDriver, AnalyticsInsights, SubscriptionInfo } from "../types";
+import {
+  User,
+  AnalyticsUsage,
+  AnalyticsTrend,
+  AnalyticsDriver,
+  AnalyticsInsights,
+  SubscriptionInfo,
+  TenantBillingSummary,
+  BillingPaymentSummary,
+  BillingCheckoutResponse,
+} from "../types";
 
 export const TOKEN_KEY = "logishift_auth_token";
 export const USER_KEY = "logishift_user_info";
@@ -457,6 +467,76 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
   };
 };
 
+export const getTenantBilling = async (): Promise<TenantBillingSummary> => {
+  const data = await get(API_ENDPOINTS.TENANT_BILLING);
+  const currentPlan = data.current_plan || data.currentPlan || null;
+  const lastPayment = data.last_payment || data.lastPayment || null;
+
+  return {
+    current_plan: currentPlan
+      ? {
+          code: currentPlan.code,
+          name: currentPlan.name,
+          price_monthly: Number(currentPlan.price_monthly ?? currentPlan.priceMonthly ?? 0),
+          limit_machines: Number(currentPlan.limit_machines ?? currentPlan.limitMachines ?? 0),
+          limit_drivers: Number(currentPlan.limit_drivers ?? currentPlan.limitDrivers ?? 0),
+          limit_sites: Number(currentPlan.limit_sites ?? currentPlan.limitSites ?? 0),
+        }
+      : null,
+    subscription_expires_at:
+      data.subscription_expires_at || data.subscriptionExpiresAt || null,
+    last_payment: lastPayment
+      ? {
+          id: Number(lastPayment.id),
+          plan_code: lastPayment.plan_code || lastPayment.planCode || undefined,
+          plan_name: lastPayment.plan_name || lastPayment.planName || undefined,
+          status: String(lastPayment.status || "unknown"),
+          amount: Number(lastPayment.amount ?? 0),
+          currency: String(lastPayment.currency || "RUB"),
+          period_months:
+            lastPayment.period_months !== undefined ||
+            lastPayment.periodMonths !== undefined
+              ? Number(lastPayment.period_months ?? lastPayment.periodMonths)
+              : undefined,
+          paid_at: lastPayment.paid_at || lastPayment.paidAt || null,
+          created_at: lastPayment.created_at || lastPayment.createdAt || null,
+        }
+      : null,
+  };
+};
+
+export const getBillingPayments = async (): Promise<BillingPaymentSummary[]> => {
+  const data = await get(API_ENDPOINTS.BILLING_PAYMENTS);
+  if (!Array.isArray(data)) return [];
+
+  return data.map((payment: any) => ({
+    id: Number(payment.id),
+    plan_code: payment.plan_code || payment.planCode || undefined,
+    plan_name: payment.plan_name || payment.planName || undefined,
+    status: String(payment.status || "unknown"),
+    amount: Number(payment.amount ?? 0),
+    currency: String(payment.currency || "RUB"),
+    period_months:
+      payment.period_months !== undefined || payment.periodMonths !== undefined
+        ? Number(payment.period_months ?? payment.periodMonths)
+        : undefined,
+    paid_at: payment.paid_at || payment.paidAt || null,
+    created_at: payment.created_at || payment.createdAt || null,
+  }));
+};
+
+export const createBillingCheckout = async (
+  planCode: string
+): Promise<BillingCheckoutResponse> => {
+  const data = await post(API_ENDPOINTS.BILLING_CHECKOUT, { planCode });
+
+  return {
+    payment_id: Number(data.payment_id ?? data.paymentId ?? 0),
+    status: String(data.status || "pending"),
+    confirmation_url: data.confirmation_url || data.confirmationUrl || null,
+  };
+};
+
 /**
  * Get current shift for the logged-in user.
  * Returns null if no active shift exists (400/404), instead of throwing.
@@ -549,6 +629,9 @@ const api = {
   requestPasswordReset,
   confirmPasswordReset,
   getSubscription,
+  getTenantBilling,
+  getBillingPayments,
+  createBillingCheckout,
   getCurrentShift,
   acceptInvite,
   getTelegramLinkCode,

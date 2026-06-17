@@ -178,6 +178,39 @@ export interface SubscriptionInfo {
   plan_name?: string;
 }
 
+export interface BillingPlanInfo {
+  code: string;
+  name: string;
+  price_monthly: number;
+  limit_machines: number;
+  limit_drivers: number;
+  limit_sites: number;
+}
+
+export interface BillingPaymentSummary {
+  id: number;
+  plan_code?: string;
+  plan_name?: string;
+  status: string;
+  amount: number;
+  currency: string;
+  period_months?: number;
+  paid_at: string | null;
+  created_at: string | null;
+}
+
+export interface TenantBillingSummary {
+  current_plan: BillingPlanInfo | null;
+  subscription_expires_at: string | null;
+  last_payment: BillingPaymentSummary | null;
+}
+
+export interface BillingCheckoutResponse {
+  payment_id: number;
+  status: string;
+  confirmation_url: string | null;
+}
+
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;

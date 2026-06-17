@@ -7,6 +7,7 @@ import LandingView from "./views/LandingView";
 import RegisterView from "./views/RegisterView";
 import ForgotPasswordView from "./views/ForgotPasswordView";
 import ResetPasswordView from "./views/ResetPasswordView";
+import BillingView from "./views/BillingView";
 import { DriverView } from "./views/DriverView";
 import {
   isDemoHostname,
@@ -32,6 +33,7 @@ type AppTab =
   | "my-shifts"
   | "driver-history"
   | "analytics"
+  | "billing"
   | "shifts"
   | "drivers"
   | "fleet"
@@ -39,6 +41,21 @@ type AppTab =
   | "audit"
   | "settings"
   | "users";
+
+const APP_TABS: AppTab[] = [
+  "dashboard",
+  "my-shifts",
+  "driver-history",
+  "analytics",
+  "billing",
+  "shifts",
+  "drivers",
+  "fleet",
+  "objects",
+  "audit",
+  "settings",
+  "users",
+];
 
 const getAllowedTabs = ({
   role,
@@ -57,6 +74,7 @@ const getAllowedTabs = ({
         "dashboard",
         "my-shifts",
         "analytics",
+        "billing",
         "shifts",
         "drivers",
         "fleet",
@@ -65,7 +83,15 @@ const getAllowedTabs = ({
         "settings",
       ];
     case "foreman":
-      return ["dashboard", "my-shifts", "analytics", "shifts", "drivers", "objects"];
+      return [
+        "dashboard",
+        "my-shifts",
+        "analytics",
+        "billing",
+        "shifts",
+        "drivers",
+        "objects",
+      ];
     case "driver":
       return ["my-shifts", "driver-history"];
     default:
@@ -88,16 +114,36 @@ const getDefaultTab = ({
 };
 
 const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    if (requestedTab && APP_TABS.includes(requestedTab as AppTab)) {
+      return requestedTab as AppTab;
+    }
+    return "dashboard";
+  });
   // Initialize from localStorage or default to 'admin'
   const [demoPersona, setDemoPersona] = useState<DemoPersona>(() => {
     const saved = localStorage.getItem('demoPersona');
     return (saved === 'driver' || saved === 'admin') ? saved : 'admin';
   });
   const { isAuthenticated, isLoading, error, clearError, user } = useAuth();
-  const handleSetActiveTab = (tab: string) => setActiveTab(tab as AppTab);
   const pathname = window.location.pathname;
   const hostname = window.location.hostname;
+  const isPaymentSuccessPage = pathname === "/payment/success";
+  const isPaymentCancelPage = pathname === "/payment/cancel";
+  const isPaymentReturnPage = isPaymentSuccessPage || isPaymentCancelPage;
+  const handleSetActiveTab = (tab: string) => {
+    const nextTab = tab as AppTab;
+
+    if (isPaymentReturnPage) {
+      const nextUrl =
+        nextTab === "dashboard" ? "/" : `/?tab=${encodeURIComponent(nextTab)}`;
+      window.location.href = nextUrl;
+      return;
+    }
+
+    setActiveTab(nextTab);
+  };
 
   // Persist to localStorage on change
   useEffect(() => {
@@ -147,6 +193,34 @@ const AppContent: React.FC = () => {
 
   if (isResetPasswordPage) {
     return <ResetPasswordView />;
+  }
+
+  if (isPaymentSuccessPage && isAuthenticated) {
+    return (
+      <ErrorBoundary>
+        <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
+          <Layout activeTab="billing" setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
+            <ErrorBoundary>
+              <BillingView returnMode="success" />
+            </ErrorBoundary>
+          </Layout>
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
+  if (isPaymentCancelPage && isAuthenticated) {
+    return (
+      <ErrorBoundary>
+        <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
+          <Layout activeTab="billing" setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
+            <ErrorBoundary>
+              <BillingView returnMode="cancel" />
+            </ErrorBoundary>
+          </Layout>
+        </div>
+      </ErrorBoundary>
+    );
   }
 
   if (!isAuthenticated && shouldShowLandingOnRoot) {
@@ -209,6 +283,8 @@ const AppContent: React.FC = () => {
             <Analytics />
           </Suspense>
         );
+      case "billing":
+        return <BillingView />;
       case "shifts":
         return (
           <Suspense fallback={loadingFallback}>

@@ -10,6 +10,7 @@ import {
   Users,
   Truck,
   Building,
+  CreditCard,
   ScrollText,
   Settings,
   BarChart,
@@ -69,6 +70,8 @@ const Layout: React.FC<LayoutProps> = ({
         return "Мои смены";
       case "analytics":
         return "Аналитика";
+      case "billing":
+        return "Тариф и оплата";
       case "shifts":
         return "Реестр смен";
       case "drivers":
@@ -109,6 +112,12 @@ const Layout: React.FC<LayoutProps> = ({
       id: "analytics",
       label: "Аналитика",
       icon: BarChart,
+      roles: [UserRole.ADMIN, UserRole.FOREMAN],
+    },
+    {
+      id: "billing",
+      label: "Тариф и оплата",
+      icon: CreditCard,
       roles: [UserRole.ADMIN, UserRole.FOREMAN],
     },
     {
