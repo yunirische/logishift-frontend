@@ -15,6 +15,8 @@ type LegalLinksProps = {
 
 const linkBaseClass =
   "text-slate-500 transition-colors hover:text-[#041627]";
+const anchorClassName =
+  "inline-flex w-fit flex-none items-center justify-start";
 
 const LegalLinks: React.FC<LegalLinksProps> = ({
   className = "",
@@ -34,18 +36,21 @@ const LegalLinks: React.FC<LegalLinksProps> = ({
           `flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm ${linkBaseClass}`
         }
       >
-        <a href={SUPPORT_EMAIL_HREF}>{SUPPORT_EMAIL}</a>
-        <a href={SUPPORT_TELEGRAM_URL} target="_blank" rel="noreferrer">
+        <a href={SUPPORT_EMAIL_HREF} className={anchorClassName}>
+          {SUPPORT_EMAIL}
+        </a>
+        <a
+          href={SUPPORT_TELEGRAM_URL}
+          target="_blank"
+          rel="noreferrer"
+          className={anchorClassName}
+        >
           Написать в поддержку
         </a>
       </div>
-      <div
-        className={
-          linksClassName || defaultLinksClass
-        }
-      >
+      <div className={linksClassName || defaultLinksClass}>
         {PUBLIC_LEGAL_LINKS.map((link) => (
-          <a key={link.href} href={link.href}>
+          <a key={link.href} href={link.href} className={anchorClassName}>
             {link.label}
           </a>
         ))}

@@ -314,17 +314,23 @@ const LandingView: React.FC = () => {
               LogiShift помогает организациям и ИП вести учет смен, техники, объектов и рабочих записей в одном онлайн-сервисе.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
-              <a href={SUPPORT_EMAIL_HREF} className="transition-colors hover:text-[#041627]">
+              <a
+                href={SUPPORT_EMAIL_HREF}
+                className="inline-flex w-fit flex-none items-center justify-start transition-colors hover:text-[#041627]"
+              >
                 {SUPPORT_EMAIL}
               </a>
-              <a href="tel:+73472163237" className="transition-colors hover:text-[#041627]">
+              <a
+                href="tel:+73472163237"
+                className="inline-flex w-fit flex-none items-center justify-start transition-colors hover:text-[#041627]"
+              >
                 {SUPPORT_PHONE}
               </a>
               <a
                 href={SUPPORT_TELEGRAM_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="transition-colors hover:text-[#041627]"
+                className="inline-flex w-fit flex-none items-center justify-start transition-colors hover:text-[#041627]"
               >
                 Написать в поддержку
               </a>
