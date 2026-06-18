@@ -11,17 +11,16 @@ import {
 import {
   createBillingCheckout,
   getBillingPayments,
-  getTenantBilling,
   ApiErrorType,
 } from "../services/api";
 import {
   BillingPaymentSummary,
-  TenantBillingSummary,
   UserRole,
 } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { BILLING_CHECKOUT_PLAN_CODES, PUBLIC_TARIFFS } from "../config/tariffs";
 import { SUPPORT_TELEGRAM_URL } from "../config/legal";
+import { useTenantBillingSummary } from "../hooks/useTenantBillingSummary";
 
 const SUPPORT_URL = SUPPORT_TELEGRAM_URL;
 const CHECKOUT_UNAVAILABLE_MESSAGE =
@@ -30,6 +29,8 @@ const BILLING_LOAD_ERROR_MESSAGE =
   "Не удалось загрузить данные по тарифу. Попробуйте обновить страницу.";
 const BILLING_CHECKOUT_ERROR_MESSAGE =
   "Не удалось начать оплату. Попробуйте позже или напишите в поддержку.";
+const PAYMENT_SUCCESS_REFRESH_ATTEMPTS = 4;
+const PAYMENT_SUCCESS_REFRESH_DELAY_MS = 2500;
 
 type BillingViewProps = {
   returnMode?: "success" | "cancel";
@@ -160,9 +161,13 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
     []
   );
 
-  const [billing, setBilling] = useState<TenantBillingSummary | null>(null);
+  const {
+    billing,
+    isLoading,
+    error: billingError,
+    refreshBilling: refreshBillingSummary,
+  } = useTenantBillingSummary();
   const [payments, setPayments] = useState<BillingPaymentSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -172,47 +177,102 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
   useEffect(() => {
     let isMounted = true;
 
-    const loadBilling = async () => {
-      setIsLoading(true);
+    const loadPayments = async () => {
+      if (!isAdmin) {
+        setPayments([]);
+        setIsPaymentsLoading(false);
+        return;
+      }
+
+      setIsPaymentsLoading(true);
       setLoadError(null);
 
       try {
-        const [billingData, paymentsData] = await Promise.all([
-          getTenantBilling(),
-          isAdmin ? getBillingPayments() : Promise.resolve([]),
-        ]);
-
+        const paymentsData = await getBillingPayments();
         if (!isMounted) return;
-
-        setBilling(billingData);
         setPayments(paymentsData);
       } catch (error) {
         if (!isMounted) return;
         setLoadError(getSafeBillingLoadErrorMessage(error));
       } finally {
         if (isMounted) {
-          setIsLoading(false);
           setIsPaymentsLoading(false);
         }
       }
     };
 
-    void loadBilling();
+    void loadPayments();
 
     return () => {
       isMounted = false;
     };
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (billingError) {
+      setLoadError(getSafeBillingLoadErrorMessage(new Error(billingError)));
+      return;
+    }
+
+    setLoadError((currentError) =>
+      currentError === BILLING_LOAD_ERROR_MESSAGE ? null : currentError
+    );
+  }, [billingError]);
+
+  useEffect(() => {
+    if (returnMode !== "success") return;
+
+    let isCancelled = false;
+    let timerId: number | null = null;
+    let attempt = 0;
+
+    const retryUntilSettled = async () => {
+      while (!isCancelled && attempt < PAYMENT_SUCCESS_REFRESH_ATTEMPTS) {
+        attempt += 1;
+        const latestBilling = await refreshBillingSummary();
+        const latestPaymentStatus = latestBilling?.last_payment?.status;
+
+        if (
+          latestPaymentStatus &&
+          latestPaymentStatus !== "pending" &&
+          latestPaymentStatus !== "waiting_for_capture"
+        ) {
+          return;
+        }
+
+        if (attempt < PAYMENT_SUCCESS_REFRESH_ATTEMPTS) {
+          await new Promise<void>((resolve) => {
+            timerId = window.setTimeout(() => resolve(), PAYMENT_SUCCESS_REFRESH_DELAY_MS);
+          });
+        }
+      }
+    };
+
+    void retryUntilSettled();
+
+    const handleFocus = () => {
+      void refreshBillingSummary();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      isCancelled = true;
+      if (timerId !== null) {
+        window.clearTimeout(timerId);
+      }
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [refreshBillingSummary, returnMode]);
+
   const refreshBilling = async () => {
     setIsPaymentsLoading(isAdmin);
     setLoadError(null);
 
     try {
-      const billingData = await getTenantBilling();
-      setBilling(billingData);
+      const billingData = await refreshBillingSummary();
 
-      if (isAdmin) {
+      if (isAdmin && billingData) {
         const paymentsData = await getBillingPayments();
         setPayments(paymentsData);
       }

@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { DriverView } from "../views/DriverView";
+import { useTenantBillingSummary } from "../hooks/useTenantBillingSummary";
 
 // Dynamic import for manual shift modal
 const ManualShiftModal = React.lazy(() => import("./ManualShiftModal"));
@@ -75,6 +76,11 @@ const UsageCard: React.FC<{
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const currentUser = user;
+  const {
+    billing,
+    isLoading: isBillingLoading,
+    refreshBilling: refreshBillingSummary,
+  } = useTenantBillingSummary();
   const [loading, setLoading] = useState(true);
   const [shiftCheckComplete, setShiftCheckComplete] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
@@ -83,7 +89,6 @@ const Dashboard: React.FC = () => {
     activeShifts: number;
     activeDrivers: number;
     trucksInWork?: number;
-    currentPlan: { name: string; billingUrl: string };
     activeShiftsDetails: Array<{
       driver_name: string;
       truck_name: string;
@@ -93,7 +98,6 @@ const Dashboard: React.FC = () => {
   }>({
     activeShifts: 0,
     activeDrivers: 0,
-    currentPlan: { name: '', billingUrl: '' },
     activeShiftsDetails: [],
   });
 
@@ -125,6 +129,9 @@ const Dashboard: React.FC = () => {
   ];
   const shouldHighlightOnboarding =
     isAdminView && usage !== null && onboardingSteps.some((step) => !step.done);
+  const currentPlanLabel = isBillingLoading
+    ? "Загрузка тарифа..."
+    : billing?.current_plan?.name || "Не удалось загрузить тариф";
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -168,20 +175,19 @@ const Dashboard: React.FC = () => {
       const [statsRes, usageRes] = await Promise.all([
         api.get(API_ENDPOINTS.DASHBOARD_STATS),
         getAnalyticsUsage().catch(() => null), // Gracefully handle analytics errors
+        refreshBillingSummary(),
       ]);
 
       // Handle both camelCase (frontend) and snake_case (backend) field names
       const activeShifts = statsRes.activeShifts ?? statsRes.active_shifts ?? 0;
       const activeDrivers = statsRes.activeDrivers ?? statsRes.active_drivers ?? 0;
       const trucksInWork = statsRes.trucksInWork ?? statsRes.trucks_in_work;
-      const currentPlan = statsRes.currentPlan ?? statsRes.current_plan ?? { name: '', billingUrl: '' };
       const activeShiftsDetails = statsRes.activeShiftsDetails ?? statsRes.active_shifts_details ?? [];
 
       setStats({
         activeShifts,
         activeDrivers,
         trucksInWork,
-        currentPlan,
         activeShiftsDetails,
       });
 
@@ -192,7 +198,7 @@ const Dashboard: React.FC = () => {
     } catch (e) {
       console.error("Failed to fetch dashboard stats:", e);
     }
-  }, [isAdminView]);
+  }, [isAdminView, refreshBillingSummary]);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -320,11 +326,9 @@ const Dashboard: React.FC = () => {
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-[#1B254B]">Лимиты тарифа</h3>
             <div className="flex items-center gap-3">
-              {stats.currentPlan && stats.currentPlan.name && (
-                <span className="px-3 py-1 bg-indigo-100 text-[#0a192f] text-xs font-bold rounded-full">
-                  {stats.currentPlan.name}
-                </span>
-              )}
+              <span className="px-3 py-1 bg-indigo-100 text-[#0a192f] text-xs font-bold rounded-full">
+                {currentPlanLabel}
+              </span>
               <button
                 onClick={handleManualRefresh}
                 disabled={isRefreshing}
@@ -399,20 +403,19 @@ const Dashboard: React.FC = () => {
                 const [statsRes, usageRes] = await Promise.all([
                   api.get(API_ENDPOINTS.DASHBOARD_STATS),
                   getAnalyticsUsage().catch(() => null),
+                  refreshBillingSummary(),
                 ]);
 
                 // Handle both camelCase (frontend) and snake_case (backend) field names
                 const activeShifts = statsRes.activeShifts ?? statsRes.active_shifts ?? 0;
                 const activeDrivers = statsRes.activeDrivers ?? statsRes.active_drivers ?? 0;
                 const trucksInWork = statsRes.trucksInWork ?? statsRes.trucks_in_work;
-                const currentPlan = statsRes.currentPlan ?? statsRes.current_plan ?? { name: '', billingUrl: '' };
                 const activeShiftsDetails = statsRes.activeShiftsDetails ?? statsRes.active_shifts_details ?? [];
 
                 setStats({
                   activeShifts,
                   activeDrivers,
                   trucksInWork,
-                  currentPlan,
                   activeShiftsDetails,
                 });
 

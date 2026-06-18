@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import api, { getSubscription, getAnalyticsUsage, unlinkTelegram } from "../services/api";
+import api, { getAnalyticsUsage, unlinkTelegram } from "../services/api";
 import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import { Save, Loader2, CheckCircle2, AlertCircle, CreditCard, BarChart3, Calendar, ExternalLink, Send } from "lucide-react";
 import SecurityCard from "./common/SecurityCard";
-import { SubscriptionInfo, AnalyticsUsage } from "../types";
+import { AnalyticsUsage } from "../types";
+import { useTenantBillingSummary } from "../hooks/useTenantBillingSummary";
 
 interface TenantSettings {
   name: string;
@@ -18,12 +19,14 @@ const System: React.FC = () => {
     timezone: "Europe/Moscow",
     invoice_required: false,
   });
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [usage, setUsage] = useState<AnalyticsUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const { user, refreshUser } = useAuth();
+  const { billing, refreshBilling: refreshBillingSummary } = useTenantBillingSummary({
+    autoLoad: false,
+  });
   const [tgLinkCode, setTgLinkCode] = useState<string | null>(null);
   const [tgLoading, setTgLoading] = useState(false);
 
@@ -34,13 +37,9 @@ const System: React.FC = () => {
   const fetchSystemData = async () => {
     try {
       setLoading(true);
-      const fallbackSubscription: SubscriptionInfo = {
-        status: "active",
-        expires_at: null,
-      };
-      const [settingsData, subscriptionData, usageData] = await Promise.all([
+      const [settingsData, billingData, usageData] = await Promise.all([
         api.get(API_ENDPOINTS.TENANT_SETTINGS),
-        getSubscription().catch(() => fallbackSubscription),
+        refreshBillingSummary(),
         getAnalyticsUsage().catch(() => null),
       ]);
 
@@ -53,14 +52,13 @@ const System: React.FC = () => {
         });
       }
 
-      // Subscription
-      if (subscriptionData) {
-        setSubscription(subscriptionData);
-      }
-
       // Usage
       if (usageData) {
         setUsage(usageData);
+      }
+
+      if (!billingData) {
+        setMessage({ type: "error", text: "Не удалось загрузить данные по тарифу" });
       }
     } catch (error) {
       console.error("Failed to fetch system data:", error);
@@ -154,6 +152,10 @@ const System: React.FC = () => {
     return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
+  const activePlanName = billing?.current_plan?.name ?? null;
+  const subscriptionExpiry = billing?.subscription_expires_at ?? null;
+  const subscriptionStatus = billing?.current_plan ? "active" : "unknown";
+
   const getUsageColor = (percent: number | null): string => {
     if (percent === null) return "bg-slate-200";
     if (percent >= 100) return "bg-red-500";
@@ -234,21 +236,17 @@ const System: React.FC = () => {
               <div>
                 <p className="text-sm text-slate-500 uppercase tracking-wider font-semibold">Статус</p>
                 <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full mt-2 ${
-                  subscription?.status === 'active'
+                  subscriptionStatus === 'active'
                     ? 'bg-green-100 text-green-800'
-                    : subscription?.status === 'trial'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-red-100 text-red-800'
+                    : 'bg-slate-100 text-slate-700'
                 }`}>
                   <div className={`w-2 h-2 rounded-full ${
-                    subscription?.status === 'active'
+                    subscriptionStatus === 'active'
                       ? 'bg-green-500'
-                      : subscription?.status === 'trial'
-                      ? 'bg-amber-500'
-                      : 'bg-red-500'
+                      : 'bg-slate-400'
                   }`} />
                   <span className="text-sm font-bold">
-                    {subscription?.status === 'active' ? 'Активна' : subscription?.status === 'trial' ? 'Пробная' : 'Истекла'}
+                    {subscriptionStatus === 'active' ? 'Активна' : 'Статус уточняется'}
                   </span>
                 </div>
               </div>
@@ -256,13 +254,18 @@ const System: React.FC = () => {
             <div className="flex items-center justify-between py-3 border-t border-slate-100">
               <span className="text-sm text-slate-500 uppercase tracking-wider font-semibold">Истекает</span>
               <span className="font-mono text-sm text-slate-800 font-semibold">
-                {formatDate(subscription?.expires_at || null)}
+                {formatDate(subscriptionExpiry)}
               </span>
             </div>
-            {subscription?.plan_name && (
+            {activePlanName ? (
               <div className="flex items-center justify-between py-3 border-t border-slate-100">
                 <span className="text-sm text-slate-500 uppercase tracking-wider font-semibold">Тариф</span>
-                <span className="font-mono text-sm text-slate-800 font-semibold">{subscription.plan_name}</span>
+                <span className="font-mono text-sm text-slate-800 font-semibold">{activePlanName}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between py-3 border-t border-slate-100">
+                <span className="text-sm text-slate-500 uppercase tracking-wider font-semibold">Тариф</span>
+                <span className="text-sm font-semibold text-slate-500">Не удалось загрузить тариф</span>
               </div>
             )}
             <a
