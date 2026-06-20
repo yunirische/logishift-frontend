@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '../types';
-import { TOKEN_KEY, USER_KEY, getUserInfo, setUserInfo, refreshUser as apiRefreshUser } from '../services/api';
+import {
+  AUTH_SESSION_UPDATED_EVENT,
+  TOKEN_KEY,
+  USER_KEY,
+  getUserInfo,
+  setUserInfo,
+  refreshUser as apiRefreshUser,
+} from '../services/api';
 import PasswordChangeModal from '../components/common/PasswordChangeModal';
 
 interface AuthContextType {
@@ -128,14 +135,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Auto-logout on storage events (e.g., logout from another tab)
   useEffect(() => {
+    const handleSessionUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ token?: string; user?: User | null }>;
+      const nextToken = customEvent.detail?.token || localStorage.getItem(TOKEN_KEY);
+      const nextUser = customEvent.detail?.user ?? getUserInfo();
+
+      if (!nextToken || !nextUser) {
+        return;
+      }
+
+      setToken(nextToken);
+      setUser(nextUser);
+      setError(null);
+
+      if (nextUser.must_change_password) {
+        setShowPasswordModal(true);
+      }
+    };
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === TOKEN_KEY && !e.newValue) {
         logout();
       }
     };
 
+    window.addEventListener(AUTH_SESSION_UPDATED_EVENT, handleSessionUpdated as EventListener);
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener(AUTH_SESSION_UPDATED_EVENT, handleSessionUpdated as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [logout]);
 
   const handlePasswordChangeSuccess = useCallback(() => {

@@ -13,6 +13,7 @@ import {
 
 export const TOKEN_KEY = "logishift_auth_token";
 export const USER_KEY = "logishift_user_info";
+export const AUTH_SESSION_UPDATED_EVENT = "logishift:auth-session-updated";
 
 // Error types for better error handling
 export enum ApiErrorType {
@@ -72,6 +73,31 @@ export const getUserInfo = (): User | null => {
 
 export const setUserInfo = (user: User) =>
   localStorage.setItem(USER_KEY, JSON.stringify(user));
+
+const dispatchAuthSessionUpdated = (token: string, user: User | null) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(AUTH_SESSION_UPDATED_EVENT, {
+      detail: { token, user },
+    })
+  );
+};
+
+export const applyReplacementAuthSession = (token: string, user?: User | null) => {
+  if (!token) {
+    return;
+  }
+
+  setAuthToken(token);
+  const resolvedUser = user ?? getUserInfo();
+  if (resolvedUser) {
+    setUserInfo(resolvedUser);
+  }
+  dispatchAuthSessionUpdated(token, resolvedUser);
+};
 
 export const clearAuth = () => {
   localStorage.removeItem(TOKEN_KEY);
@@ -404,11 +430,20 @@ export const getPhotoUrl = (path?: string | null): string | null => {
 // AUTH & SECURITY API
 // ============================================================================
 
-export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
-  await post(API_ENDPOINTS.AUTH_PASSWORD, {
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string
+): Promise<{ message?: string; token?: string; user?: User }> => {
+  const response = await post(API_ENDPOINTS.AUTH_PASSWORD, {
     currentPassword,
     newPassword,
   });
+
+  if (response?.token) {
+    applyReplacementAuthSession(response.token, response.user ?? null);
+  }
+
+  return response;
 };
 
 export const requestPasswordReset = async (email: string): Promise<{ message: string }> => {

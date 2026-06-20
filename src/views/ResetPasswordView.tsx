@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, Loader2, Lock } from "lucide-react";
 import { confirmPasswordReset } from "../services/api";
 import BrandLogo from "../components/BrandLogo";
@@ -25,12 +25,26 @@ const getReadableResetError = (message?: string) => {
 };
 
 const ResetPasswordView: React.FC = () => {
-  const token = useMemo(() => new URLSearchParams(window.location.search).get("token") || "", []);
+  const [token] = useState(() => {
+    const url = new URL(window.location.href);
+    return url.searchParams.get("token") || "";
+  });
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(token ? null : INVALID_LINK_MESSAGE);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("token")) {
+      return;
+    }
+
+    url.searchParams.delete("token");
+    const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState({}, document.title, nextUrl || url.pathname);
+  }, []);
 
   const navigateToLogin = () => {
     const url = new URL(window.location.href);
