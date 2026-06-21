@@ -182,6 +182,7 @@ const AppContent: React.FC = () => {
   const isPrivacyPage = pathname === "/privacy";
   const isPaymentAndRefundPage = pathname === "/payment-and-refund";
   const isContactsPage = pathname === "/contacts";
+  const isPersonalDataConsentPage = pathname === "/personal-data-consent";
   const isMarketingHost = isMarketingHostname(hostname);
   const isAppHost = isProductionAppHostname(hostname);
   const isDemoHost = isDemoHostname(hostname);
@@ -202,6 +203,10 @@ const AppContent: React.FC = () => {
 
   if (isContactsPage) {
     return <LegalDocumentView documentKey="contacts" />;
+  }
+
+  if (isPersonalDataConsentPage) {
+    return <LegalDocumentView documentKey="personal-data-consent" />;
   }
 
   if (isRegisterPage) {

@@ -5,8 +5,10 @@ import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
 import BrandLogo from '../components/BrandLogo';
 import LegalLinks from '../components/LegalLinks';
+import { REQUIRED_CONSENT_VERSIONS } from '../config/legal';
 
 type RegisterMode = 'driver' | 'admin';
+type ConsentKey = keyof typeof REQUIRED_CONSENT_VERSIONS;
 
 interface RegisterFormData {
   code: string;
@@ -38,6 +40,11 @@ const RegisterView: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [prefillEmail, setPrefillEmail] = useState<string | null>(null);
+  const [acceptedConsents, setAcceptedConsents] = useState<Record<ConsentKey, boolean>>({
+    offer: false,
+    privacy_policy: false,
+    personal_data: false,
+  });
   const [passwordChecks, setPasswordChecks] = useState<PasswordChecks>({
     length: false,
     upper: false,
@@ -62,6 +69,12 @@ const RegisterView: React.FC = () => {
       url.searchParams.set('email', email);
     }
     window.location.href = url.toString();
+  };
+
+  const allRequiredConsentsAccepted = Object.values(acceptedConsents).every(Boolean);
+  const consentPayload = {
+    accepted: true as const,
+    versions: REQUIRED_CONSENT_VERSIONS,
   };
 
   const validateForm = (): boolean => {
@@ -110,6 +123,10 @@ const RegisterView: React.FC = () => {
       setError('Пароли не совпадают');
       return false;
     }
+    if (!allRequiredConsentsAccepted) {
+      setError('Необходимо принять обязательные документы');
+      return false;
+    }
     return true;
   };
 
@@ -130,6 +147,7 @@ const RegisterView: React.FC = () => {
           adminName: formData.full_name.trim(),
           email: formData.email.trim().toLowerCase(),
           password: formData.password,
+          consents: consentPayload,
         });
       } else {
         // Driver registration - accept invite
@@ -138,6 +156,7 @@ const RegisterView: React.FC = () => {
           full_name: formData.full_name.trim(),
           email: formData.email.trim().toLowerCase(),
           password: formData.password,
+          consents: consentPayload,
         });
       }
 
@@ -170,6 +189,10 @@ const RegisterView: React.FC = () => {
       number: /[0-9]/.test(value),
       special: /[^A-Za-z0-9]/.test(value),
     });
+  };
+
+  const toggleConsent = (key: ConsentKey) => {
+    setAcceptedConsents((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   if (success) {
@@ -391,10 +414,63 @@ const RegisterView: React.FC = () => {
             />
           </div>
 
+          <div className="space-y-3 rounded-lg bg-[#F4F7FE] px-4 py-4 text-xs text-slate-600">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={acceptedConsents.offer}
+                onChange={() => toggleConsent('offer')}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0a192f] focus:ring-[#0a192f]"
+                required
+              />
+              <span>
+                Принимаю{' '}
+                <a href="/offer" target="_blank" rel="noreferrer" className="font-semibold text-[#0a192f] underline">
+                  оферту и пользовательское соглашение
+                </a>
+              </span>
+            </label>
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={acceptedConsents.privacy_policy}
+                onChange={() => toggleConsent('privacy_policy')}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0a192f] focus:ring-[#0a192f]"
+                required
+              />
+              <span>
+                Ознакомлен(а) с{' '}
+                <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-[#0a192f] underline">
+                  политикой обработки персональных данных
+                </a>
+              </span>
+            </label>
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={acceptedConsents.personal_data}
+                onChange={() => toggleConsent('personal_data')}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-[#0a192f] focus:ring-[#0a192f]"
+                required
+              />
+              <span>
+                Даю{' '}
+                <a
+                  href="/personal-data-consent"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-[#0a192f] underline"
+                >
+                  согласие на обработку персональных данных
+                </a>
+              </span>
+            </label>
+          </div>
+
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !allRequiredConsentsAccepted}
             className="w-full bg-[#0a192f] hover:bg-[#152238] text-white font-bold py-4 rounded-lg shadow-xl shadow-[#0a192f]/10 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
           >
             {isLoading ? (

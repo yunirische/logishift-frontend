@@ -601,6 +601,14 @@ export const acceptInvite = async (data: {
   full_name: string;
   email: string;
   password: string;
+  consents: {
+    accepted: true;
+    versions: {
+      offer: string;
+      privacy_policy: string;
+      personal_data: string;
+    };
+  };
 }): Promise<void> => {
   await post(`${API_BASE_URL}/invites/accept`, data);
 };
