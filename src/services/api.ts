@@ -10,6 +10,7 @@ import {
   BillingPaymentSummary,
   BillingCheckoutResponse,
   OwnerSummary,
+  OwnerSystemSnapshot,
   OwnerTenantRow,
 } from "../types";
 
@@ -583,6 +584,10 @@ export const getOwnerTenants = async (): Promise<OwnerTenantRow[]> => {
   return Array.isArray(data) ? data : [];
 };
 
+export const getOwnerSystem = async (): Promise<OwnerSystemSnapshot> => {
+  return await get(API_ENDPOINTS.OWNER_SYSTEM);
+};
+
 /**
  * Get current shift for the logged-in user.
  * Returns null if no active shift exists (400/404), instead of throwing.
@@ -687,6 +692,7 @@ const api = {
   getBillingPayments,
   createBillingCheckout,
   getOwnerSummary,
+  getOwnerSystem,
   getOwnerTenants,
   getCurrentShift,
   acceptInvite,

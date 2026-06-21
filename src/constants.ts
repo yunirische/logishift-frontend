@@ -43,6 +43,7 @@ export const API_ENDPOINTS = {
   // Owner dashboard (hidden internal route)
   OWNER_SUMMARY: `${API_BASE_URL}/owner/summary`,
   OWNER_TENANTS: `${API_BASE_URL}/owner/tenants`,
+  OWNER_SYSTEM: `${API_BASE_URL}/owner/system`,
 
   // Auth
   AUTH_REGISTER_TENANT: `${API_BASE_URL}/auth/register-tenant`,

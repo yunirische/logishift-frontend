@@ -267,3 +267,44 @@ export interface OwnerTenantRow {
     stuck_shifts: number;
   };
 }
+
+export type OwnerSystemStatus = "ok" | "warning" | "error" | "stale" | "unknown" | "unavailable";
+
+export interface OwnerBackupSnapshot {
+  status: "ok" | "warning" | "error" | "unknown";
+  latestAt: string | null;
+  ageSeconds: number | null;
+  sizeBytes: number | null;
+  integrity: "ok" | "failed" | "unknown";
+  retainedCount: number | null;
+}
+
+export interface OwnerContainerSnapshot {
+  status: "ok" | "warning" | "error" | "unknown";
+  state: "running" | "restarting" | "exited" | "created" | "paused" | "dead" | "unknown";
+  health: "healthy" | "unhealthy" | "starting" | "none" | "unknown";
+  restartPolicy: "unless-stopped" | "always" | "on-failure" | "no" | "unknown";
+}
+
+export interface OwnerSystemSnapshot {
+  schemaVersion: 1;
+  generatedAt: string | null;
+  overallStatus: OwnerSystemStatus;
+  reason?: "snapshot_missing" | "snapshot_unavailable" | "unsupported_schema" | "snapshot_stale";
+  disk: {
+    root: {
+      usedPercent: number | null;
+      freeBytes: number | null;
+    };
+  };
+  backups: {
+    postgres: OwnerBackupSnapshot;
+    uploads: OwnerBackupSnapshot;
+  };
+  containers: {
+    logishift_backend: OwnerContainerSnapshot;
+    logishift_frontend: OwnerContainerSnapshot;
+    logishift_postgres: OwnerContainerSnapshot;
+    logishift_caddy: OwnerContainerSnapshot;
+  };
+}
