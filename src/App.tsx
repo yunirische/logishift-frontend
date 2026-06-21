@@ -9,6 +9,7 @@ import ForgotPasswordView from "./views/ForgotPasswordView";
 import ResetPasswordView from "./views/ResetPasswordView";
 import BillingView from "./views/BillingView";
 import LegalDocumentView from "./views/LegalDocumentView";
+import OwnerDashboardView from "./views/OwnerDashboardView";
 import { DriverView } from "./views/DriverView";
 import {
   isDemoHostname,
@@ -183,6 +184,7 @@ const AppContent: React.FC = () => {
   const isPaymentAndRefundPage = pathname === "/payment-and-refund";
   const isContactsPage = pathname === "/contacts";
   const isPersonalDataConsentPage = pathname === "/personal-data-consent";
+  const isOwnerPage = pathname === "/owner";
   const isMarketingHost = isMarketingHostname(hostname);
   const isAppHost = isProductionAppHostname(hostname);
   const isDemoHost = isDemoHostname(hostname);
@@ -370,6 +372,14 @@ const AppContent: React.FC = () => {
       return <Login />;
     }
     return <LandingView />;
+  }
+
+  if (isOwnerPage) {
+    return (
+      <ErrorBoundary>
+        <OwnerDashboardView />
+      </ErrorBoundary>
+    );
   }
 
   if (isDemoDriverMode) {

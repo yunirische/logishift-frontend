@@ -9,6 +9,8 @@ import {
   TenantBillingSummary,
   BillingPaymentSummary,
   BillingCheckoutResponse,
+  OwnerSummary,
+  OwnerTenantRow,
 } from "../types";
 
 export const TOKEN_KEY = "logishift_auth_token";
@@ -572,6 +574,15 @@ export const createBillingCheckout = async (
   };
 };
 
+export const getOwnerSummary = async (): Promise<OwnerSummary> => {
+  return await get(API_ENDPOINTS.OWNER_SUMMARY);
+};
+
+export const getOwnerTenants = async (): Promise<OwnerTenantRow[]> => {
+  const data = await get(API_ENDPOINTS.OWNER_TENANTS);
+  return Array.isArray(data) ? data : [];
+};
+
 /**
  * Get current shift for the logged-in user.
  * Returns null if no active shift exists (400/404), instead of throwing.
@@ -675,6 +686,8 @@ const api = {
   getTenantBilling,
   getBillingPayments,
   createBillingCheckout,
+  getOwnerSummary,
+  getOwnerTenants,
   getCurrentShift,
   acceptInvite,
   getTelegramLinkCode,

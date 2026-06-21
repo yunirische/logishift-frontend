@@ -40,6 +40,10 @@ export const API_ENDPOINTS = {
   // Health Check
   HEALTH: `${API_BASE_URL}/health`,
 
+  // Owner dashboard (hidden internal route)
+  OWNER_SUMMARY: `${API_BASE_URL}/owner/summary`,
+  OWNER_TENANTS: `${API_BASE_URL}/owner/tenants`,
+
   // Auth
   AUTH_REGISTER_TENANT: `${API_BASE_URL}/auth/register-tenant`,
 

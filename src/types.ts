@@ -215,3 +215,55 @@ export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
 }
+
+export interface OwnerSummary {
+  backend: {
+    packageVersion: string;
+    buildId: string;
+  };
+  database: {
+    connected: boolean;
+  };
+  counts: {
+    tenants: number;
+    users: number;
+    active_shifts: number;
+    stuck_shifts: number;
+    user_consents: number;
+    invites: number;
+    password_reset_tokens: number;
+  };
+  billing: {
+    payments_by_status: Record<string, number>;
+    provider_events_by_status: Record<string, number>;
+    provider_events_with_error: number;
+  };
+  latest: {
+    tenant_id: number | null;
+    user_id: number | null;
+    shift_updated_at: string | null;
+    billing_payment_created_at: string | null;
+    provider_event_received_at: string | null;
+    consent_accepted_at: string | null;
+    invite_expires_at: string | null;
+    reset_token_created_at: string | null;
+  };
+}
+
+export interface OwnerTenantRow {
+  id: number;
+  name: string;
+  plan: {
+    code: string;
+    name: string;
+  } | null;
+  subscription_expires_at: string | null;
+  subscription_status: "active" | "expired";
+  counts: {
+    users: number;
+    trucks: number;
+    sites: number;
+    active_shifts: number;
+    stuck_shifts: number;
+  };
+}
