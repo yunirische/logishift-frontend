@@ -2,7 +2,7 @@ import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Filter, X, ChevronDown, Download } from "lucide-react";
 import { isDemoTenantId } from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
-import api, { getPhotoUrl } from "../services/api";
+import api, { openShiftFilePreview, ShiftFileType } from "../services/api";
 import { Shift, UserRole } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
 
@@ -12,18 +12,32 @@ const EditShiftModal = React.lazy(() => import("./EditShiftModal"));
 
 const PhotoLink = React.memo(
   ({
-    url,
+    shiftId,
+    type,
+    hasPhoto,
     icon,
     title,
     isDemoMode = false,
+    onError,
   }: {
-    url?: string;
+    shiftId: number | string;
+    type: ShiftFileType;
+    hasPhoto: boolean;
     icon: string;
     title: string;
     isDemoMode?: boolean;
+    onError: (message: string) => void;
   }) => {
-    const photoUrl = getPhotoUrl(url);
-    if (!photoUrl) return null;
+    const [isOpening, setIsOpening] = useState(false);
+    const isMountedRef = React.useRef(true);
+
+    useEffect(() => {
+      return () => {
+        isMountedRef.current = false;
+      };
+    }, []);
+
+    if (!hasPhoto) return null;
 
     if (isDemoMode) {
       return (
@@ -36,16 +50,39 @@ const PhotoLink = React.memo(
       );
     }
 
+    const handlePreview = async () => {
+      if (isOpening) return;
+      setIsOpening(true);
+
+      try {
+        await openShiftFilePreview(shiftId, type);
+      } catch (error) {
+        if (isMountedRef.current) {
+          onError(
+            error instanceof Error ? error.message : "Не удалось открыть файл"
+          );
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setIsOpening(false);
+        }
+      }
+    };
+
     return (
-      <a
-        href={photoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        type="button"
+        onClick={() => {
+          void handlePreview();
+        }}
+        disabled={isOpening}
+        aria-label={title}
+        aria-busy={isOpening}
         className="flex h-8 w-8 items-center justify-center text-slate-400 transition-colors hover:text-[#0a192f]"
         title={title}
       >
         {icon}
-      </a>
+      </button>
     );
   }
 );
@@ -104,6 +141,7 @@ const Shifts: React.FC = () => {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [exporting, setExporting] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const user = api.getUserInfo();
   const isAdmin =
@@ -418,6 +456,20 @@ const Shifts: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {previewError && (
+        <div className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{previewError}</span>
+          <button
+            type="button"
+            onClick={() => setPreviewError(null)}
+            className="shrink-0 text-red-500 transition-colors hover:text-red-700"
+            aria-label="Закрыть сообщение об ошибке"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {isAdmin && (
         <div className="rounded-lg border border-slate-50 bg-white p-4 shadow-sm">
           <button
@@ -613,22 +665,31 @@ const Shifts: React.FC = () => {
                     <td className="px-4 py-2 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <PhotoLink
-                          url={(shift as any).photo_start_url}
+                          shiftId={shift.id}
+                          type="start"
+                          hasPhoto={Boolean((shift as any).photo_start_url)}
                           icon="S"
                           title="Одометр (старт)"
                           isDemoMode={isDemoMode}
+                          onError={setPreviewError}
                         />
                         <PhotoLink
-                          url={(shift as any).photo_end_url}
+                          shiftId={shift.id}
+                          type="end"
+                          hasPhoto={Boolean((shift as any).photo_end_url)}
                           icon="F"
                           title="Одометр (финиш)"
                           isDemoMode={isDemoMode}
+                          onError={setPreviewError}
                         />
                         <PhotoLink
-                          url={(shift as any).photo_invoice_url}
+                          shiftId={shift.id}
+                          type="invoice"
+                          hasPhoto={Boolean((shift as any).photo_invoice_url)}
                           icon="I"
                           title="Накладная"
                           isDemoMode={isDemoMode}
+                          onError={setPreviewError}
                         />
                         {isAdmin && (
                           <button

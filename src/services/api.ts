@@ -1,4 +1,4 @@
-import { API_ENDPOINTS, API_BASE_URL, STATIC_BASE_URL } from "../constants";
+import { API_ENDPOINTS, API_BASE_URL } from "../constants";
 import {
   User,
   AnalyticsUsage,
@@ -51,6 +51,8 @@ export interface ApiError extends Error {
   backendCode?: BackendErrorCode; // Backend error code if available
 }
 
+export type ShiftFileType = "start" | "end" | "invoice";
+
 const createApiError = (message: string, type: ApiErrorType, status?: number, backendCode?: BackendErrorCode): ApiError => {
   const error = new Error(message) as ApiError;
   error.type = type;
@@ -58,6 +60,29 @@ const createApiError = (message: string, type: ApiErrorType, status?: number, ba
   error.backendCode = backendCode;
   return error;
 };
+
+const parseBackendErrorPayload = async (
+  response: Response
+): Promise<BackendErrorResponse> => {
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    return {};
+  }
+
+  try {
+    const payload = await response.json();
+    return payload && typeof payload === "object"
+      ? (payload as BackendErrorResponse)
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+const extractBackendErrorMessage = (
+  payload: BackendErrorResponse,
+  fallback: string
+) => payload.detail || payload.message || payload.error || fallback;
 
 export const getAuthToken = () => localStorage.getItem(TOKEN_KEY);
 export const setAuthToken = (token: string) =>
@@ -415,18 +440,178 @@ export const getAnalyticsInsights = async (days: number = 30): Promise<Analytics
   return transformAnalyticsInsights(data);
 };
 
-export const getPhotoUrl = (path?: string | null): string | null => {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
+export const fetchShiftFileBlob = async (
+  shiftId: number | string,
+  type: ShiftFileType
+): Promise<Blob> => {
+  const token = getAuthToken();
+  const headers = new Headers();
 
-  const cleanPath = path.replace(/\\/g, '/');
-
-  // Если путь уже начинается с /uploads/, просто добавляем домен
-  if (cleanPath.startsWith('/uploads/')) {
-    return `${STATIC_BASE_URL}${cleanPath}`;
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
-  return `${STATIC_BASE_URL}/uploads/${cleanPath.replace(/^\/+/, '')}`;
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.SHIFT_FILE(shiftId, type), {
+      method: "GET",
+      headers,
+      signal: AbortSignal.timeout(30000),
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        throw createApiError(
+          "Превышено время ожидания запроса",
+          ApiErrorType.TIMEOUT
+        );
+      }
+
+      if (error.message.includes("Failed to fetch")) {
+        throw createApiError(
+          "Ошибка сети. Проверьте подключение к интернету",
+          ApiErrorType.NETWORK
+        );
+      }
+    }
+
+    throw createApiError("Не удалось открыть файл", ApiErrorType.UNKNOWN);
+  }
+
+  if (response.status === 401) {
+    const errorData = await parseBackendErrorPayload(response);
+    const errorCode = errorData.code as BackendErrorCode | undefined;
+
+    if (
+      errorCode === BackendErrorCode.TOKEN_EXPIRED ||
+      errorCode === BackendErrorCode.INVALID_TOKEN ||
+      errorCode === BackendErrorCode.MISSING_TOKEN
+    ) {
+      clearAuth();
+      window.location.reload();
+      throw createApiError(
+        "Сессия истекла. Войдите снова",
+        ApiErrorType.AUTHENTICATION,
+        401,
+        errorCode
+      );
+    }
+
+    throw createApiError(
+      "Необходимо войти в систему",
+      ApiErrorType.AUTHENTICATION,
+      401,
+      errorCode
+    );
+  }
+
+  if (response.status === 403) {
+    const errorData = await parseBackendErrorPayload(response);
+    throw createApiError(
+      extractBackendErrorMessage(
+        errorData,
+        "Недостаточно прав для просмотра файла"
+      ),
+      ApiErrorType.AUTHENTICATION,
+      403,
+      errorData.code as BackendErrorCode | undefined
+    );
+  }
+
+  if (response.status === 404) {
+    throw createApiError(
+      "Файл не найден или больше недоступен",
+      ApiErrorType.SERVER,
+      404
+    );
+  }
+
+  if (response.status === 409) {
+    const errorData = await parseBackendErrorPayload(response);
+    const code = String(errorData.code || errorData.error || "").toLowerCase();
+
+    if (code === "external_media_reference") {
+      throw createApiError(
+        "Этот файл хранится во внешнем источнике и пока недоступен через защищённый просмотр",
+        ApiErrorType.SERVER,
+        409
+      );
+    }
+
+    throw createApiError(
+      extractBackendErrorMessage(
+        errorData,
+        "Файл временно недоступен для защищённого просмотра"
+      ),
+      ApiErrorType.SERVER,
+      409
+    );
+  }
+
+  if (response.status === 415) {
+    throw createApiError(
+      "Формат файла не поддерживается",
+      ApiErrorType.SERVER,
+      415
+    );
+  }
+
+  if (!response.ok) {
+    const errorData = await parseBackendErrorPayload(response);
+    throw createApiError(
+      extractBackendErrorMessage(errorData, `HTTP Error ${response.status}`),
+      ApiErrorType.SERVER,
+      response.status
+    );
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().startsWith("image/")) {
+    throw createApiError(
+      "Получен неподдерживаемый ответ сервера",
+      ApiErrorType.SERVER,
+      response.status
+    );
+  }
+
+  return response.blob();
+};
+
+export const openShiftFilePreview = async (
+  shiftId: number | string,
+  type: ShiftFileType
+): Promise<void> => {
+  const previewWindow = window.open("", "_blank");
+
+  if (!previewWindow) {
+    throw new Error(
+      "Браузер заблокировал окно просмотра. Разрешите всплывающие окна для приложения."
+    );
+  }
+
+  try {
+    previewWindow.opener = null;
+  } catch {
+    // noop
+  }
+
+  try {
+    previewWindow.document.title = "Загрузка...";
+    previewWindow.document.body.innerHTML =
+      "<p style=\"font-family: sans-serif; margin: 16px;\">Загрузка...</p>";
+
+    const blob = await fetchShiftFileBlob(shiftId, type);
+    const objectUrl = URL.createObjectURL(blob);
+
+    previewWindow.location.replace(objectUrl);
+    window.setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+    }, 60000);
+  } catch (error) {
+    previewWindow.close();
+    throw error instanceof Error ? error : new Error("Не удалось открыть файл");
+  }
 };
 
 // ============================================================================
@@ -683,7 +868,8 @@ const api = {
   getAuthToken,
   setAuthToken,
   clearAuth,
-  getPhotoUrl,
+  fetchShiftFileBlob,
+  openShiftFilePreview,
   changePassword,
   requestPasswordReset,
   confirmPasswordReset,

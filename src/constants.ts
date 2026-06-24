@@ -1,7 +1,6 @@
 // Environment variable support for API URLs
 // Falls back to production URLs if not set (for backwards compatibility)
 export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://pwa.kontrolsmen.ru/api/v1";
-export const STATIC_BASE_URL = import.meta.env.VITE_STATIC_URL || "https://pwa.kontrolsmen.ru";
 
 export const API_ENDPOINTS = {
   AUTH_LOGIN: `${API_BASE_URL}/auth/login`,
@@ -33,6 +32,10 @@ export const API_ENDPOINTS = {
   // Ручное создание смены (admin)
   MANUAL_SHIFT: `${API_BASE_URL}/shifts/manual`,
   GET_SHIFT: (id: number | string) => `${API_BASE_URL}/shifts/${id}`,
+  SHIFT_FILE: (
+    shiftId: number | string,
+    type: "start" | "end" | "invoice"
+  ) => `${API_BASE_URL}/shifts/${shiftId}/files/${type}`,
   UPDATE_SHIFT: (id: number | string) => `${API_BASE_URL}/shifts/${id}`,
   UPDATE_SHIFT_TIMES: (id: number | string) => `${API_BASE_URL}/shifts/${id}/times`,
   ADD_SHIFT_COMMENT: (id: number | string) => `${API_BASE_URL}/shifts/${id}/comments`,

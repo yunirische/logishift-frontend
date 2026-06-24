@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { isDemoTenantId } from "../config/demo";
 import { API_ENDPOINTS, API_BASE_URL } from "../constants";
-import api, { getPhotoUrl } from "../services/api";
+import api, { openShiftFilePreview, ShiftFileType } from "../services/api";
 import { Shift } from "../types";
 import {
   toTenantISO,
@@ -13,6 +13,7 @@ import {
 import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
 import { AlertCircle, MessageSquare, Send, X, Lock, Upload, Check, Image, Pencil, Trash2, ArrowRightLeft, FileText } from "lucide-react";
 import { getUserInfo } from "../services/api";
+import { validatePhotoFile } from "../utils/photoFile";
 
 interface Comment {
   id: number;
@@ -49,6 +50,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const containerRef = useFocusTrap(isOpen);
   useFocusRestore(isOpen);
   const previousShiftIdRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
 
   // Get current user role
   const currentUser = getUserInfo();
@@ -79,8 +81,10 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [overlapError, setOverlapError] = useState(false);
   const [uploadingPhotoType, setUploadingPhotoType] = useState<string | null>(null);
+  const [previewingPhotoType, setPreviewingPhotoType] = useState<ShiftFileType | null>(null);
   const [modalShift, setModalShift] = useState<Shift>(shift);
   const [tenantSettings, setTenantSettings] = useState<any>(null);
   const [loadingSettings, setLoadingSettings] = useState(false);
@@ -117,10 +121,17 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
         setCommentsError(null);
         setError(null);
         setSuccessMessage(null);
+        setPhotoNotice(null);
         setOverlapError(false);
       }
     }
   }, [isOpen, shift, effectiveTimezone]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -552,6 +563,18 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     setUploadingPhotoType(photoType);
     setError(null);
     setSuccessMessage(null);
+    setPhotoNotice(null);
+
+    const validation = validatePhotoFile(file);
+    if ("error" in validation) {
+      setError(validation.error);
+      setUploadingPhotoType(null);
+      return;
+    }
+
+    if (validation.warning) {
+      setPhotoNotice(validation.warning);
+    }
 
     try {
       // Map photo type to API format
@@ -580,12 +603,41 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       }
 
       const refreshedShift = await refreshCurrentShift();
+      if (!isMountedRef.current) {
+        return;
+      }
       onSave(refreshedShift);
       setSuccessMessage('Фото успешно загружено');
     } catch (err: any) {
-      setError(err.message || 'Ошибка загрузки фото');
+      if (isMountedRef.current) {
+        setError(err.message || 'Ошибка загрузки фото');
+      }
     } finally {
-      setUploadingPhotoType(null);
+      if (isMountedRef.current) {
+        setUploadingPhotoType(null);
+      }
+    }
+  };
+
+  const handlePhotoPreview = async (photoType: ShiftFileType) => {
+    if (previewingPhotoType) {
+      return;
+    }
+
+    setError(null);
+    setSuccessMessage(null);
+    setPreviewingPhotoType(photoType);
+
+    try {
+      await openShiftFilePreview(currentShift.id, photoType);
+    } catch (err) {
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : "Не удалось открыть файл");
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setPreviewingPhotoType(null);
+      }
     }
   };
 
@@ -727,17 +779,16 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     label,
     icon,
     required,
-    photoUrl,
+    hasPhoto,
   }: {
-    photoType: 'start' | 'end' | 'invoice';
+    photoType: ShiftFileType;
     label: string;
     icon: string;
     required: boolean;
-    photoUrl?: string;
+    hasPhoto: boolean;
   }) => {
-    const hasPhoto = Boolean(photoUrl);
     const isUploading = uploadingPhotoType === photoType;
-    const previewUrl = photoUrl ? getPhotoUrl(photoUrl) || '' : '';
+    const isPreviewing = previewingPhotoType === photoType;
     const showDemoUnavailable = isDemoMode && hasPhoto;
 
     return (
@@ -782,20 +833,23 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   Фото недоступно в демо
                 </span>
               ) : (
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handlePhotoPreview(photoType);
+                  }}
+                  disabled={isPreviewing}
+                  aria-busy={isPreviewing}
                   className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
                 >
                   <Image size={14} />
-                  Просмотр
-                </a>
+                  {isPreviewing ? 'Загрузка...' : 'Просмотр'}
+                </button>
               )}
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   className="hidden"
                   disabled={isUploading}
                   onChange={(e) => {
@@ -812,7 +866,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
           <label className="block cursor-pointer rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-6 text-center transition-colors hover:border-slate-400 hover:bg-slate-50">
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="hidden"
               disabled={isUploading}
               onChange={(e) => {
@@ -997,6 +1051,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 <span>{successMessage}</span>
               </div>
             )}
+            {photoNotice && (
+              <div className="px-4 py-3 rounded-lg text-sm font-medium flex items-start gap-2 bg-amber-50 text-amber-800 border border-amber-200">
+                <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+                <span>{photoNotice}</span>
+              </div>
+            )}
 
             {activeTab === 'details' && isAdmin && proofState.missingRequiredItems.length > 0 && (
               <div className="px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800">
@@ -1113,79 +1173,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                       label: 'Одометр (старт)',
                       icon: '🏁',
                       required: needsOdoStart,
-                      photoUrl: (currentShift as any).photo_start_url,
+                      hasPhoto: Boolean((currentShift as any).photo_start_url),
                     })}
-                    {false && (
-                      <div className="border border-slate-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">🏁</span>
-                            <span className="text-sm font-semibold text-slate-700">Одометр (старт)</span>
-                            {needsOdoStart ? (
-                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 border border-emerald-200 rounded">
-                                [ОБЯЗАТЕЛЬНО]
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-slate-100 text-slate-600 border border-slate-200 rounded">
-                                [ОПЦИОНАЛЬНО]
-                              </span>
-                            )}
-                          </div>
-                          {(currentShift as any).photo_start_url ? (
-                            <a
-                              href={getPhotoUrl((currentShift as any).photo_start_url) || ''}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-[#0a192f] hover:text-[#152238] flex items-center gap-1"
-                            >
-                              <Image size={12} />
-                              Просмотр
-                            </a>
-                          ) : null}
-                        </div>
-                        {!(currentShift as any).photo_start_url ? (
-                          <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 bg-slate-50 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-colors">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              disabled={uploadingPhotoType === 'start'}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handlePhotoUpload('start', file);
-                              }}
-                            />
-                            <Image size={24} className="text-slate-400 mx-auto mb-2" />
-                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider block">
-                              Одометр (старт)
-                            </span>
-                            <span className="text-xs text-slate-400 block mt-1">
-                              Перетащите или нажмите для загрузки
-                            </span>
-                          </label>
-                        ) : (
-                          <label className="block">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              disabled={uploadingPhotoType === 'start'}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handlePhotoUpload('start', file);
-                              }}
-                            />
-                            <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
-                              uploadingPhotoType === 'start'
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
-                            }`}>
-                              {uploadingPhotoType === 'start' ? 'Загрузка...' : 'Загрузить фото'}
-                            </div>
-                          </label>
-                        )}
-                      </div>
-                    )}
 
                     {/* End Odometer Photo */}
                     {showEndZone && renderPhotoSlot({
@@ -1193,79 +1182,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                       label: 'Одометр (финиш)',
                       icon: '🏁',
                       required: needsOdoEnd,
-                      photoUrl: (currentShift as any).photo_end_url,
+                      hasPhoto: Boolean((currentShift as any).photo_end_url),
                     })}
-                    {false && (
-                      <div className="border border-slate-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">🏁</span>
-                            <span className="text-sm font-semibold text-slate-700">Одометр (финиш)</span>
-                            {needsOdoEnd ? (
-                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 border border-emerald-200 rounded">
-                                [ОБЯЗАТЕЛЬНО]
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-slate-100 text-slate-600 border border-slate-200 rounded">
-                                [ОПЦИОНАЛЬНО]
-                              </span>
-                            )}
-                          </div>
-                          {(currentShift as any).photo_end_url ? (
-                            <a
-                              href={getPhotoUrl((currentShift as any).photo_end_url) || ''}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-[#0a192f] hover:text-[#152238] flex items-center gap-1"
-                            >
-                              <Image size={12} />
-                              Просмотр
-                            </a>
-                          ) : null}
-                        </div>
-                        {!(currentShift as any).photo_end_url ? (
-                          <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 bg-slate-50 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-colors">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              disabled={uploadingPhotoType === 'end'}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handlePhotoUpload('end', file);
-                              }}
-                            />
-                            <Image size={24} className="text-slate-400 mx-auto mb-2" />
-                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider block">
-                              Одометр (финиш)
-                            </span>
-                            <span className="text-xs text-slate-400 block mt-1">
-                              Перетащите или нажмите для загрузки
-                            </span>
-                          </label>
-                        ) : (
-                          <label className="block">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              disabled={uploadingPhotoType === 'end'}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handlePhotoUpload('end', file);
-                              }}
-                            />
-                            <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
-                              uploadingPhotoType === 'end'
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
-                            }`}>
-                              {uploadingPhotoType === 'end' ? 'Загрузка...' : 'Загрузить фото'}
-                            </div>
-                          </label>
-                        )}
-                      </div>
-                    )}
 
                     {/* Invoice Photo */}
                     {showInvoiceZone && renderPhotoSlot({
@@ -1273,79 +1191,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                       label: 'Накладная',
                       icon: '📄',
                       required: needsInvoice,
-                      photoUrl: (currentShift as any).photo_invoice_url,
+                      hasPhoto: Boolean((currentShift as any).photo_invoice_url),
                     })}
-                    {false && (
-                      <div className="border border-slate-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">📄</span>
-                            <span className="text-sm font-semibold text-slate-700">Накладная</span>
-                            {needsInvoice ? (
-                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-emerald-100 text-emerald-700 border border-emerald-200 rounded">
-                                [ОБЯЗАТЕЛЬНО]
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 text-[10px] font-bold font-mono bg-slate-100 text-slate-600 border border-slate-200 rounded">
-                                [ОПЦИОНАЛЬНО]
-                              </span>
-                            )}
-                          </div>
-                          {(currentShift as any).photo_invoice_url ? (
-                            <a
-                              href={getPhotoUrl((currentShift as any).photo_invoice_url) || ''}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-[#0a192f] hover:text-[#152238] flex items-center gap-1"
-                            >
-                              <Image size={12} />
-                              Просмотр
-                            </a>
-                          ) : null}
-                        </div>
-                        {!(currentShift as any).photo_invoice_url ? (
-                          <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 bg-slate-50 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-colors">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              disabled={uploadingPhotoType === 'invoice'}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handlePhotoUpload('invoice', file);
-                              }}
-                            />
-                            <Image size={24} className="text-slate-400 mx-auto mb-2" />
-                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider block">
-                              Накладная
-                            </span>
-                            <span className="text-xs text-slate-400 block mt-1">
-                              Перетащите или нажмите для загрузки
-                            </span>
-                          </label>
-                        ) : (
-                          <label className="block">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              disabled={uploadingPhotoType === 'invoice'}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handlePhotoUpload('invoice', file);
-                              }}
-                            />
-                            <div className={`w-full py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors cursor-pointer ${
-                              uploadingPhotoType === 'invoice'
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                : 'bg-[#0a192f]/10 text-[#0a192f] hover:bg-[#0a192f]/20'
-                            }`}>
-                              {uploadingPhotoType === 'invoice' ? 'Загрузка...' : 'Загрузить фото'}
-                            </div>
-                          </label>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
               );

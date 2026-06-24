@@ -23,6 +23,7 @@ import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
 import { DriverState } from "../types";
+import { validatePhotoFile } from "../utils/photoFile";
 
 interface DriverViewProps {
   focusHistory?: boolean;
@@ -471,6 +472,29 @@ export const DriverView: React.FC<DriverViewProps> = ({
       fileInputRef.current.value = "";
     }
 
+    const validation = validatePhotoFile(file);
+    if ("error" in validation) {
+      setToast({ show: true, message: validation.error, type: "error" });
+      setActionMessage({
+        show: true,
+        message: validation.error,
+        type: "error",
+      });
+      setTimeout(
+        () => setToast({ show: false, message: "", type: "success" }),
+        3000
+      );
+      return;
+    }
+
+    if (validation.warning) {
+      setActionMessage({
+        show: true,
+        message: validation.warning,
+        type: "info",
+      });
+    }
+
     const formData = new FormData();
     formData.append("photo", file);
     setLoading(true);
@@ -599,7 +623,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         capture="environment"
         onChange={handleFileUpload}
       />
