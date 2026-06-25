@@ -5,6 +5,8 @@ import {
   SUPPORT_EMAIL_HREF,
   SUPPORT_TELEGRAM_URL,
 } from "../config/legal";
+import { ANALYTICS_CONSENT_OPEN_EVENT } from "../config/analytics";
+import { isMarketingHostname } from "../config/demo";
 
 type LegalLinksProps = {
   className?: string;
@@ -24,6 +26,8 @@ const LegalLinks: React.FC<LegalLinksProps> = ({
   linksClassName = "",
   compact = false,
 }) => {
+  const showCookieSettings =
+    typeof window !== "undefined" && isMarketingHostname(window.location.hostname);
   const defaultLinksClass = compact
     ? `mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm ${linkBaseClass}`
     : `mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm ${linkBaseClass}`;
@@ -54,6 +58,17 @@ const LegalLinks: React.FC<LegalLinksProps> = ({
             {link.label}
           </a>
         ))}
+        {showCookieSettings && (
+          <button
+            type="button"
+            className={anchorClassName}
+            onClick={() =>
+              window.dispatchEvent(new Event(ANALYTICS_CONSENT_OPEN_EVENT))
+            }
+          >
+            Настройки cookies
+          </button>
+        )}
       </div>
     </div>
   );

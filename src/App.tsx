@@ -11,6 +11,7 @@ import BillingView from "./views/BillingView";
 import LegalDocumentView from "./views/LegalDocumentView";
 import OwnerDashboardView from "./views/OwnerDashboardView";
 import { DriverView } from "./views/DriverView";
+import AnalyticsConsent from "./components/AnalyticsConsent";
 import {
   isDemoHostname,
   isDemoTenantId,
@@ -420,6 +421,7 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <AuthProvider>
         <AppContent />
+        <AnalyticsConsent />
       </AuthProvider>
     </ErrorBoundary>
   );
