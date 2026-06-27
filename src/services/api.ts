@@ -293,6 +293,13 @@ export const post = (url: string, body: any) => {
   });
 };
 
+export const postFormData = (url: string, body: FormData) => {
+  return apiRequest(url, {
+    method: "POST",
+    body,
+  });
+};
+
 export const patch = (url: string, body: any) => {
   return apiRequest(url, {
     method: "PATCH",
@@ -861,6 +868,7 @@ const api = {
   apiRequest,
   get,
   post,
+  postFormData,
   patch,
   del,
   getUserInfo,

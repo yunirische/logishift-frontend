@@ -72,6 +72,16 @@ export interface Shift {
   requires_odo_start?: boolean | null;
   requires_odo_end?: boolean | null;
   requires_invoice?: boolean | null;
+  proof_requirements?: {
+    start?: boolean;
+    end?: boolean;
+    invoice?: boolean;
+  };
+  photos?: {
+    start?: boolean;
+    end?: boolean;
+    invoice?: boolean;
+  };
 }
 
 export interface Driver {

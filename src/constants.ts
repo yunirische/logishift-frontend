@@ -36,6 +36,8 @@ export const API_ENDPOINTS = {
     shiftId: number | string,
     type: "start" | "end" | "invoice"
   ) => `${API_BASE_URL}/shifts/${shiftId}/files/${type}`,
+  SHIFT_PHOTO_BACKFILL: (shiftId: number | string) =>
+    `${API_BASE_URL}/shifts/${shiftId}/photos/backfill`,
   UPDATE_SHIFT: (id: number | string) => `${API_BASE_URL}/shifts/${id}`,
   UPDATE_SHIFT_TIMES: (id: number | string) => `${API_BASE_URL}/shifts/${id}/times`,
   ADD_SHIFT_COMMENT: (id: number | string) => `${API_BASE_URL}/shifts/${id}/comments`,

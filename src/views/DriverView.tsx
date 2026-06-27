@@ -23,10 +23,14 @@ import {
 } from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
-import api, { getCurrentShift } from "../services/api";
+import api, { getCurrentShift, openShiftFilePreview } from "../services/api";
 import { DriverState, Shift } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
 import { formatDriverShiftSummary } from "../utils/driverShiftSummary";
+import {
+  FinishedShiftPhotoType,
+  getFinishedShiftPhotoSlots,
+} from "../utils/finishedShiftPhotos";
 import { validatePhotoFile } from "../utils/photoFile";
 
 interface DriverViewProps {
@@ -34,6 +38,12 @@ interface DriverViewProps {
 }
 
 const MAX_SHIFT_COMMENT_LENGTH = 1000;
+const MAX_BACKFILL_REASON_LENGTH = 500;
+
+type HistoryPhotoDraft = {
+  reason: string;
+  file: File | null;
+};
 
 export const DriverView: React.FC<DriverViewProps> = ({
   focusHistory = false,
@@ -63,6 +73,10 @@ export const DriverView: React.FC<DriverViewProps> = ({
   const [historyCommentDrafts, setHistoryCommentDrafts] = useState<Record<number, string>>({});
   const [historyCommentOpen, setHistoryCommentOpen] = useState<Record<number, boolean>>({});
   const [historyCommentSubmitting, setHistoryCommentSubmitting] = useState<Record<number, boolean>>({});
+  const [historyPhotoFormsOpen, setHistoryPhotoFormsOpen] = useState<Record<string, boolean>>({});
+  const [historyPhotoDrafts, setHistoryPhotoDrafts] = useState<Record<string, HistoryPhotoDraft>>({});
+  const [historyPhotoSubmitting, setHistoryPhotoSubmitting] = useState<Record<string, boolean>>({});
+  const [historyPhotoPreviewing, setHistoryPhotoPreviewing] = useState<Record<string, boolean>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isDemoMode = isDemoTenantId(user?.tenant_id);
@@ -152,6 +166,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
           const canCommentShift =
             effectiveDriverId !== null &&
             (shift.user_id === undefined || shift.user_id === effectiveDriverId);
+          const photoSlots = getFinishedShiftPhotoSlots(shift as Shift);
 
           return (
             <Card
@@ -193,6 +208,160 @@ export const DriverView: React.FC<DriverViewProps> = ({
                   </div>
                 )}
               </div>
+
+              {photoSlots.length > 0 && (
+                <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+                  <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    <Camera size={14} />
+                    Доказательства
+                  </div>
+                  <div className="space-y-3">
+                    {photoSlots.map((slot) => {
+                      const formKey = `${shift.id}:${slot.type}`;
+                      const draft = historyPhotoDrafts[formKey] || {
+                        reason: "",
+                        file: null,
+                      };
+                      const isFormOpen = Boolean(historyPhotoFormsOpen[formKey]);
+                      const isPhotoSubmitting = Boolean(
+                        historyPhotoSubmitting[formKey]
+                      );
+                      const isPreviewing = Boolean(historyPhotoPreviewing[formKey]);
+
+                      return (
+                        <div
+                          key={slot.type}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-slate-900">
+                                {slot.label}
+                              </div>
+                              <div className="mt-1 text-sm text-slate-500">
+                                {slot.hasPhoto ? "Есть фото" : "Фото отсутствует"}
+                              </div>
+                            </div>
+                            {slot.hasPhoto ? (
+                              <Button
+                                type="button"
+                                onClick={() =>
+                                  void previewHistoryShiftPhoto(shift.id, slot.type)
+                                }
+                                isLoading={isPreviewing}
+                                className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                              >
+                                Открыть
+                              </Button>
+                            ) : slot.canBackfill ? (
+                              <Button
+                                type="button"
+                                onClick={() =>
+                                  setHistoryPhotoFormsOpen((current) => ({
+                                    ...current,
+                                    [formKey]: !current[formKey],
+                                  }))
+                                }
+                                className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                              >
+                                Добавить фото
+                              </Button>
+                            ) : null}
+                          </div>
+
+                          {!slot.hasPhoto && slot.canBackfill && isFormOpen && (
+                            <div className="mt-3 space-y-3 border-t border-slate-100 pt-3">
+                              <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                <span>Причина</span>
+                              </label>
+                              <textarea
+                                aria-label="Причина"
+                                value={draft.reason}
+                                maxLength={MAX_BACKFILL_REASON_LENGTH}
+                                onChange={(event) =>
+                                  setHistoryPhotoDrafts((current) => ({
+                                    ...current,
+                                    [formKey]: {
+                                      ...draft,
+                                      reason: event.target.value,
+                                    },
+                                  }))
+                                }
+                                rows={3}
+                                className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/10"
+                                placeholder="Почему фото добавляется после завершения смены"
+                              />
+                              <div className="space-y-2">
+                                <label
+                                  htmlFor={`history-photo-${formKey}`}
+                                  className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+                                >
+                                  Фото
+                                </label>
+                                <input
+                                  id={`history-photo-${formKey}`}
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  onChange={(event) =>
+                                    void handleHistoryPhotoFileChange(
+                                      formKey,
+                                      event.target.files?.[0] || null
+                                    )
+                                  }
+                                  className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium"
+                                />
+                                {draft.file && (
+                                  <div className="text-sm text-slate-500">
+                                    {draft.file.name}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-between gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setHistoryPhotoFormsOpen((current) => ({
+                                      ...current,
+                                      [formKey]: false,
+                                    }));
+                                    setHistoryPhotoDrafts((current) => ({
+                                      ...current,
+                                      [formKey]: { reason: "", file: null },
+                                    }));
+                                  }}
+                                  className="text-sm font-medium text-slate-500"
+                                >
+                                  Отмена
+                                </button>
+                                <Button
+                                  type="button"
+                                  onClick={() =>
+                                    void submitHistoryPhotoBackfill({
+                                      shiftId: shift.id,
+                                      type: slot.type,
+                                    })
+                                  }
+                                  disabled={
+                                    draft.reason.trim().length < 3 ||
+                                    draft.reason.trim().length >
+                                      MAX_BACKFILL_REASON_LENGTH ||
+                                    !draft.file ||
+                                    isPhotoSubmitting
+                                  }
+                                  isLoading={isPhotoSubmitting}
+                                  className="rounded-lg bg-[#0a192f] px-4 py-2 text-sm font-semibold text-white"
+                                >
+                                  Загрузить
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {typeof shift.comment === "string" && shift.comment.trim() && (
                 <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
@@ -545,6 +714,148 @@ export const DriverView: React.FC<DriverViewProps> = ({
       }
     },
     [loadShiftHistory, refreshCurrentShift]
+  );
+
+  const handleHistoryPhotoFileChange = useCallback(
+    async (formKey: string, file: File | null) => {
+      if (!file) {
+        setHistoryPhotoDrafts((current) => ({
+          ...current,
+          [formKey]: {
+            ...(current[formKey] || { reason: "" }),
+            file: null,
+          },
+        }));
+        return;
+      }
+
+      const validation = validatePhotoFile(file);
+      if ("error" in validation) {
+        setActionMessage({
+          show: true,
+          message: validation.error,
+          type: "error",
+        });
+        setToast({ show: true, message: validation.error, type: "error" });
+        window.setTimeout(
+          () => setToast({ show: false, message: "", type: "success" }),
+          3000
+        );
+        return;
+      }
+
+      if (validation.warning) {
+        setActionMessage({
+          show: true,
+          message: validation.warning,
+          type: "info",
+        });
+      }
+
+      setHistoryPhotoDrafts((current) => ({
+        ...current,
+        [formKey]: {
+          ...(current[formKey] || { reason: "" }),
+          file,
+        },
+      }));
+    },
+    []
+  );
+
+  const previewHistoryShiftPhoto = useCallback(async (shiftId: number, type: FinishedShiftPhotoType) => {
+    const formKey = `${shiftId}:${type}`;
+    setHistoryPhotoPreviewing((current) => ({
+      ...current,
+      [formKey]: true,
+    }));
+
+    try {
+      await openShiftFilePreview(shiftId, type);
+    } catch (error: any) {
+      const errorMsg = error?.message || "Не удалось открыть фото";
+      setActionMessage({
+        show: true,
+        message: errorMsg,
+        type: "error",
+      });
+      setToast({ show: true, message: errorMsg, type: "error" });
+    } finally {
+      setHistoryPhotoPreviewing((current) => ({
+        ...current,
+        [formKey]: false,
+      }));
+    }
+  }, []);
+
+  const submitHistoryPhotoBackfill = useCallback(
+    async ({
+      shiftId,
+      type,
+    }: {
+      shiftId: number;
+      type: FinishedShiftPhotoType;
+    }) => {
+      const formKey = `${shiftId}:${type}`;
+      const draft = historyPhotoDrafts[formKey] || { reason: "", file: null };
+      const normalizedReason = draft.reason.trim();
+
+      if (!normalizedReason || normalizedReason.length < 3) {
+        return;
+      }
+
+      if (normalizedReason.length > MAX_BACKFILL_REASON_LENGTH || !draft.file) {
+        return;
+      }
+
+      setHistoryPhotoSubmitting((current) => ({
+        ...current,
+        [formKey]: true,
+      }));
+
+      try {
+        const formData = new FormData();
+        formData.append("type", type);
+        formData.append("reason", normalizedReason);
+        formData.append("photo", draft.file);
+
+        await api.postFormData(API_ENDPOINTS.SHIFT_PHOTO_BACKFILL(shiftId), formData);
+        await loadShiftHistory();
+
+        setHistoryPhotoDrafts((current) => ({
+          ...current,
+          [formKey]: { reason: "", file: null },
+        }));
+        setHistoryPhotoFormsOpen((current) => ({
+          ...current,
+          [formKey]: false,
+        }));
+        setActionMessage({
+          show: true,
+          message: "Фото добавлено.",
+          type: "success",
+        });
+        setToast({
+          show: true,
+          message: "Фото добавлено",
+          type: "success",
+        });
+      } catch (error: any) {
+        const errorMsg = error?.message || "Не удалось загрузить фото";
+        setActionMessage({
+          show: true,
+          message: errorMsg,
+          type: "error",
+        });
+        setToast({ show: true, message: errorMsg, type: "error" });
+      } finally {
+        setHistoryPhotoSubmitting((current) => ({
+          ...current,
+          [formKey]: false,
+        }));
+      }
+    },
+    [historyPhotoDrafts, loadShiftHistory]
   );
 
   const handleStart = async () => {

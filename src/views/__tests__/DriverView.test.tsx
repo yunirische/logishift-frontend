@@ -6,12 +6,16 @@ const {
   mockUseAuth,
   mockApiGet,
   mockApiPost,
+  mockApiPostFormData,
   mockGetCurrentShift,
+  mockOpenShiftFilePreview,
 } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
   mockApiGet: vi.fn(),
   mockApiPost: vi.fn(),
+  mockApiPostFormData: vi.fn(),
   mockGetCurrentShift: vi.fn(),
+  mockOpenShiftFilePreview: vi.fn(),
 }));
 
 vi.mock("../../context/AuthContext", () => ({
@@ -22,8 +26,10 @@ vi.mock("../../services/api", () => ({
   default: {
     get: mockApiGet,
     post: mockApiPost,
+    postFormData: mockApiPostFormData,
   },
   getCurrentShift: mockGetCurrentShift,
+  openShiftFilePreview: mockOpenShiftFilePreview,
 }));
 
 describe("DriverView comments", () => {
@@ -55,6 +61,8 @@ describe("DriverView comments", () => {
 
       return Promise.resolve([]);
     });
+    mockApiPostFormData.mockResolvedValue({ message: "Фото добавлено" });
+    mockOpenShiftFilePreview.mockResolvedValue(undefined);
   });
 
   it("submits a comment for the active shift and refreshes the current shift", async () => {
@@ -187,5 +195,221 @@ describe("DriverView comments", () => {
     });
 
     await screen.findByText(/\[27\.06 16:34 Driver\]: Добавляю пояснение/i);
+  });
+
+  it("shows photo backfill controls only for missing required photos and submits multipart payload", async () => {
+    mockGetCurrentShift.mockResolvedValue(null);
+
+    const historyResponses = [
+      {
+        data: [
+          {
+            id: 113,
+            user_id: 33,
+            status: "finished",
+            truck_name: "КАМАЗ",
+            site_name: "Объект 1",
+            start_time: "2026-06-27T13:32:00.000Z",
+            end_time: "2026-06-27T13:32:46.000Z",
+            proof_requirements: { start: true, end: true, invoice: false },
+            photos: { start: true, end: false, invoice: false },
+            photo_start_url: "/uploads/16/2026/06/start.jpg",
+            comment: "",
+          },
+        ],
+      },
+      {
+        data: [
+          {
+            id: 113,
+            user_id: 33,
+            status: "finished",
+            truck_name: "КАМАЗ",
+            site_name: "Объект 1",
+            start_time: "2026-06-27T13:32:00.000Z",
+            end_time: "2026-06-27T13:32:46.000Z",
+            proof_requirements: { start: true, end: true, invoice: false },
+            photos: { start: true, end: true, invoice: false },
+            photo_start_url: "/uploads/16/2026/06/start.jpg",
+            photo_end_url: "/uploads/16/2026/06/end.jpg",
+            comment: "",
+          },
+        ],
+      },
+    ];
+
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+
+      if (url === "/trucks" || url === "/sites") {
+        return Promise.resolve([]);
+      }
+
+      if (url === "/shifts?driver_id=33&status=finished&limit=20") {
+        return Promise.resolve(historyResponses.shift());
+      }
+
+      return Promise.resolve([]);
+    });
+
+    render(<DriverView focusHistory />);
+
+    await screen.findByText(/Одометр перед началом/i);
+    expect(screen.getByText(/Есть фото/i)).toBeInTheDocument();
+    expect(screen.getByText(/Фото отсутствует/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Накладная/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Добавить фото/i }));
+
+    const reasonTextarea = await screen.findByPlaceholderText(
+      /Почему фото добавляется после завершения смены/i
+    );
+    const uploadButton = screen.getByRole("button", { name: /Загрузить/i });
+
+    expect(uploadButton).toBeDisabled();
+
+    const file = new File(["image"], "odo-end.jpg", { type: "image/jpeg" });
+    fireEvent.change(reasonTextarea, { target: { value: " Дозагружаю обязательное фото " } });
+    fireEvent.change(screen.getByLabelText(/Фото/i), {
+      target: { files: [file] },
+    });
+
+    await waitFor(() => {
+      expect(uploadButton).not.toBeDisabled();
+    });
+
+    fireEvent.click(uploadButton);
+
+    await waitFor(() => {
+      expect(mockApiPostFormData).toHaveBeenCalledTimes(1);
+    });
+
+    const [url, formData] = mockApiPostFormData.mock.calls[0];
+    expect(url).toBe(API_ENDPOINTS.SHIFT_PHOTO_BACKFILL(113));
+    expect(formData).toBeInstanceOf(FormData);
+    expect(formData.get("type")).toBe("end");
+    expect(formData.get("reason")).toBe("Дозагружаю обязательное фото");
+    expect(formData.get("photo")).toBe(file);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Добавить фото/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it("blocks invalid files and opens existing secure previews", async () => {
+    mockGetCurrentShift.mockResolvedValue(null);
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+
+      if (url === "/trucks" || url === "/sites") {
+        return Promise.resolve([]);
+      }
+
+      if (url === "/shifts?driver_id=33&status=finished&limit=20") {
+        return Promise.resolve({
+          data: [
+            {
+              id: 113,
+              user_id: 33,
+              status: "finished",
+              truck_name: "КАМАЗ",
+              site_name: "Объект 1",
+              start_time: "2026-06-27T13:32:00.000Z",
+              end_time: "2026-06-27T13:32:46.000Z",
+              proof_requirements: { start: true, end: true, invoice: false },
+              photos: { start: true, end: false, invoice: false },
+              photo_start_url: "/uploads/16/2026/06/start.jpg",
+              comment: "",
+            },
+          ],
+        });
+      }
+
+      return Promise.resolve([]);
+    });
+
+    render(<DriverView focusHistory />);
+    await screen.findByText(/Одометр перед началом/i);
+
+    fireEvent.click(screen.getByRole("button", { name: /Открыть/i }));
+
+    await waitFor(() => {
+      expect(mockOpenShiftFilePreview).toHaveBeenCalledWith(113, "start");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Добавить фото/i }));
+    const invalidFile = new File(["pdf"], "invoice.pdf", {
+      type: "application/pdf",
+    });
+    fireEvent.change(screen.getByLabelText(/Фото/i), {
+      target: { files: [invalidFile] },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Загрузить/i })).toBeDisabled();
+    });
+    expect(mockApiPostFormData).not.toHaveBeenCalled();
+  });
+
+  it("shows backend conflict errors for finished photo backfill", async () => {
+    mockGetCurrentShift.mockResolvedValue(null);
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+
+      if (url === "/trucks" || url === "/sites") {
+        return Promise.resolve([]);
+      }
+
+      if (url === "/shifts?driver_id=33&status=finished&limit=20") {
+        return Promise.resolve({
+          data: [
+            {
+              id: 113,
+              user_id: 33,
+              status: "finished",
+              truck_name: "КАМАЗ",
+              site_name: "Объект 1",
+              start_time: "2026-06-27T13:32:00.000Z",
+              end_time: "2026-06-27T13:32:46.000Z",
+              proof_requirements: { start: true, end: true, invoice: false },
+              photos: { start: true, end: false, invoice: false },
+              comment: "",
+            },
+          ],
+        });
+      }
+
+      return Promise.resolve([]);
+    });
+    mockApiPostFormData.mockRejectedValueOnce(new Error("Фото уже добавлено"));
+
+    render(<DriverView focusHistory />);
+    await screen.findByText(/Одометр после завершения/i);
+
+    fireEvent.click(screen.getByRole("button", { name: /Добавить фото/i }));
+    fireEvent.change(
+      await screen.findByPlaceholderText(
+        /Почему фото добавляется после завершения смены/i
+      ),
+      { target: { value: "Дозагружаю обязательное фото" } }
+    );
+    const file = new File(["image"], "odo-end.jpg", { type: "image/jpeg" });
+    fireEvent.change(screen.getByLabelText(/Фото/i), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Загрузить/i }));
+
+    await waitFor(() => {
+      expect(mockApiPostFormData).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      screen.getByPlaceholderText(/Почему фото добавляется после завершения смены/i)
+    ).toBeInTheDocument();
   });
 });
