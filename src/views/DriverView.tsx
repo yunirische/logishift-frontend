@@ -3,10 +3,12 @@ import {
   Camera,
   CheckCircle2,
   Clock,
+  MessageSquare,
   LogOut,
   MapPin,
   History,
   Play,
+  Send,
   Square,
   Truck,
 } from "lucide-react";
@@ -22,12 +24,16 @@ import {
 import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import api, { getCurrentShift } from "../services/api";
-import { DriverState } from "../types";
+import { DriverState, Shift } from "../types";
+import { formatForDisplay } from "../utils/dateUtils";
+import { formatDriverShiftSummary } from "../utils/driverShiftSummary";
 import { validatePhotoFile } from "../utils/photoFile";
 
 interface DriverViewProps {
   focusHistory?: boolean;
 }
+
+const MAX_SHIFT_COMMENT_LENGTH = 1000;
 
 export const DriverView: React.FC<DriverViewProps> = ({
   focusHistory = false,
@@ -51,6 +57,12 @@ export const DriverView: React.FC<DriverViewProps> = ({
   }>({ show: false, message: "", type: "info" });
   const [selectedTruck, setSelectedTruck] = useState("");
   const [selectedSite, setSelectedSite] = useState("");
+  const [tenantTimezone, setTenantTimezone] = useState("Europe/Moscow");
+  const [activeCommentDraft, setActiveCommentDraft] = useState("");
+  const [activeCommentSubmitting, setActiveCommentSubmitting] = useState(false);
+  const [historyCommentDrafts, setHistoryCommentDrafts] = useState<Record<number, string>>({});
+  const [historyCommentOpen, setHistoryCommentOpen] = useState<Record<number, boolean>>({});
+  const [historyCommentSubmitting, setHistoryCommentSubmitting] = useState<Record<number, boolean>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isDemoMode = isDemoTenantId(user?.tenant_id);
@@ -107,14 +119,6 @@ export const DriverView: React.FC<DriverViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemoDriverMode]);
 
-  const formatShiftDate = useCallback((dateString?: string) => {
-    if (!dateString) return "—";
-    return new Date(dateString).toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "long",
-    });
-  }, []);
-
   const renderHistoryList = (limit?: number) => {
     const historyItems =
       typeof limit === "number" ? shiftHistory.slice(0, limit) : shiftHistory;
@@ -137,79 +141,205 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
     return (
       <div className="space-y-3">
-        {historyItems.map((shift) => (
-          <Card
-            key={shift.id}
-            className="border border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-slate-900">
-                  <Truck size={16} className="shrink-0 text-slate-400" />
-                  <span className="truncate text-sm font-bold">
-                    {shift.truck?.name || shift.truck_name || "—"}
-                  </span>
+        {historyItems.map((shift) => {
+          const summary = formatDriverShiftSummary(
+            shift as Shift,
+            tenantTimezone
+          );
+          const draftValue = historyCommentDrafts[shift.id] || "";
+          const isSubmitting = Boolean(historyCommentSubmitting[shift.id]);
+          const isExpanded = Boolean(historyCommentOpen[shift.id]);
+          const canCommentShift =
+            effectiveDriverId !== null &&
+            (shift.user_id === undefined || shift.user_id === effectiveDriverId);
+
+          return (
+            <Card
+              key={shift.id}
+              className="border border-slate-200 bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-slate-900">
+                    <Truck size={16} className="shrink-0 text-slate-400" />
+                    <span className="truncate text-sm font-bold">
+                      {shift.truck?.name || shift.truck_name || "—"}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+                    <MapPin size={14} className="shrink-0" />
+                    <span className="truncate">
+                      {shift.site?.name || shift.site_name || "—"}
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
-                  <MapPin size={14} className="shrink-0" />
-                  <span className="truncate">
-                    {shift.site?.name || shift.site_name || "—"}
-                  </span>
-                </div>
+                <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                  Завершена
+                </span>
               </div>
-              <div className="shrink-0 text-right">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Дата
+
+              <div className="mt-4 space-y-1 border-t border-slate-100 pt-3">
+                <div className="text-sm font-semibold text-slate-900">
+                  {summary.dateLabel}
                 </div>
-                <div className="mt-1 text-sm font-medium text-slate-700">
-                  {formatShiftDate(shift.end_time || shift.created_at)}
-                </div>
+                {summary.timeRangeLabel && (
+                  <div className="text-sm text-slate-600">
+                    {summary.timeRangeLabel}
+                  </div>
+                )}
+                {summary.durationLabel && (
+                  <div className="text-sm font-medium text-slate-500">
+                    {summary.durationLabel}
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
-                Завершена
-              </span>
-              <span className="font-medium">
-                {shift.hours_worked ? `${shift.hours_worked} ч` : "Без часов"}
-              </span>
-            </div>
-          </Card>
-        ))}
+
+              {typeof shift.comment === "string" && shift.comment.trim() && (
+                <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+                  <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    <MessageSquare size={14} />
+                    Комментарии
+                  </div>
+                  <div className="whitespace-pre-line text-sm leading-6 text-slate-700">
+                    {shift.comment}
+                  </div>
+                </div>
+              )}
+
+              {canCommentShift && (
+                <div className="mt-4 space-y-3">
+                  {!isExpanded ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setHistoryCommentOpen((current) => ({
+                          ...current,
+                          [shift.id]: true,
+                        }))
+                      }
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-[#0a192f]"
+                    >
+                      <MessageSquare size={15} />
+                      Добавить комментарий
+                    </button>
+                  ) : (
+                    <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
+                      <label
+                        htmlFor={`history-comment-${shift.id}`}
+                        className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+                      >
+                        Комментарий к смене
+                      </label>
+                      <textarea
+                        id={`history-comment-${shift.id}`}
+                        value={draftValue}
+                        maxLength={MAX_SHIFT_COMMENT_LENGTH}
+                        onChange={(event) =>
+                          setHistoryCommentDrafts((current) => ({
+                            ...current,
+                            [shift.id]: event.target.value,
+                          }))
+                        }
+                        rows={3}
+                        className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/10"
+                        placeholder="Добавьте пояснение к смене"
+                      />
+                      <div className="flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setHistoryCommentOpen((current) => ({
+                              ...current,
+                              [shift.id]: false,
+                            }))
+                          }
+                          className="text-sm font-medium text-slate-500"
+                        >
+                          Скрыть
+                        </button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            void submitShiftComment({
+                              shiftId: shift.id,
+                              text: draftValue,
+                              target: "history",
+                            });
+                          }}
+                          disabled={draftValue.trim().length === 0 || isSubmitting}
+                          isLoading={isSubmitting}
+                          className="flex items-center gap-2 rounded-lg bg-[#0a192f] px-4 py-2 text-sm font-semibold text-white"
+                        >
+                          <Send size={14} />
+                          Добавить комментарий
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })}
       </div>
     );
   };
 
-  const loadSelectionData = useCallback(async () => {
-    // History query targets the effective driver:
-    //  - production: the authenticated user
-    //  - demo-driver: the substituted demo persona (real seeded driver id)
-    // If demo persona has no real id (id=0), skip the history call and show
-    // an empty (synthetic) history rather than firing a query that would
-    // either fail validation or return unrelated data.
-    const historyDriverId = effectiveDriverId && effectiveDriverId > 0 ? effectiveDriverId : null;
+  const loadShiftHistory = useCallback(async () => {
+    const historyDriverId =
+      effectiveDriverId && effectiveDriverId > 0 ? effectiveDriverId : null;
 
-    const [trucksRes, sitesRes, historyRes] = await Promise.all([
-      api.get("/trucks"),
-      api.get("/sites"),
-      historyDriverId != null
-        ? api
-            .get(`/shifts?driver_id=${historyDriverId}&status=finished&limit=20`)
-            .catch(() => [])
-        : Promise.resolve([]),
-    ]);
+    if (historyDriverId == null) {
+      setShiftHistory([]);
+      return;
+    }
 
-    setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
-    setSites(Array.isArray(sitesRes) ? sitesRes : []);
-    // /shifts returns { data, total, page, lastPage } for paginated; some
-    // callers return a bare array. Accept both shapes.
+    const historyRes = await api
+      .get(`/shifts?driver_id=${historyDriverId}&status=finished&limit=20`)
+      .catch(() => []);
+
     const historyArr = Array.isArray(historyRes)
       ? historyRes
       : Array.isArray((historyRes as any)?.data)
       ? (historyRes as any).data
       : [];
+
     setShiftHistory(historyArr);
   }, [effectiveDriverId]);
+
+  const loadSelectionData = useCallback(async () => {
+    const [trucksRes, sitesRes] = await Promise.all([
+      api.get("/trucks"),
+      api.get("/sites"),
+      loadShiftHistory(),
+    ]);
+
+    setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
+    setSites(Array.isArray(sitesRes) ? sitesRes : []);
+  }, [loadShiftHistory]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTenantTimezone = async () => {
+      try {
+        const settings = await api.get(API_ENDPOINTS.TENANT_SETTINGS);
+        if (!cancelled) {
+          setTenantTimezone(settings.timezone || "Europe/Moscow");
+        }
+      } catch {
+        if (!cancelled) {
+          setTenantTimezone("Europe/Moscow");
+        }
+      }
+    };
+
+    void loadTenantTimezone();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const refreshCurrentShift = useCallback(
     async ({
@@ -321,6 +451,101 @@ export const DriverView: React.FC<DriverViewProps> = ({
     user,
     user?.current_state,
   ]);
+
+  const submitShiftComment = useCallback(
+    async ({
+      shiftId,
+      text,
+      target,
+    }: {
+      shiftId: number;
+      text: string;
+      target: "active" | "history";
+    }) => {
+      const normalizedText = text.trim();
+
+      if (!normalizedText) {
+        return;
+      }
+
+      if (normalizedText.length > MAX_SHIFT_COMMENT_LENGTH) {
+        setActionMessage({
+          show: true,
+          message: `Комментарий не должен превышать ${MAX_SHIFT_COMMENT_LENGTH} символов.`,
+          type: "error",
+        });
+        return;
+      }
+
+      if (target === "active") {
+        setActiveCommentSubmitting(true);
+      } else {
+        setHistoryCommentSubmitting((current) => ({
+          ...current,
+          [shiftId]: true,
+        }));
+      }
+
+      try {
+        await api.post(API_ENDPOINTS.ADD_SHIFT_COMMENT(shiftId), {
+          text: normalizedText,
+        });
+
+        if (target === "active") {
+          setActiveCommentDraft("");
+          await refreshCurrentShift({ silent: true });
+        } else {
+          setHistoryCommentDrafts((current) => ({
+            ...current,
+            [shiftId]: "",
+          }));
+          setHistoryCommentOpen((current) => ({
+            ...current,
+            [shiftId]: false,
+          }));
+          await loadShiftHistory();
+        }
+
+        setActionMessage({
+          show: true,
+          message: "Комментарий сохранен.",
+          type: "success",
+        });
+        setToast({
+          show: true,
+          message: "Комментарий сохранен",
+          type: "success",
+        });
+        window.setTimeout(
+          () => setToast({ show: false, message: "", type: "success" }),
+          2000
+        );
+      } catch (error: any) {
+        const errorMsg =
+          error?.message || "Не удалось сохранить комментарий";
+        setActionMessage({
+          show: true,
+          message: errorMsg,
+          type: "error",
+        });
+        setToast({ show: true, message: errorMsg, type: "error" });
+        window.setTimeout(
+          () => setToast({ show: false, message: "", type: "success" }),
+          3000
+        );
+      } finally {
+        if (target === "active") {
+          setActiveCommentSubmitting(false);
+        } else {
+          setHistoryCommentSubmitting((current) => ({
+            ...current,
+            [shiftId]: false,
+          }));
+        }
+      }
+    },
+    [loadShiftHistory, refreshCurrentShift]
+  );
 
   const handleStart = async () => {
     if (!selectedTruck || !selectedSite) return;
@@ -826,10 +1051,11 @@ export const DriverView: React.FC<DriverViewProps> = ({
               </div>
               <div className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-500">
                 {activeShift.start_time
-                  ? new Date(activeShift.start_time).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
+                  ? formatForDisplay(
+                      activeShift.start_time,
+                      tenantTimezone,
+                      "HH:mm"
+                    )
                   : "ОФОРМЛЕНИЕ"}
               </div>
             </div>
@@ -879,6 +1105,49 @@ export const DriverView: React.FC<DriverViewProps> = ({
                   </div>
                 </div>
               </div>
+              <Card className="border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <MessageSquare size={14} />
+                  Комментарий к смене
+                </div>
+                {typeof activeShift.comment === "string" &&
+                  activeShift.comment.trim() && (
+                    <div className="mb-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
+                      <div className="whitespace-pre-line text-sm leading-6 text-slate-700">
+                        {activeShift.comment}
+                      </div>
+                    </div>
+                  )}
+                <textarea
+                  value={activeCommentDraft}
+                  maxLength={MAX_SHIFT_COMMENT_LENGTH}
+                  onChange={(event) => setActiveCommentDraft(event.target.value)}
+                  rows={3}
+                  className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/10"
+                  placeholder="Добавьте комментарий к текущей смене"
+                />
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      void submitShiftComment({
+                        shiftId: activeShift.id,
+                        text: activeCommentDraft,
+                        target: "active",
+                      });
+                    }}
+                    disabled={
+                      activeCommentDraft.trim().length === 0 ||
+                      activeCommentSubmitting
+                    }
+                    isLoading={activeCommentSubmitting}
+                    className="flex items-center gap-2 rounded-lg bg-[#0a192f] px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    <Send size={14} />
+                    Добавить комментарий
+                  </Button>
+                </div>
+              </Card>
             </div>
           ) : [
               "awaiting_odo_start",

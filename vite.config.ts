@@ -63,6 +63,12 @@ export default defineConfig({
       }
     })
   ],
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+    clearMocks: true,
+    globals: true,
+  },
   server: {
     host: true,
     port: 5173

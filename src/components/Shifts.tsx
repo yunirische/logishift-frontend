@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from "../constants";
 import api, { openShiftFilePreview, ShiftFileType } from "../services/api";
 import { Shift, UserRole } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
+import { buildShiftQueryString } from "../utils/shiftFilters";
 
 const PAGE_SIZE = 20;
 
@@ -207,17 +208,14 @@ const Shifts: React.FC = () => {
 
   const buildQueryString = useCallback(
     (pageNumber: number) => {
-      const params = new URLSearchParams();
-      params.append("page", pageNumber.toString());
-      params.append("limit", PAGE_SIZE.toString());
-
-      if (filters.driver_id) params.append("driver_id", filters.driver_id);
-      if (filters.truck_id) params.append("truck_id", filters.truck_id);
-      if (filters.date) params.append("date", filters.date);
-
-      return params.toString();
+      return buildShiftQueryString({
+        page: pageNumber,
+        limit: PAGE_SIZE,
+        filters,
+        tenantTimezone: timezone,
+      });
     },
-    [filters]
+    [filters, timezone]
   );
 
   const updateShiftSnapshot = useCallback((items: Shift[], total: number) => {

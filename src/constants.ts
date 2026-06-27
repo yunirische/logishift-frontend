@@ -1,6 +1,6 @@
 // Environment variable support for API URLs
 // Falls back to production URLs if not set (for backwards compatibility)
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://pwa.kontrolsmen.ru/api/v1";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://api.kontrolsmen.ru/api/v1";
 
 export const API_ENDPOINTS = {
   AUTH_LOGIN: `${API_BASE_URL}/auth/login`,

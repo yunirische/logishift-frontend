@@ -6,8 +6,7 @@ import { API_ENDPOINTS } from '../constants';
 import BrandLogo from '../components/BrandLogo';
 import LegalLinks from '../components/LegalLinks';
 import { REQUIRED_CONSENT_VERSIONS } from '../config/legal';
-
-type RegisterMode = 'driver' | 'admin';
+import { getRegisterContextFromSearch, RegisterMode } from '../utils/registerInvite';
 type ConsentKey = keyof typeof REQUIRED_CONSENT_VERSIONS;
 
 interface RegisterFormData {
@@ -27,15 +26,17 @@ interface PasswordChecks {
 }
 
 const RegisterView: React.FC = () => {
-  const [mode, setMode] = useState<RegisterMode>('admin');
-  const [formData, setFormData] = useState<RegisterFormData>({
-    code: '',
+  const [mode, setMode] = useState<RegisterMode>(() =>
+    getRegisterContextFromSearch(window.location.search).initialMode
+  );
+  const [formData, setFormData] = useState<RegisterFormData>(() => ({
+    code: getRegisterContextFromSearch(window.location.search).inviteCode,
     full_name: '',
     email: '',
     password: '',
     confirmPassword: '',
     companyName: '',
-  });
+  }));
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,15 +52,6 @@ const RegisterView: React.FC = () => {
     number: false,
     special: false,
   });
-
-  // Extract invite code from URL query params (e.g., /register?code=ABC-123)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const inviteCode = params.get('code');
-    if (inviteCode) {
-      setFormData((prev) => ({ ...prev, code: inviteCode }));
-    }
-  }, []);
 
   const navigateToLogin = (email?: string) => {
     const url = new URL(window.location.href);

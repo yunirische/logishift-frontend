@@ -4,6 +4,7 @@ import api from "../services/api";
 import { UserRole } from "../types";
 import { Pencil, Copy, Plus, X, CheckCircle2, Trash2 } from "lucide-react";
 import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
+import { buildRegistrationLink } from "../utils/inviteLinks";
 
 interface Driver {
   id: number;
@@ -73,9 +74,12 @@ const Drivers: React.FC = () => {
     setInviteLoading(true);
     try {
       const result = await api.post(API_ENDPOINTS.INVITES, {});
-      // Предполагаем, что ответ содержит поле `link` или `url` или `code`
-      const link = result.link || result.url || result.invite_url || 
-                   (result.code ? `/invite/${result.code}` : '');
+      const link = buildRegistrationLink({
+        origin: window.location.origin,
+        registrationLink:
+          result.registration_link || result.link || result.url || result.invite_url,
+        inviteCode: result.code,
+      });
       setInviteLink(link);
       setInviteModalOpen(true);
     } catch (err: any) {
@@ -86,17 +90,7 @@ const Drivers: React.FC = () => {
   };
 
   const copyToClipboard = () => {
-    // Extract invite code from the link (format may be /invite/CODE or just CODE)
-    let inviteCode = inviteLink;
-    if (inviteLink.includes('/invite/')) {
-      inviteCode = inviteLink.split('/invite/')[1];
-    }
-
-    // Build full registration URL
-    const fullUrl = `${window.location.origin}/register?code=${inviteCode}`;
-
-    // Copy to clipboard
-    navigator.clipboard.writeText(fullUrl);
+    navigator.clipboard.writeText(inviteLink);
 
     // Show toast notification
     setToast({show: true, message: 'Ссылка скопирована!'});
@@ -276,13 +270,13 @@ const Drivers: React.FC = () => {
               Отправьте эту ссылку новому водителю для регистрации:
             </p>
             <div className="flex items-center gap-2 mb-6">
-              <input
-                type="text"
-                readOnly
-                value={`${window.location.origin}/register?code=${inviteLink.includes('/invite/') ? inviteLink.split('/invite/')[1] : inviteLink}`}
-                className="flex-1 p-3 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
-                aria-label="Ссылка приглашения"
-              />
+                <input
+                  type="text"
+                  readOnly
+                  value={inviteLink}
+                  className="flex-1 p-3 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono"
+                  aria-label="Ссылка приглашения"
+                />
               <button
                 onClick={copyToClipboard}
                 className="p-3 bg-[#0a192f] text-white rounded-lg hover:bg-[#152238]"
