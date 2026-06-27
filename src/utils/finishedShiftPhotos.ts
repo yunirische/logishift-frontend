@@ -10,6 +10,8 @@ export type FinishedShiftPhotoSlot = {
   required: boolean;
   hasPhoto: boolean;
   canBackfill: boolean;
+  statusLabel: string;
+  statusTone: "success" | "warning" | "neutral";
 };
 
 const PHOTO_LABELS: Record<FinishedShiftPhotoType, string> = {
@@ -59,14 +61,35 @@ export const getFinishedShiftPhotoSlots = (
   const photos = getFinishedShiftPhotoPresence(shift);
 
   return (Object.keys(PHOTO_LABELS) as FinishedShiftPhotoType[])
-    .filter((type) => requirements[type])
     .map((type) => ({
       type,
       label: PHOTO_LABELS[type],
       required: requirements[type],
       hasPhoto: photos[type],
       canBackfill: requirements[type] && !photos[type],
+      statusLabel: !requirements[type]
+        ? "Не требовалась"
+        : photos[type]
+        ? "Есть фото"
+        : "Фото отсутствует",
+      statusTone: !requirements[type]
+        ? "neutral"
+        : photos[type]
+        ? "success"
+        : "warning",
     }));
 };
 
 export const getInitialFinishedShiftPhotoFlags = emptyFlags;
+
+export const getFinishedShiftPhotoProgress = (shift: Shift) => {
+  const slots = getFinishedShiftPhotoSlots(shift);
+  const requiredCount = slots.filter((slot) => slot.required).length;
+  const uploadedCount = slots.filter((slot) => slot.required && slot.hasPhoto).length;
+
+  return {
+    requiredCount,
+    uploadedCount,
+    hasRequiredPhotos: requiredCount > 0,
+  };
+};

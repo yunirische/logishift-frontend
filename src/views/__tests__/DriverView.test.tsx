@@ -256,23 +256,32 @@ describe("DriverView comments", () => {
 
     render(<DriverView focusHistory />);
 
-    await screen.findByText(/Одометр перед началом/i);
+    await screen.findByText(/Фотографии смены/i);
+    expect(screen.getByText(/1 из 2 загружено/i)).toBeInTheDocument();
+    expect(screen.getByText(/Одометр перед началом/i)).toBeInTheDocument();
+    expect(screen.getByText(/Одометр после завершения/i)).toBeInTheDocument();
+    expect(screen.getByText(/Накладная/i)).toBeInTheDocument();
     expect(screen.getByText(/Есть фото/i)).toBeInTheDocument();
     expect(screen.getByText(/Фото отсутствует/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Накладная/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Не требовалась/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Заменить/i })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Добавить фото/i }));
+    const addButton = screen.getByRole("button", { name: /^Добавить$/i });
+    expect(addButton).toHaveAttribute("aria-expanded", "false");
+    expect(addButton).toHaveAttribute("aria-controls");
+    fireEvent.click(addButton);
 
     const reasonTextarea = await screen.findByPlaceholderText(
       /Почему фото добавляется после завершения смены/i
     );
     const uploadButton = screen.getByRole("button", { name: /Загрузить/i });
+    expect(addButton).toHaveAttribute("aria-expanded", "true");
 
     expect(uploadButton).toBeDisabled();
 
     const file = new File(["image"], "odo-end.jpg", { type: "image/jpeg" });
     fireEvent.change(reasonTextarea, { target: { value: " Дозагружаю обязательное фото " } });
-    fireEvent.change(screen.getByLabelText(/Фото/i), {
+    fireEvent.change(screen.getByLabelText(/Выбрать фото/i), {
       target: { files: [file] },
     });
 
@@ -294,11 +303,77 @@ describe("DriverView comments", () => {
     expect(formData.get("photo")).toBe(file);
 
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: /Добавить фото/i })).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText(/Почему фото добавляется после завершения смены/i)).not.toBeInTheDocument();
     });
+    expect(screen.getAllByText(/Есть фото/i).length).toBeGreaterThan(0);
   });
 
-  it("blocks invalid files and opens existing secure previews", async () => {
+  it("blocks invalid files, keeps one form open, and opens existing secure previews", async () => {
+    mockGetCurrentShift.mockResolvedValue(null);
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+
+      if (url === "/trucks" || url === "/sites") {
+        return Promise.resolve([]);
+      }
+
+      if (url === "/shifts?driver_id=33&status=finished&limit=20") {
+        return Promise.resolve({
+          data: [
+            {
+              id: 113,
+              user_id: 33,
+              status: "finished",
+              truck_name: "КАМАЗ",
+              site_name: "Объект 1",
+              start_time: "2026-06-27T13:32:00.000Z",
+              end_time: "2026-06-27T13:32:46.000Z",
+              proof_requirements: { start: true, end: true, invoice: true },
+              photos: { start: true, end: false, invoice: false },
+              photo_start_url: "/uploads/16/2026/06/start.jpg",
+              comment: "",
+            },
+          ],
+        });
+      }
+
+      return Promise.resolve([]);
+    });
+
+    render(<DriverView focusHistory />);
+    await screen.findByText(/Одометр перед началом/i);
+
+    fireEvent.click(screen.getByRole("button", { name: /Открыть/i }));
+
+    await waitFor(() => {
+      expect(mockOpenShiftFilePreview).toHaveBeenCalledWith(113, "start");
+    });
+
+    const addButtons = screen.getAllByRole("button", { name: /^Добавить$/i });
+    fireEvent.click(addButtons[0]);
+    expect(
+      await screen.findByPlaceholderText(/Почему фото добавляется после завершения смены/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(addButtons[1]);
+    expect(screen.getAllByPlaceholderText(/Почему фото добавляется после завершения смены/i)).toHaveLength(1);
+
+    const invalidFile = new File(["pdf"], "invoice.pdf", {
+      type: "application/pdf",
+    });
+    fireEvent.change(screen.getByLabelText(/Выбрать фото/i), {
+      target: { files: [invalidFile] },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Загрузить/i })).toBeDisabled();
+    });
+    expect(mockApiPostFormData).not.toHaveBeenCalled();
+  });
+
+  it("cancels and clears the inline form for missing photo", async () => {
     mockGetCurrentShift.mockResolvedValue(null);
     mockApiGet.mockImplementation((url: string) => {
       if (url === API_ENDPOINTS.TENANT_SETTINGS) {
@@ -322,7 +397,6 @@ describe("DriverView comments", () => {
               end_time: "2026-06-27T13:32:46.000Z",
               proof_requirements: { start: true, end: true, invoice: false },
               photos: { start: true, end: false, invoice: false },
-              photo_start_url: "/uploads/16/2026/06/start.jpg",
               comment: "",
             },
           ],
@@ -333,26 +407,25 @@ describe("DriverView comments", () => {
     });
 
     render(<DriverView focusHistory />);
-    await screen.findByText(/Одометр перед началом/i);
+    await screen.findByText(/Одометр после завершения/i);
 
-    fireEvent.click(screen.getByRole("button", { name: /Открыть/i }));
-
-    await waitFor(() => {
-      expect(mockOpenShiftFilePreview).toHaveBeenCalledWith(113, "start");
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /Добавить фото/i }));
-    const invalidFile = new File(["pdf"], "invoice.pdf", {
-      type: "application/pdf",
-    });
-    fireEvent.change(screen.getByLabelText(/Фото/i), {
-      target: { files: [invalidFile] },
-    });
+    fireEvent.click(screen.getByRole("button", { name: /^Добавить$/i }));
+    const reasonField = await screen.findByPlaceholderText(
+      /Почему фото добавляется после завершения смены/i
+    );
+    fireEvent.change(reasonField, { target: { value: "Дозагрузка" } });
+    fireEvent.click(screen.getByRole("button", { name: /Отмена/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Загрузить/i })).toBeDisabled();
+      expect(
+        screen.queryByPlaceholderText(/Почему фото добавляется после завершения смены/i)
+      ).not.toBeInTheDocument();
     });
-    expect(mockApiPostFormData).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Добавить$/i }));
+    expect(
+      await screen.findByPlaceholderText(/Почему фото добавляется после завершения смены/i)
+    ).toHaveValue("");
   });
 
   it("shows backend conflict errors for finished photo backfill", async () => {
@@ -392,7 +465,7 @@ describe("DriverView comments", () => {
     render(<DriverView focusHistory />);
     await screen.findByText(/Одометр после завершения/i);
 
-    fireEvent.click(screen.getByRole("button", { name: /Добавить фото/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Добавить$/i }));
     fireEvent.change(
       await screen.findByPlaceholderText(
         /Почему фото добавляется после завершения смены/i
@@ -400,7 +473,7 @@ describe("DriverView comments", () => {
       { target: { value: "Дозагружаю обязательное фото" } }
     );
     const file = new File(["image"], "odo-end.jpg", { type: "image/jpeg" });
-    fireEvent.change(screen.getByLabelText(/Фото/i), {
+    fireEvent.change(screen.getByLabelText(/Выбрать фото/i), {
       target: { files: [file] },
     });
     fireEvent.click(screen.getByRole("button", { name: /Загрузить/i }));
@@ -411,5 +484,6 @@ describe("DriverView comments", () => {
     expect(
       screen.getByPlaceholderText(/Почему фото добавляется после завершения смены/i)
     ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Заменить/i })).not.toBeInTheDocument();
   });
 });
