@@ -90,6 +90,7 @@ describe("DriverView comments", () => {
     const textarea = await screen.findByPlaceholderText(
       /добавьте комментарий к текущей смене/i
     );
+    expect(screen.getByTestId("end-shift-button")).toBeInTheDocument();
     const button = screen.getByRole("button", {
       name: /добавить комментарий/i,
     });
@@ -106,7 +107,25 @@ describe("DriverView comments", () => {
       );
     });
 
+    expect(await screen.findByTestId("driver-shift-message")).toHaveTextContent(
+      /комментарий сохранен\./i
+    );
     await screen.findByText(/\[27\.06 16:34 Driver\]: Новый комментарий/i);
+  });
+
+  it("shows the disabled start helper once and does not render the duplicate status block by default", async () => {
+    mockGetCurrentShift.mockResolvedValueOnce(null);
+
+    render(<DriverView />);
+
+    expect(await screen.findByTestId("start-shift-button")).toBeDisabled();
+    expect(
+      screen.getAllByText(/Выберите машину и объект, чтобы начать смену\./i)
+    ).toHaveLength(1);
+    expect(screen.getByTestId("start-shift-disabled-reason")).toBeInTheDocument();
+    expect(screen.queryByTestId("driver-shift-message")).not.toBeInTheDocument();
+    expect(screen.getByTestId("driver-action-bar-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("driver-action-bar-column")).toBeInTheDocument();
   });
 
   it("shows existing finished comments, allows commenting own shift, and hides controls for unrelated shifts", async () => {

@@ -102,13 +102,6 @@ export const DriverView: React.FC<DriverViewProps> = ({
       : !selectedSite
       ? "Выберите объект."
       : "";
-  const currentShiftBannerMessage = hasActiveShift
-    ? workflowState === "active"
-      ? "Смена активна."
-      : workflowState === "finished"
-      ? "Смена завершена."
-      : "Текущая смена загружена."
-    : startDisabledReason || "Готово к началу смены.";
 
   // Demo-driver mode: fetch tenant users once and pick a driver persona.
   // Falls back to a synthetic persona if /users fails or has no drivers.
@@ -921,7 +914,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
   if (focusHistory) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 pb-28">
+      <div className="min-h-screen bg-slate-50 px-2 py-4 pb-28 sm:px-4">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -950,7 +943,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 pb-48">
+    <div className="min-h-screen bg-slate-50 p-4 pb-36 lg:pb-28">
       <input
         type="file"
         ref={fileInputRef}
@@ -1307,74 +1300,85 @@ export const DriverView: React.FC<DriverViewProps> = ({
       )}
 
       {/* Sticky primary action bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm">
-        {!activeShift ? (
-          <div className="space-y-2">
-            <Button
-              onClick={handleStart}
-              disabled={!selectedTruck || !selectedSite}
-              data-testid="start-shift-button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-              isLoading={loading}
-            >
-              <Play size={18} fill="currentColor" />
-              Начать смену
-            </Button>
-            <div
-              className="min-h-5 text-center text-xs font-medium text-slate-500"
-              data-testid="start-shift-disabled-reason"
-              role="status"
-              aria-live="polite"
-            >
-              {startDisabledReason || "Смена может быть начата."}
-            </div>
-          </div>
-        ) : workflowState === "active" ? (
-          <Button
-            onClick={handleEnd}
-            data-testid="end-shift-button"
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
-            isLoading={loading}
-          >
-            <Square size={18} fill="currentColor" />
-            Завершить смену
-          </Button>
-        ) : ["awaiting_odo_start", "awaiting_odo_end", "awaiting_invoice"].includes(workflowState) ? (
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 py-3 text-base font-bold text-white shadow-lg shadow-orange-200 transition-all hover:bg-orange-600 active:scale-[0.98]"
-            isLoading={loading}
-          >
-            <Camera size={18} />
-            Открыть камеру
-          </Button>
-        ) : (
-          <Button
-            onClick={() => {
-              setActiveShift(null);
-              localStorage.removeItem(demoActiveShiftKey(effectiveDriverId));
-            }}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
-          >
-            <Play size={18} fill="currentColor" />
-            Открыть новую смену
-          </Button>
-        )}
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm lg:left-72 lg:px-6">
         <div
-          className={`mt-3 rounded-lg border px-4 py-3 text-sm shadow-sm ${
-            actionMessage.show
-              ? actionMessage.type === "error"
-                ? "border-red-200 bg-red-50 text-red-700"
-                : actionMessage.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-slate-200 bg-white text-slate-700"
-              : "border-slate-200 bg-white text-slate-500"
-          }`}
-          data-testid="driver-shift-message"
-          role={actionMessage.show && actionMessage.type === "error" ? "alert" : "status"}
-          aria-live={actionMessage.show && actionMessage.type === "error" ? "assertive" : "polite"}
+          className="mx-auto w-full max-w-6xl"
+          data-testid="driver-action-bar-shell"
         >
-          {actionMessage.show ? actionMessage.message : currentShiftBannerMessage}
+          <div
+            className="mx-auto w-full max-w-2xl"
+            data-testid="driver-action-bar-column"
+          >
+            {!activeShift ? (
+              <div className="space-y-2">
+                <Button
+                  onClick={handleStart}
+                  disabled={!selectedTruck || !selectedSite}
+                  data-testid="start-shift-button"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+                  isLoading={loading}
+                >
+                  <Play size={18} fill="currentColor" />
+                  Начать смену
+                </Button>
+                <div
+                  className="min-h-5 text-center text-xs font-medium text-slate-500"
+                  data-testid="start-shift-disabled-reason"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {startDisabledReason || "Смена может быть начата."}
+                </div>
+              </div>
+            ) : workflowState === "active" ? (
+              <Button
+                onClick={handleEnd}
+                data-testid="end-shift-button"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
+                isLoading={loading}
+              >
+                <Square size={18} fill="currentColor" />
+                Завершить смену
+              </Button>
+            ) : ["awaiting_odo_start", "awaiting_odo_end", "awaiting_invoice"].includes(workflowState) ? (
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 py-3 text-base font-bold text-white shadow-lg shadow-orange-200 transition-all hover:bg-orange-600 active:scale-[0.98]"
+                isLoading={loading}
+              >
+                <Camera size={18} />
+                Открыть камеру
+              </Button>
+            ) : (
+              <Button
+                onClick={() => {
+                  setActiveShift(null);
+                  localStorage.removeItem(demoActiveShiftKey(effectiveDriverId));
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
+              >
+                <Play size={18} fill="currentColor" />
+                Открыть новую смену
+              </Button>
+            )}
+
+            {actionMessage.show && (
+              <div
+                className={`mt-3 rounded-lg border px-4 py-3 text-sm shadow-sm ${
+                  actionMessage.type === "error"
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : actionMessage.type === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : "border-slate-200 bg-white text-slate-700"
+                }`}
+                data-testid="driver-shift-message"
+                role={actionMessage.type === "error" ? "alert" : "status"}
+                aria-live={actionMessage.type === "error" ? "assertive" : "polite"}
+              >
+                {actionMessage.message}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

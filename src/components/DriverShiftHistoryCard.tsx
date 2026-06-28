@@ -90,7 +90,7 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
       data-testid={`driver-history-card-${shift.id}`}
     >
       <div
-        className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-5 md:px-6 md:py-3.5"
+        className="border-b border-slate-200 bg-slate-100 px-4 py-4 sm:px-5 md:px-6 md:py-3.5"
         data-testid={`driver-history-header-${shift.id}`}
       >
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
