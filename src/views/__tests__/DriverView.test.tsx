@@ -182,6 +182,11 @@ describe("DriverView comments", () => {
     expect(within(otherCard).getByText(/^Смена$/i)).toBeInTheDocument();
     expect(within(ownCard).queryByText(/Смена #/i)).not.toBeInTheDocument();
     expect(within(otherCard).queryByText(/Смена #/i)).not.toBeInTheDocument();
+    expect(within(ownCard).getByTestId("driver-history-header-113")).toBeInTheDocument();
+    expect(within(ownCard).getByTestId("driver-history-summary-113")).toBeInTheDocument();
+    expect(within(ownCard).getByTestId("driver-history-machine-113")).toBeInTheDocument();
+    expect(within(ownCard).getByTestId("driver-history-object-113")).toBeInTheDocument();
+    expect(within(ownCard).getByTestId("driver-history-action-113")).toBeInTheDocument();
     expect(within(ownCard).getByText(/КАМАЗ/i)).toBeInTheDocument();
     expect(within(ownCard).getByText(/Объект 1/i)).toBeInTheDocument();
     expect(
@@ -278,8 +283,8 @@ describe("DriverView comments", () => {
     const card = await screen.findByTestId("driver-history-card-113");
     expect(within(card).getByText(/^Смена$/i)).toBeInTheDocument();
     expect(within(card).queryByText(/Смена #/i)).not.toBeInTheDocument();
-    expect(within(card).getByText(/27 июня/i)).toBeInTheDocument();
-    expect(within(card).getByText(/Меньше 1 минуты/i)).toBeInTheDocument();
+    expect(within(card).getAllByText(/27 июня/i).length).toBeGreaterThan(0);
+    expect(within(card).getAllByText(/Меньше 1 минуты/i).length).toBeGreaterThan(0);
     expect(within(card).queryByText(/Фотографии смены/i)).not.toBeInTheDocument();
 
     const detailsButton = within(card).getByRole("button", { name: /подробнее/i });

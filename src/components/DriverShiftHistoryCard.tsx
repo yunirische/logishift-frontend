@@ -89,8 +89,11 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
       className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-200/70"
       data-testid={`driver-history-card-${shift.id}`}
     >
-      <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-4 sm:px-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <div
+        className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-5 md:px-6 md:py-3.5"
+        data-testid={`driver-history-header-${shift.id}`}
+      >
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-base font-semibold text-slate-900">
@@ -101,12 +104,23 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
               </span>
             </div>
 
-            <div className="mt-2 text-sm text-slate-600 break-words">
+            <div className="mt-2 break-words text-sm text-slate-600 md:hidden">
               {dateLabel}
               {timeRangeLabel ? ` · ${timeRangeLabel}` : ""}
             </div>
 
-            <div className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+            <div className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-700 md:hidden">
+              <Clock3 size={15} className="shrink-0 text-slate-400" />
+              <span>{durationLabel || "Время не указано"}</span>
+            </div>
+          </div>
+
+          <div className="hidden min-w-0 shrink-0 md:flex md:flex-col md:items-end md:gap-1.5 md:text-right">
+            <div className="break-words text-sm text-slate-600">
+              {dateLabel}
+              {timeRangeLabel ? ` · ${timeRangeLabel}` : ""}
+            </div>
+            <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
               <Clock3 size={15} className="shrink-0 text-slate-400" />
               <span>{durationLabel || "Время не указано"}</span>
             </div>
@@ -114,9 +128,15 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
         </div>
       </div>
 
-      <div className="px-4 py-3 sm:px-5 sm:py-4">
-        <div className="space-y-2 text-sm">
-          <div className="flex min-w-0 items-start gap-2 text-slate-900">
+      <div className="px-4 py-3 sm:px-5 sm:py-4 md:px-6 md:py-3.5">
+        <div
+          className="grid gap-3 text-sm md:grid-cols-[minmax(180px,0.8fr)_minmax(240px,1.4fr)_auto] md:items-start md:gap-x-4"
+          data-testid={`driver-history-summary-${shift.id}`}
+        >
+          <div
+            className="flex min-w-0 items-start gap-2 text-slate-900"
+            data-testid={`driver-history-machine-${shift.id}`}
+          >
             <Truck size={14} className="mt-0.5 shrink-0 text-slate-400" />
             <div className="min-w-0 flex-1">
               <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
@@ -126,7 +146,10 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
             </div>
           </div>
 
-          <div className="flex min-w-0 items-start gap-2 text-slate-900">
+          <div
+            className="flex min-w-0 items-start gap-2 text-slate-900"
+            data-testid={`driver-history-object-${shift.id}`}
+          >
             <MapPin size={14} className="mt-0.5 shrink-0 text-slate-400" />
             <div className="min-w-0 flex-1">
               <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
@@ -135,19 +158,22 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
               <div className="mt-0.5 break-words font-medium">{siteName}</div>
             </div>
           </div>
-        </div>
 
-        <div className="mt-3">
-          <Button
-            type="button"
-            aria-expanded={isDetailsExpanded}
-            aria-controls={detailsId}
-            onClick={() => onToggleDetails(shift.id)}
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700"
+          <div
+            className="md:flex md:justify-self-end md:self-center"
+            data-testid={`driver-history-action-${shift.id}`}
           >
-            {isDetailsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            {isDetailsExpanded ? "Скрыть детали" : "Подробнее"}
-          </Button>
+            <Button
+              type="button"
+              aria-expanded={isDetailsExpanded}
+              aria-controls={detailsId}
+              onClick={() => onToggleDetails(shift.id)}
+              className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700"
+            >
+              {isDetailsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {isDetailsExpanded ? "Скрыть детали" : "Подробнее"}
+            </Button>
+          </div>
         </div>
 
         {isDetailsExpanded && (
@@ -156,7 +182,7 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
             data-testid={`driver-history-details-${shift.id}`}
             className="mt-3 space-y-4 border-t border-slate-200 pt-4"
           >
-            <section className="space-y-3">
+            <section className="max-w-4xl space-y-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h4 className="text-sm font-semibold text-slate-900">
                   Комментарий
@@ -227,7 +253,7 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
               )}
             </section>
 
-            <section className="space-y-3">
+            <section className="max-w-4xl space-y-3">
               <FinishedShiftPhotos
                 shift={shift}
                 openFormKey={historyPhotoOpenFormKey}

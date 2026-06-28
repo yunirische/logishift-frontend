@@ -156,7 +156,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
     }
 
     return (
-      <div className="mx-auto max-w-4xl space-y-4">
+      <div className="mx-auto w-full max-w-6xl space-y-4">
         {historyItems.map((shift) => {
           const summary = formatDriverShiftSummary(
             shift as Shift,
