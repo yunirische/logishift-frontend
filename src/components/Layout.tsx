@@ -19,7 +19,7 @@ import {
 import DemoBanner from './DemoBanner';
 import { isDemoHostname, isDemoTenantId } from "../config/demo";
 import BrandLogo from "./BrandLogo";
-import LegalLinks from "./LegalLinks";
+import AuthenticatedLegalMenu from "./AuthenticatedLegalMenu";
 
 // Demo persona type
 type DemoPersona = 'admin' | 'driver';
@@ -61,6 +61,7 @@ const Layout: React.FC<LayoutProps> = ({
   const shouldShowDemoBanner = isDemoHost || isDemoMode;
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [legalMenuOpen, setLegalMenuOpen] = useState(false);
 
   const getTabTitle = (tabId: string) => {
     switch (tabId) {
@@ -283,6 +284,12 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
           )}
 
+          <AuthenticatedLegalMenu
+            isOpen={legalMenuOpen}
+            onToggle={() => setLegalMenuOpen((current) => !current)}
+            onLinkClick={() => setSidebarOpen(false)}
+          />
+
         </nav>
 
         <div className="p-6 border-t border-slate-800 mt-auto">
@@ -376,13 +383,6 @@ const Layout: React.FC<LayoutProps> = ({
           )}
           {children}
         </div>
-        <footer className="border-t border-slate-200 bg-white px-6 py-5 lg:px-10">
-          <LegalLinks
-            compact
-            supportClassName="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-slate-500 lg:justify-start"
-            linksClassName="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-slate-500 lg:justify-start"
-          />
-        </footer>
       </main>
     </div>
   );

@@ -25,6 +25,7 @@ describe("RegisterView", () => {
 
     expect(screen.getByLabelText(/название компании/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/код приглашения/i)).not.toBeInTheDocument();
+    expect(screen.getByText("LegalLinks")).toBeInTheDocument();
   });
 
   it("opens driver mode immediately when invite code is present", () => {
@@ -45,5 +46,21 @@ describe("RegisterView", () => {
     await user.click(screen.getByRole("button", { name: /компания/i }));
 
     expect(screen.getByLabelText(/название компании/i)).toBeInTheDocument();
+  });
+
+  it("keeps consent links and the current legal version on registration", () => {
+    window.history.replaceState({}, "", "/register");
+
+    render(<RegisterView />);
+
+    expect(
+      screen.getByRole("link", { name: /оферту и пользовательское соглашение/i })
+    ).toHaveAttribute("href", "/offer");
+    expect(
+      screen.getByRole("link", { name: /политикой обработки персональных данных/i })
+    ).toHaveAttribute("href", "/privacy");
+    expect(
+      screen.getByRole("link", { name: /согласие на обработку персональных данных/i })
+    ).toHaveAttribute("href", "/personal-data-consent");
   });
 });
