@@ -337,6 +337,7 @@ const LandingView: React.FC = () => {
             </div>
           </div>
           <LegalLinks
+            showSupport={false}
             className="lg:justify-self-end"
             supportClassName="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500 lg:justify-end"
             linksClassName="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500 lg:justify-end"

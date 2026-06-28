@@ -13,6 +13,7 @@ type LegalLinksProps = {
   supportClassName?: string;
   linksClassName?: string;
   compact?: boolean;
+  showSupport?: boolean;
 };
 
 const linkBaseClass =
@@ -25,6 +26,7 @@ const LegalLinks: React.FC<LegalLinksProps> = ({
   supportClassName = "",
   linksClassName = "",
   compact = false,
+  showSupport = true,
 }) => {
   const showCookieSettings =
     typeof window !== "undefined" && isMarketingHostname(window.location.hostname);
@@ -34,24 +36,26 @@ const LegalLinks: React.FC<LegalLinksProps> = ({
 
   return (
     <div className={className}>
-      <div
-        className={
-          supportClassName ||
-          `flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm ${linkBaseClass}`
-        }
-      >
-        <a href={SUPPORT_EMAIL_HREF} className={anchorClassName}>
-          {SUPPORT_EMAIL}
-        </a>
-        <a
-          href={SUPPORT_TELEGRAM_URL}
-          target="_blank"
-          rel="noreferrer"
-          className={anchorClassName}
+      {showSupport && (
+        <div
+          className={
+            supportClassName ||
+            `flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm ${linkBaseClass}`
+          }
         >
-          Написать в поддержку
-        </a>
-      </div>
+          <a href={SUPPORT_EMAIL_HREF} className={anchorClassName}>
+            {SUPPORT_EMAIL}
+          </a>
+          <a
+            href={SUPPORT_TELEGRAM_URL}
+            target="_blank"
+            rel="noreferrer"
+            className={anchorClassName}
+          >
+            Написать в поддержку
+          </a>
+        </div>
+      )}
       <div className={linksClassName || defaultLinksClass}>
         {PUBLIC_LEGAL_LINKS.map((link) => (
           <a key={link.href} href={link.href} className={anchorClassName}>
