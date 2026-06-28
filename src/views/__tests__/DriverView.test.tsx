@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { DriverView } from "../DriverView";
 import { API_ENDPOINTS } from "../../constants";
 
@@ -173,12 +173,29 @@ describe("DriverView comments", () => {
 
     render(<DriverView focusHistory />);
 
-    await screen.findByText(/\[27\.06 16:33 Admin\]: Так решил админ/i);
-    expect(screen.getAllByRole("button", { name: /добавить комментарий/i })).toHaveLength(1);
+    const ownCard = await screen.findByTestId("driver-history-card-113");
+    const otherCard = screen.getByTestId("driver-history-card-114");
 
-    fireEvent.click(screen.getByRole("button", { name: /добавить комментарий/i }));
-    const textarea = await screen.findByPlaceholderText(/добавьте пояснение к смене/i);
-    const submitButton = screen.getByRole("button", {
+    expect(screen.queryByRole("button", { name: /все свернуть/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /раскрыть смену #114/i })).not.toBeInTheDocument();
+    expect(within(ownCard).getByText(/Смена #113/i)).toBeInTheDocument();
+    expect(within(otherCard).getByText(/Смена #114/i)).toBeInTheDocument();
+    expect(within(ownCard).getByText(/КАМАЗ/i)).toBeInTheDocument();
+    expect(within(ownCard).getByText(/Объект 1/i)).toBeInTheDocument();
+    expect(
+      within(ownCard).queryByText(/\[27\.06 16:33 Admin\]: Так решил админ/i)
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /подробнее/i })).toHaveLength(2);
+
+    fireEvent.click(within(ownCard).getByRole("button", { name: /подробнее/i }));
+
+    expect(await within(ownCard).findByText(/\[27\.06 16:33 Admin\]: Так решил админ/i)).toBeInTheDocument();
+    expect(within(otherCard).queryByTestId("driver-history-details-114")).not.toBeInTheDocument();
+    expect(within(ownCard).getByRole("button", { name: /добавить комментарий/i })).toBeInTheDocument();
+
+    fireEvent.click(within(ownCard).getByRole("button", { name: /добавить комментарий/i }));
+    const textarea = await within(ownCard).findByPlaceholderText(/добавьте пояснение к смене/i);
+    const submitButton = within(ownCard).getByRole("button", {
       name: /добавить комментарий/i,
     });
 
@@ -194,7 +211,7 @@ describe("DriverView comments", () => {
       );
     });
 
-    await screen.findByText(/\[27\.06 16:34 Driver\]: Добавляю пояснение/i);
+    await within(ownCard).findByText(/\[27\.06 16:34 Driver\]: Добавляю пояснение/i);
   });
 
   it("shows photo backfill controls only for missing required photos and submits multipart payload", async () => {
@@ -256,32 +273,43 @@ describe("DriverView comments", () => {
 
     render(<DriverView focusHistory />);
 
-    await screen.findByText(/Фотографии смены/i);
-    expect(screen.getByText(/1 из 2 загружено/i)).toBeInTheDocument();
-    expect(screen.getByText(/Одометр перед началом/i)).toBeInTheDocument();
-    expect(screen.getByText(/Одометр после завершения/i)).toBeInTheDocument();
-    expect(screen.getByText(/Накладная/i)).toBeInTheDocument();
-    expect(screen.getByText(/Есть фото/i)).toBeInTheDocument();
-    expect(screen.getByText(/Фото отсутствует/i)).toBeInTheDocument();
-    expect(screen.getByText(/Не требовалась/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Заменить/i })).not.toBeInTheDocument();
+    const card = await screen.findByTestId("driver-history-card-113");
+    expect(within(card).getByText(/Смена #113/i)).toBeInTheDocument();
+    expect(within(card).getByText(/27 июня/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Меньше 1 минуты/i)).toBeInTheDocument();
+    expect(within(card).queryByText(/Фотографии смены/i)).not.toBeInTheDocument();
 
-    const addButton = screen.getByRole("button", { name: /^Добавить$/i });
+    const detailsButton = within(card).getByRole("button", { name: /подробнее/i });
+    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(detailsButton);
+    expect(detailsButton).toHaveAttribute("aria-expanded", "true");
+
+    expect(await within(card).findByText(/Фотографии смены/i)).toBeInTheDocument();
+    expect(within(card).getByText(/1 из 2 загружено/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Одометр перед началом/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Одометр после завершения/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Накладная/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Есть фото/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Фото отсутствует/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Не требовалась/i)).toBeInTheDocument();
+    expect(within(card).queryByRole("button", { name: /Заменить/i })).not.toBeInTheDocument();
+
+    const addButton = within(card).getByRole("button", { name: /^Добавить$/i });
     expect(addButton).toHaveAttribute("aria-expanded", "false");
     expect(addButton).toHaveAttribute("aria-controls");
     fireEvent.click(addButton);
 
-    const reasonTextarea = await screen.findByPlaceholderText(
+    const reasonTextarea = await within(card).findByPlaceholderText(
       /Почему фото добавляется после завершения смены/i
     );
-    const uploadButton = screen.getByRole("button", { name: /Загрузить/i });
+    const uploadButton = within(card).getByRole("button", { name: /Загрузить/i });
     expect(addButton).toHaveAttribute("aria-expanded", "true");
 
     expect(uploadButton).toBeDisabled();
 
     const file = new File(["image"], "odo-end.jpg", { type: "image/jpeg" });
     fireEvent.change(reasonTextarea, { target: { value: " Дозагружаю обязательное фото " } });
-    fireEvent.change(screen.getByLabelText(/Выбрать фото/i), {
+    fireEvent.change(within(card).getByLabelText(/Выбрать фото/i), {
       target: { files: [file] },
     });
 
@@ -303,9 +331,9 @@ describe("DriverView comments", () => {
     expect(formData.get("photo")).toBe(file);
 
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText(/Почему фото добавляется после завершения смены/i)).not.toBeInTheDocument();
+      expect(within(card).queryByPlaceholderText(/Почему фото добавляется после завершения смены/i)).not.toBeInTheDocument();
     });
-    expect(screen.getAllByText(/Есть фото/i).length).toBeGreaterThan(0);
+    expect(within(card).getAllByText(/Есть фото/i).length).toBeGreaterThan(0);
   });
 
   it("blocks invalid files, keeps one form open, and opens existing secure previews", async () => {
@@ -343,32 +371,34 @@ describe("DriverView comments", () => {
     });
 
     render(<DriverView focusHistory />);
-    await screen.findByText(/Одометр перед началом/i);
+    const card = await screen.findByTestId("driver-history-card-113");
+    fireEvent.click(within(card).getByRole("button", { name: /подробнее/i }));
+    await within(card).findByText(/Одометр перед началом/i);
 
-    fireEvent.click(screen.getByRole("button", { name: /Открыть/i }));
+    fireEvent.click(within(card).getByRole("button", { name: /Открыть/i }));
 
     await waitFor(() => {
       expect(mockOpenShiftFilePreview).toHaveBeenCalledWith(113, "start");
     });
 
-    const addButtons = screen.getAllByRole("button", { name: /^Добавить$/i });
+    const addButtons = within(card).getAllByRole("button", { name: /^Добавить$/i });
     fireEvent.click(addButtons[0]);
     expect(
-      await screen.findByPlaceholderText(/Почему фото добавляется после завершения смены/i)
+      await within(card).findByPlaceholderText(/Почему фото добавляется после завершения смены/i)
     ).toBeInTheDocument();
 
     fireEvent.click(addButtons[1]);
-    expect(screen.getAllByPlaceholderText(/Почему фото добавляется после завершения смены/i)).toHaveLength(1);
+    expect(within(card).getAllByPlaceholderText(/Почему фото добавляется после завершения смены/i)).toHaveLength(1);
 
     const invalidFile = new File(["pdf"], "invoice.pdf", {
       type: "application/pdf",
     });
-    fireEvent.change(screen.getByLabelText(/Выбрать фото/i), {
+    fireEvent.change(within(card).getByLabelText(/Выбрать фото/i), {
       target: { files: [invalidFile] },
     });
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Загрузить/i })).toBeDisabled();
+      expect(within(card).getByRole("button", { name: /Загрузить/i })).toBeDisabled();
     });
     expect(mockApiPostFormData).not.toHaveBeenCalled();
   });
@@ -407,24 +437,26 @@ describe("DriverView comments", () => {
     });
 
     render(<DriverView focusHistory />);
-    await screen.findByText(/Одометр после завершения/i);
+    const card = await screen.findByTestId("driver-history-card-113");
+    fireEvent.click(within(card).getByRole("button", { name: /подробнее/i }));
+    await within(card).findByText(/Одометр после завершения/i);
 
-    fireEvent.click(screen.getByRole("button", { name: /^Добавить$/i }));
-    const reasonField = await screen.findByPlaceholderText(
+    fireEvent.click(within(card).getByRole("button", { name: /^Добавить$/i }));
+    const reasonField = await within(card).findByPlaceholderText(
       /Почему фото добавляется после завершения смены/i
     );
     fireEvent.change(reasonField, { target: { value: "Дозагрузка" } });
-    fireEvent.click(screen.getByRole("button", { name: /Отмена/i }));
+    fireEvent.click(within(card).getByRole("button", { name: /Отмена/i }));
 
     await waitFor(() => {
       expect(
-        screen.queryByPlaceholderText(/Почему фото добавляется после завершения смены/i)
+        within(card).queryByPlaceholderText(/Почему фото добавляется после завершения смены/i)
       ).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /^Добавить$/i }));
+    fireEvent.click(within(card).getByRole("button", { name: /^Добавить$/i }));
     expect(
-      await screen.findByPlaceholderText(/Почему фото добавляется после завершения смены/i)
+      await within(card).findByPlaceholderText(/Почему фото добавляется после завершения смены/i)
     ).toHaveValue("");
   });
 
@@ -463,27 +495,29 @@ describe("DriverView comments", () => {
     mockApiPostFormData.mockRejectedValueOnce(new Error("Фото уже добавлено"));
 
     render(<DriverView focusHistory />);
-    await screen.findByText(/Одометр после завершения/i);
+    const card = await screen.findByTestId("driver-history-card-113");
+    fireEvent.click(within(card).getByRole("button", { name: /подробнее/i }));
+    await within(card).findByText(/Одометр после завершения/i);
 
-    fireEvent.click(screen.getByRole("button", { name: /^Добавить$/i }));
+    fireEvent.click(within(card).getByRole("button", { name: /^Добавить$/i }));
     fireEvent.change(
-      await screen.findByPlaceholderText(
+      await within(card).findByPlaceholderText(
         /Почему фото добавляется после завершения смены/i
       ),
       { target: { value: "Дозагружаю обязательное фото" } }
     );
     const file = new File(["image"], "odo-end.jpg", { type: "image/jpeg" });
-    fireEvent.change(screen.getByLabelText(/Выбрать фото/i), {
+    fireEvent.change(within(card).getByLabelText(/Выбрать фото/i), {
       target: { files: [file] },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Загрузить/i }));
+    fireEvent.click(within(card).getByRole("button", { name: /Загрузить/i }));
 
     await waitFor(() => {
       expect(mockApiPostFormData).toHaveBeenCalledTimes(1);
     });
     expect(
-      screen.getByPlaceholderText(/Почему фото добавляется после завершения смены/i)
+      within(card).getByPlaceholderText(/Почему фото добавляется после завершения смены/i)
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Заменить/i })).not.toBeInTheDocument();
+    expect(within(card).queryByRole("button", { name: /Заменить/i })).not.toBeInTheDocument();
   });
 });

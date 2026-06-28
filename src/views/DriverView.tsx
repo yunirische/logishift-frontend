@@ -3,17 +3,17 @@ import {
   Camera,
   CheckCircle2,
   Clock,
-  MessageSquare,
   LogOut,
-  MapPin,
   History,
+  MapPin,
+  MessageSquare,
   Play,
   Send,
   Square,
   Truck,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { FinishedShiftPhotos } from "../components/FinishedShiftPhotos";
+import { DriverShiftHistoryCard } from "../components/DriverShiftHistoryCard";
 import { Button, Card } from "../components/ui";
 import {
   DEMO_FALLBACK_PERSONA,
@@ -73,6 +73,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
   const [historyCommentDrafts, setHistoryCommentDrafts] = useState<Record<number, string>>({});
   const [historyCommentOpen, setHistoryCommentOpen] = useState<Record<number, boolean>>({});
   const [historyCommentSubmitting, setHistoryCommentSubmitting] = useState<Record<number, boolean>>({});
+  const [expandedHistoryShiftId, setExpandedHistoryShiftId] = useState<number | null>(null);
   const [historyPhotoOpenFormKey, setHistoryPhotoOpenFormKey] = useState<string | null>(null);
   const [historyPhotoFocusReturnKey, setHistoryPhotoFocusReturnKey] = useState<string | null>(null);
   const [historyPhotoDrafts, setHistoryPhotoDrafts] = useState<Record<string, HistoryPhotoDraft>>({});
@@ -155,7 +156,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
     }
 
     return (
-      <div className="space-y-3">
+      <div className="mx-auto max-w-4xl space-y-4">
         {historyItems.map((shift) => {
           const summary = formatDriverShiftSummary(
             shift as Shift,
@@ -169,173 +170,81 @@ export const DriverView: React.FC<DriverViewProps> = ({
             (shift.user_id === undefined || shift.user_id === effectiveDriverId);
 
           return (
-            <Card
+            <DriverShiftHistoryCard
               key={shift.id}
-              className="border border-slate-200 bg-white p-4 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 text-slate-900">
-                    <Truck size={16} className="shrink-0 text-slate-400" />
-                    <span className="truncate text-sm font-bold">
-                      {shift.truck?.name || shift.truck_name || "—"}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
-                    <MapPin size={14} className="shrink-0" />
-                    <span className="truncate">
-                      {shift.site?.name || shift.site_name || "—"}
-                    </span>
-                  </div>
-                </div>
-                <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                  Завершена
-                </span>
-              </div>
-
-              <div className="mt-4 space-y-1 border-t border-slate-100 pt-3">
-                <div className="text-sm font-semibold text-slate-900">
-                  {summary.dateLabel}
-                </div>
-                {summary.timeRangeLabel && (
-                  <div className="text-sm text-slate-600">
-                    {summary.timeRangeLabel}
-                  </div>
-                )}
-                {summary.durationLabel && (
-                  <div className="text-sm font-medium text-slate-500">
-                    {summary.durationLabel}
-                  </div>
-                )}
-              </div>
-
-              {typeof shift.comment === "string" && shift.comment.trim() && (
-                <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
-                  <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    <MessageSquare size={14} />
-                    Комментарии
-                  </div>
-                  <div className="whitespace-pre-line text-sm leading-6 text-slate-700">
-                    {shift.comment}
-                  </div>
-                </div>
-              )}
-
-              {canCommentShift && (
-                <div className="mt-4 space-y-3">
-                  {!isExpanded ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setHistoryCommentOpen((current) => ({
-                          ...current,
-                          [shift.id]: true,
-                        }))
-                      }
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-[#0a192f]"
-                    >
-                      <MessageSquare size={15} />
-                      Добавить комментарий
-                    </button>
-                  ) : (
-                    <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
-                      <label
-                        htmlFor={`history-comment-${shift.id}`}
-                        className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500"
-                      >
-                        Комментарий к смене
-                      </label>
-                      <textarea
-                        id={`history-comment-${shift.id}`}
-                        value={draftValue}
-                        maxLength={MAX_SHIFT_COMMENT_LENGTH}
-                        onChange={(event) =>
-                          setHistoryCommentDrafts((current) => ({
-                            ...current,
-                            [shift.id]: event.target.value,
-                          }))
-                        }
-                        rows={3}
-                        className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/10"
-                        placeholder="Добавьте пояснение к смене"
-                      />
-                      <div className="flex items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setHistoryCommentOpen((current) => ({
-                              ...current,
-                              [shift.id]: false,
-                            }))
-                          }
-                          className="text-sm font-medium text-slate-500"
-                        >
-                          Скрыть
-                        </button>
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            void submitShiftComment({
-                              shiftId: shift.id,
-                              text: draftValue,
-                              target: "history",
-                            });
-                          }}
-                          disabled={draftValue.trim().length === 0 || isSubmitting}
-                          isLoading={isSubmitting}
-                          className="flex items-center gap-2 rounded-lg bg-[#0a192f] px-4 py-2 text-sm font-semibold text-white"
-                        >
-                          <Send size={14} />
-                          Добавить комментарий
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <FinishedShiftPhotos
-                shift={shift as Shift}
-                openFormKey={historyPhotoOpenFormKey}
-                focusReturnKey={historyPhotoFocusReturnKey}
-                drafts={historyPhotoDrafts}
-                submitting={historyPhotoSubmitting}
-                previewing={historyPhotoPreviewing}
-                maxReasonLength={MAX_BACKFILL_REASON_LENGTH}
-                onToggleForm={(formKey) => {
-                  setHistoryPhotoFocusReturnKey(null);
-                  setHistoryPhotoOpenFormKey((current) =>
-                    current === formKey ? null : formKey
-                  );
-                }}
-                onCancelForm={(formKey) => {
-                  setHistoryPhotoDrafts((current) => ({
-                    ...current,
-                    [formKey]: { reason: "", file: null },
-                  }));
-                  setHistoryPhotoOpenFormKey(null);
-                  setHistoryPhotoFocusReturnKey(formKey);
-                }}
-                onReasonChange={(formKey, value) =>
-                  setHistoryPhotoDrafts((current) => ({
-                    ...current,
-                    [formKey]: {
-                      ...(current[formKey] || { reason: "", file: null }),
-                      reason: value,
-                    },
-                  }))
-                }
-                onFileChange={(formKey, file) => {
-                  void handleHistoryPhotoFileChange(formKey, file);
-                }}
-                onSubmit={(params) => {
-                  void submitHistoryPhotoBackfill(params);
-                }}
-                onPreview={(shiftId, type) => {
-                  void previewHistoryShiftPhoto(shiftId, type);
-                }}
-              />
-            </Card>
+              shift={shift as Shift}
+              dateLabel={summary.dateLabel}
+              timeRangeLabel={summary.timeRangeLabel}
+              durationLabel={summary.durationLabel}
+              canCommentShift={canCommentShift}
+              isDetailsExpanded={expandedHistoryShiftId === shift.id}
+              isCommentExpanded={isExpanded}
+              commentDraft={draftValue}
+              isCommentSubmitting={isSubmitting}
+              historyPhotoOpenFormKey={historyPhotoOpenFormKey}
+              historyPhotoFocusReturnKey={historyPhotoFocusReturnKey}
+              historyPhotoDrafts={historyPhotoDrafts}
+              historyPhotoSubmitting={historyPhotoSubmitting}
+              historyPhotoPreviewing={historyPhotoPreviewing}
+              maxShiftCommentLength={MAX_SHIFT_COMMENT_LENGTH}
+              maxBackfillReasonLength={MAX_BACKFILL_REASON_LENGTH}
+              onToggleDetails={(shiftId) => {
+                setExpandedHistoryShiftId((current) =>
+                  current === shiftId ? null : shiftId
+                );
+              }}
+              onToggleComment={(shiftId, nextOpen) =>
+                setHistoryCommentOpen((current) => ({
+                  ...current,
+                  [shiftId]: nextOpen,
+                }))
+              }
+              onCommentDraftChange={(shiftId, value) =>
+                setHistoryCommentDrafts((current) => ({
+                  ...current,
+                  [shiftId]: value,
+                }))
+              }
+              onSubmitComment={(shiftId) => {
+                void submitShiftComment({
+                  shiftId,
+                  text: historyCommentDrafts[shiftId] || "",
+                  target: "history",
+                });
+              }}
+              onTogglePhotoForm={(formKey) => {
+                setHistoryPhotoFocusReturnKey(null);
+                setHistoryPhotoOpenFormKey((current) =>
+                  current === formKey ? null : formKey
+                );
+              }}
+              onCancelPhotoForm={(formKey) => {
+                setHistoryPhotoDrafts((current) => ({
+                  ...current,
+                  [formKey]: { reason: "", file: null },
+                }));
+                setHistoryPhotoOpenFormKey(null);
+                setHistoryPhotoFocusReturnKey(formKey);
+              }}
+              onPhotoReasonChange={(formKey, value) =>
+                setHistoryPhotoDrafts((current) => ({
+                  ...current,
+                  [formKey]: {
+                    ...(current[formKey] || { reason: "", file: null }),
+                    reason: value,
+                  },
+                }))
+              }
+              onPhotoFileChange={(formKey, file) => {
+                void handleHistoryPhotoFileChange(formKey, file);
+              }}
+              onSubmitPhoto={(params) => {
+                void submitHistoryPhotoBackfill(params);
+              }}
+              onPreviewPhoto={(shiftId, type) => {
+                void previewHistoryShiftPhoto(shiftId, type);
+              }}
+            />
           );
         })}
       </div>

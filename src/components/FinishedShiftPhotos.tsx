@@ -22,6 +22,7 @@ type PhotoDraft = {
 
 interface FinishedShiftPhotosProps {
   shift: Shift;
+  className?: string;
   openFormKey: string | null;
   focusReturnKey: string | null;
   drafts: Record<string, PhotoDraft>;
@@ -56,6 +57,7 @@ const toneStyles = {
 
 export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
   shift,
+  className = "mt-4 rounded-lg border border-slate-200 bg-white px-3 py-3",
   openFormKey,
   focusReturnKey,
   drafts,
@@ -94,7 +96,7 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
   }, [focusReturnKey]);
 
   return (
-    <div className="mt-4 rounded-lg border border-slate-200 bg-white px-3 py-3">
+    <div className={className}>
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -124,51 +126,53 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
           return (
             <div
               key={slot.type}
-              className="rounded-lg border border-slate-200 bg-slate-50/65 px-3 py-3"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2.5"
             >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-slate-900">
-                    {slot.label}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-slate-900">
+                  {slot.label}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
                     <span
-                      className={`inline-flex min-h-[28px] items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${toneStyles[slot.statusTone].chip}`}
+                      className={`inline-flex min-h-[28px] max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${toneStyles[slot.statusTone].chip}`}
                     >
-                      <ToneIcon size={13} />
-                      <span>{slot.statusLabel}</span>
+                      <ToneIcon size={13} className="shrink-0" />
+                      <span className="truncate sm:whitespace-normal">
+                        {slot.statusLabel}
+                      </span>
                     </span>
                   </div>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                  {slot.hasPhoto ? (
-                    <Button
-                      ref={(element: HTMLButtonElement | null) => {
-                        triggerRefs.current[formKey] = element;
-                      }}
-                      type="button"
-                      onClick={() => onPreview(shift.id, slot.type)}
-                      isLoading={isPreviewing}
-                      aria-label={`Открыть фото: ${slot.label}`}
-                      className="min-h-[40px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-                    >
-                      Открыть
-                    </Button>
-                  ) : slot.canBackfill ? (
-                    <Button
-                      ref={(element: HTMLButtonElement | null) => {
-                        triggerRefs.current[formKey] = element;
-                      }}
-                      type="button"
-                      aria-expanded={isOpen}
-                      aria-controls={formId}
-                      onClick={() => onToggleForm(formKey)}
-                      className="min-h-[40px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-                    >
-                      Добавить
-                    </Button>
-                  ) : null}
+                  <div className="flex shrink-0 items-center gap-2">
+                    {slot.hasPhoto ? (
+                      <Button
+                        ref={(element: HTMLButtonElement | null) => {
+                          triggerRefs.current[formKey] = element;
+                        }}
+                        type="button"
+                        onClick={() => onPreview(shift.id, slot.type)}
+                        isLoading={isPreviewing}
+                        aria-label={`Открыть фото: ${slot.label}`}
+                        className="min-h-[40px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                      >
+                        Открыть
+                      </Button>
+                    ) : slot.canBackfill ? (
+                      <Button
+                        ref={(element: HTMLButtonElement | null) => {
+                          triggerRefs.current[formKey] = element;
+                        }}
+                        type="button"
+                        aria-expanded={isOpen}
+                        aria-controls={formId}
+                        onClick={() => onToggleForm(formKey)}
+                        className="min-h-[40px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                      >
+                        Добавить
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
@@ -177,7 +181,7 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
                   id={formId}
                   className="mt-3 border-t border-slate-200 pt-3"
                 >
-                  <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-3">
+                  <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/65 p-3">
                     <div className="space-y-1">
                       <label
                         htmlFor={reasonId}
@@ -194,7 +198,7 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
                           onReasonChange(formKey, event.target.value)
                         }
                         rows={3}
-                        className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/10"
+                        className="w-full max-w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/10"
                         placeholder="Почему фото добавляется после завершения смены"
                       />
                     </div>
@@ -203,10 +207,10 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
                       <span className="block text-xs font-medium text-slate-600">
                         Фото
                       </span>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <label
                           htmlFor={fileInputId}
-                          className="inline-flex min-h-[40px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
+                          className="inline-flex min-h-[40px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700"
                         >
                           <ImagePlus size={16} />
                           <span>Выбрать фото</span>

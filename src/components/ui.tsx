@@ -14,8 +14,11 @@ export const Button = React.forwardRef<HTMLButtonElement, any>(
 
 Button.displayName = "Button";
 
-export const Card = ({ children, className }: any) => (
-  <div className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`}>
+export const Card = ({ children, className, ...props }: any) => (
+  <div
+    className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`}
+    {...props}
+  >
     {children}
   </div>
 );
