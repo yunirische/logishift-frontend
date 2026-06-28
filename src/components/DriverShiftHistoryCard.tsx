@@ -94,7 +94,7 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-base font-semibold text-slate-900">
-                Смена #{shift.id}
+                Смена
               </h3>
               <span className="inline-flex min-h-[28px] items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
                 {statusLabel}

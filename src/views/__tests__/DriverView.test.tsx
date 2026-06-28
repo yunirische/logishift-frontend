@@ -178,8 +178,10 @@ describe("DriverView comments", () => {
 
     expect(screen.queryByRole("button", { name: /все свернуть/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /раскрыть смену #114/i })).not.toBeInTheDocument();
-    expect(within(ownCard).getByText(/Смена #113/i)).toBeInTheDocument();
-    expect(within(otherCard).getByText(/Смена #114/i)).toBeInTheDocument();
+    expect(within(ownCard).getByText(/^Смена$/i)).toBeInTheDocument();
+    expect(within(otherCard).getByText(/^Смена$/i)).toBeInTheDocument();
+    expect(within(ownCard).queryByText(/Смена #/i)).not.toBeInTheDocument();
+    expect(within(otherCard).queryByText(/Смена #/i)).not.toBeInTheDocument();
     expect(within(ownCard).getByText(/КАМАЗ/i)).toBeInTheDocument();
     expect(within(ownCard).getByText(/Объект 1/i)).toBeInTheDocument();
     expect(
@@ -274,7 +276,8 @@ describe("DriverView comments", () => {
     render(<DriverView focusHistory />);
 
     const card = await screen.findByTestId("driver-history-card-113");
-    expect(within(card).getByText(/Смена #113/i)).toBeInTheDocument();
+    expect(within(card).getByText(/^Смена$/i)).toBeInTheDocument();
+    expect(within(card).queryByText(/Смена #/i)).not.toBeInTheDocument();
     expect(within(card).getByText(/27 июня/i)).toBeInTheDocument();
     expect(within(card).getByText(/Меньше 1 минуты/i)).toBeInTheDocument();
     expect(within(card).queryByText(/Фотографии смены/i)).not.toBeInTheDocument();
@@ -519,5 +522,14 @@ describe("DriverView comments", () => {
       within(card).getByPlaceholderText(/Почему фото добавляется после завершения смены/i)
     ).toBeInTheDocument();
     expect(within(card).queryByRole("button", { name: /Заменить/i })).not.toBeInTheDocument();
+  });
+
+  it("uses normalized object copy in the driver selection UI", async () => {
+    mockGetCurrentShift.mockResolvedValueOnce(null);
+
+    render(<DriverView />);
+
+    expect(await screen.findByText(/Выберите объект/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Объект \/ площадка/i)).not.toBeInTheDocument();
   });
 });

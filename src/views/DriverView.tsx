@@ -1056,7 +1056,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
           <Card className="border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <MapPin size={16} />
-              Выберите объект / площадку
+              Выберите объект
             </h3>
             <div className="space-y-3">
               {sites.map((site) => {
@@ -1153,7 +1153,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
               <div className="flex items-center gap-2 text-[#0a192f]">
                 <Clock size={20} />
                 <span className="text-base font-bold uppercase tracking-tight">
-                  Смена #{activeShift.id}
+                  Текущая смена
                 </span>
               </div>
               <div className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-500">
