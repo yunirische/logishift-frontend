@@ -11,6 +11,7 @@ import { getDemoAppUrl, getProductionAppUrl } from "../config/demo";
 import { PUBLIC_TARIFFS } from "../config/tariffs";
 import BrandLogo from "../components/BrandLogo";
 import LegalLinks from "../components/LegalLinks";
+import PageMetadata from "../components/PageMetadata";
 import {
   SUPPORT_EMAIL,
   SUPPORT_EMAIL_HREF,
@@ -48,6 +49,123 @@ const benefits = [
   "проще контролировать технику",
 ];
 
+const faqItems = [
+  {
+    question: "Как водитель начинает смену?",
+    answer:
+      "Водитель открывает сервис с телефона, выбирает технику и объект, добавляет необходимые фото и запускает смену.",
+  },
+  {
+    question: "Что видит диспетчер?",
+    answer:
+      "Диспетчер видит активные смены, водителя, технику, объект, время, фото и сохранённую историю работы.",
+  },
+  {
+    question: "Нужно ли устанавливать приложение?",
+    answer: "Нет. LogiShift работает в браузере на телефоне и компьютере.",
+  },
+  {
+    question: "Можно ли сначала посмотреть сервис?",
+    answer:
+      "Да. Можно открыть демо или зарегистрировать компанию и проверить сервис на своих сменах.",
+  },
+];
+
+const landingMeta = [
+  {
+    selector: 'meta[name="description"]',
+    tagName: "meta" as const,
+    attributes: {
+      name: "description",
+      content:
+        "LogiShift помогает контролировать смены водителей и спецтехники: техника, объекты, время, фото и история смен в одном сервисе.",
+    },
+  },
+  {
+    selector: 'link[rel="canonical"]',
+    tagName: "link" as const,
+    attributes: {
+      rel: "canonical",
+      href: "https://kontrolsmen.ru/",
+    },
+  },
+  {
+    selector: 'meta[property="og:type"]',
+    tagName: "meta" as const,
+    attributes: {
+      property: "og:type",
+      content: "website",
+    },
+  },
+  {
+    selector: 'meta[property="og:title"]',
+    tagName: "meta" as const,
+    attributes: {
+      property: "og:title",
+      content: "LogiShift — контроль смен водителей и спецтехники",
+    },
+  },
+  {
+    selector: 'meta[property="og:description"]',
+    tagName: "meta" as const,
+    attributes: {
+      property: "og:description",
+      content:
+        "LogiShift помогает контролировать смены водителей и спецтехники: техника, объекты, время, фото и история смен в одном сервисе.",
+    },
+  },
+  {
+    selector: 'meta[property="og:url"]',
+    tagName: "meta" as const,
+    attributes: {
+      property: "og:url",
+      content: "https://kontrolsmen.ru/",
+    },
+  },
+  {
+    selector: 'meta[name="twitter:card"]',
+    tagName: "meta" as const,
+    attributes: {
+      name: "twitter:card",
+      content: "summary",
+    },
+  },
+];
+
+const landingStructuredData = [
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        name: "LogiShift",
+        url: "https://kontrolsmen.ru/",
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "LogiShift",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        url: "https://kontrolsmen.ru/",
+        description:
+          "Сервис контроля смен водителей и спецтехники с объектами, фото и историей смен.",
+      },
+    ],
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map(({ question, answer }) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: answer,
+      },
+    })),
+  },
+];
+
 const openLogin = () => {
   window.location.href = getProductionAppUrl("/login");
 };
@@ -63,6 +181,11 @@ const openDemo = () => {
 const LandingView: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-slate-900">
+      <PageMetadata
+        title="LogiShift — контроль смен водителей и спецтехники"
+        meta={landingMeta}
+        structuredData={landingStructuredData}
+      />
       <div className="relative overflow-hidden border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(119,194,255,0.28),_transparent_32%),linear-gradient(180deg,_#f7f9fc_0%,_#eef2f6_100%)]">
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,22,39,0.04)_1px,transparent_1px),linear-gradient(rgba(4,22,39,0.04)_1px,transparent_1px)] bg-[size:36px_36px]" />
         <div className="relative mx-auto flex max-w-7xl flex-col px-5 pb-12 pt-5 sm:px-6 lg:px-10 lg:pb-20">
@@ -279,6 +402,28 @@ const LandingView: React.FC = () => {
             Для крупного парка, отдельного внедрения или особых требований подготовим индивидуальные условия.
             Онлайн-оплата появится позже.
           </div>
+        </section>
+
+        <section className="mt-16 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:p-10">
+          <div className="max-w-3xl">
+            <div className="text-sm font-semibold uppercase tracking-[0.22em] text-[#006497]">
+              Частые вопросы
+            </div>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#041627] sm:text-4xl">
+              Что важно знать перед запуском
+            </h2>
+          </div>
+          <dl className="mt-8 grid gap-4 lg:grid-cols-2">
+            {faqItems.map(({ question, answer }) => (
+              <div
+                key={question}
+                className="rounded-2xl border border-slate-200 bg-[#f7f9fc] p-5"
+              >
+                <dt className="text-lg font-semibold text-[#041627]">{question}</dt>
+                <dd className="mt-3 text-sm leading-6 text-slate-600">{answer}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         <section className="mt-16 rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:p-10">
