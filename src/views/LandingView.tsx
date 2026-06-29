@@ -192,6 +192,7 @@ const LandingView: React.FC = () => {
           <header className="mb-10 flex items-center justify-between gap-4">
             <BrandLogo
               className="min-w-0"
+              loading="eager"
               imageClassName="h-auto w-[11rem] max-w-full sm:w-[13.5rem]"
             />
             <div className="flex items-center gap-2 sm:gap-3">
@@ -462,7 +463,7 @@ const LandingView: React.FC = () => {
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-10">
           <div className="max-w-xl">
-            <BrandLogo imageClassName="h-auto w-[12rem] max-w-full" />
+            <BrandLogo loading="lazy" imageClassName="h-auto w-[12rem] max-w-full" />
             <p className="mt-4 text-sm leading-6 text-slate-600">
               LogiShift помогает организациям и ИП вести учет смен, техники, объектов и рабочих записей в одном онлайн-сервисе.
             </p>
