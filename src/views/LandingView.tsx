@@ -91,7 +91,15 @@ const LandingView: React.FC = () => {
 
           <section className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-center">
             <div className="max-w-3xl">
-              <h1 className="max-w-4xl text-4xl font-bold leading-tight tracking-tight text-[#041627] sm:text-5xl lg:text-6xl">
+              <div className="inline-flex max-w-full flex-col gap-2 rounded-2xl border border-[#77c2ff]/70 bg-white/80 px-4 py-3 text-left shadow-sm backdrop-blur sm:w-auto">
+                <div className="text-xs font-bold uppercase tracking-[0.24em] text-[#006497]">
+                  ПИЛОТНЫЙ ЗАПУСК
+                </div>
+                <div className="max-w-xl text-sm font-medium leading-6 text-slate-600 break-words">
+                  Подключаем первые компании и помогаем с настройкой.
+                </div>
+              </div>
+              <h1 className="mt-5 max-w-4xl text-4xl font-bold leading-tight tracking-tight text-[#041627] sm:text-5xl lg:text-6xl">
                 Контроль смен спецтехники без таблиц и путаницы
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
