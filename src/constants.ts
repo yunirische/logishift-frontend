@@ -40,6 +40,8 @@ export const API_ENDPOINTS = {
     `${API_BASE_URL}/shifts/${shiftId}/photos/backfill`,
   UPDATE_SHIFT: (id: number | string) => `${API_BASE_URL}/shifts/${id}`,
   UPDATE_SHIFT_TIMES: (id: number | string) => `${API_BASE_URL}/shifts/${id}/times`,
+  UPDATE_SHIFT_ACCOUNTING: (id: number | string) => `${API_BASE_URL}/shifts/${id}/accounting`,
+  CANCEL_SHIFT: (id: number | string) => `${API_BASE_URL}/shifts/${id}/cancel`,
   ADD_SHIFT_COMMENT: (id: number | string) => `${API_BASE_URL}/shifts/${id}/comments`,
 
   // Health Check
@@ -68,6 +70,7 @@ export const API_ENDPOINTS = {
   // Reports
   REPORTS_EXCEL: `${API_BASE_URL}/reports/excel`,
   REPORTS_PHOTOS: `${API_BASE_URL}/reports/photos`,
+  REPORTS_PHOTOS_ZIP: `${API_BASE_URL}/reports/photos.zip`,
   REPORTS_EXPORT: `${API_BASE_URL}/reports/export`,
 
   // Analytics

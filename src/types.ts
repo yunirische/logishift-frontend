@@ -2,6 +2,7 @@ export enum ShiftStatus {
   ACTIVE = "active",
   PENDING_INVOICE = "pending_invoice",
   FINISHED = "finished",
+  CANCELLED = "cancelled",
 }
 
 export enum UserRole {
@@ -51,6 +52,10 @@ export interface Shift {
   hours_worked?: number;
   salary?: number;
   comment?: string;
+  is_excluded?: boolean;
+  exclusion_reason?: string | null;
+  excluded_at?: string | null;
+  excluded_by_user_id?: number | null;
   updated_at?: string;
 
   // Вложенные объекты (из /shifts/current)

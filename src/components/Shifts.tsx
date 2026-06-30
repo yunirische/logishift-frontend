@@ -122,6 +122,20 @@ const normalizeShiftResponse = (response: any): ShiftListResponse => {
   return { items: [], total: 0 };
 };
 
+const filenameFromDisposition = (
+  contentDisposition: string | null,
+  fallback: string
+) => {
+  const utfMatch = contentDisposition?.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) {
+    return decodeURIComponent(utfMatch[1]);
+  }
+  const match = contentDisposition?.match(
+    /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+  );
+  return match?.[1]?.replace(/['"]/g, "") || fallback;
+};
+
 const Shifts: React.FC = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,7 +147,11 @@ const Shifts: React.FC = () => {
   const [filters, setFilters] = useState({
     driver_id: "",
     truck_id: "",
-    date: "",
+    site_id: "",
+    date_from: "",
+    date_to: "",
+    status: "",
+    accounting: "included" as "included" | "excluded" | "all",
   });
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
@@ -141,7 +159,9 @@ const Shifts: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [trucks, setTrucks] = useState<any[]>([]);
+  const [sites, setSites] = useState<any[]>([]);
   const [exporting, setExporting] = useState(false);
+  const [exportingZip, setExportingZip] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   const user = api.getUserInfo();
@@ -149,16 +169,27 @@ const Shifts: React.FC = () => {
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
   const isDemoMode = isDemoTenantId(user?.tenant_id);
 
-  const handleExcelExport = async () => {
-    setExporting(true);
+  const downloadReport = async (
+    endpoint: string,
+    fallbackFilename: string
+  ) => {
     try {
       const token = api.getAuthToken();
-      const response = await fetch(API_ENDPOINTS.REPORTS_EXCEL, {
+      const queryString = buildShiftQueryString({
+        page: 1,
+        limit: PAGE_SIZE,
+        filters,
+        tenantTimezone: timezone,
+      });
+      const response = await fetch(`${endpoint}?${queryString}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
+        const contentType = response.headers.get("Content-Type") || "";
+        const err = contentType.includes("application/json")
+          ? await response.json().catch(() => ({}))
+          : {};
         alert((err as any).error || `Ошибка экспорта (${response.status})`);
         return;
       }
@@ -169,20 +200,32 @@ const Shifts: React.FC = () => {
       link.href = url;
 
       const contentDisposition = response.headers.get("Content-Disposition");
-      const match = contentDisposition?.match(
-        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-      );
-      link.download =
-        match?.[1]?.replace(/['"]/g, "") || "logishift-shifts-report.xlsx";
+      link.download = filenameFromDisposition(contentDisposition, fallbackFilename);
 
       document.body.appendChild(link);
       link.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
     } catch (error: any) {
-      alert(error.message || "Не удалось скачать отчет");
+      alert(error.message || "Не удалось скачать файл");
+    }
+  };
+
+  const handleExcelExport = async () => {
+    setExporting(true);
+    try {
+      await downloadReport(API_ENDPOINTS.REPORTS_EXCEL, "logishift-shifts-report.xlsx");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleZipExport = async () => {
+    setExportingZip(true);
+    try {
+      await downloadReport(API_ENDPOINTS.REPORTS_PHOTOS_ZIP, "logishift-shift-photos.zip");
+    } finally {
+      setExportingZip(false);
     }
   };
 
@@ -191,13 +234,15 @@ const Shifts: React.FC = () => {
       if (!isAdmin) return;
 
       try {
-        const [driversRes, trucksRes] = await Promise.all([
+        const [driversRes, trucksRes, sitesRes] = await Promise.all([
           api.get(API_ENDPOINTS.DRIVERS),
           api.get(API_ENDPOINTS.TRUCKS),
+          api.get(API_ENDPOINTS.SITES),
         ]);
 
         setDrivers(Array.isArray(driversRes) ? driversRes : []);
         setTrucks(Array.isArray(trucksRes) ? trucksRes : []);
+        setSites(Array.isArray(sitesRes) ? sitesRes : []);
       } catch (error) {
         console.error("Failed to load filter data:", error);
       }
@@ -356,7 +401,15 @@ const Shifts: React.FC = () => {
     : shifts.filter((shift) => shift.driver_name === user?.full_name);
 
   const resetFilters = () => {
-    setFilters({ driver_id: "", truck_id: "", date: "" });
+    setFilters({
+      driver_id: "",
+      truck_id: "",
+      site_id: "",
+      date_from: "",
+      date_to: "",
+      status: "",
+      accounting: "included",
+    });
     setPage(1);
     setShifts([]);
   };
@@ -373,9 +426,26 @@ const Shifts: React.FC = () => {
       case "finished":
       case "completed":
         return "bg-emerald-50 text-emerald-600 border-emerald-100";
+      case "cancelled":
+        return "bg-rose-50 text-rose-700 border-rose-100";
       default:
         return "bg-slate-50 text-slate-600 border-slate-100";
     }
+  };
+
+  const getStatusLabel = (status: any) => {
+    const normalizedStatus = (status || "").toLowerCase();
+    const labels: Record<string, string> = {
+      active: "АКТИВНА",
+      finished: "ЗАВЕРШЕНА",
+      cancelled: "ОТМЕНЕНА",
+      awaiting_odo_start: "ОЖИДАЕТ СТАРТ",
+      awaiting_odo_end: "ОЖИДАЕТ ФИНИШ",
+      awaiting_invoice: "ОЖИДАЕТ НАКЛАДНУЮ",
+      pending_site: "ОЖИДАЕТ ОБЪЕКТ",
+      pending_truck: "ОЖИДАЕТ МАШИНУ",
+    };
+    return labels[normalizedStatus] || String(status || "-").toUpperCase();
   };
 
   const isValidDate = (dateString: string | null | undefined): boolean => {
@@ -449,8 +519,22 @@ const Shifts: React.FC = () => {
     );
   }
 
-  const hasActiveFilters =
-    filters.driver_id || filters.truck_id || filters.date;
+  const activeFilterCount = [
+    filters.driver_id,
+    filters.truck_id,
+    filters.site_id,
+    filters.date_from,
+    filters.date_to,
+    filters.status,
+    filters.accounting !== "included" ? filters.accounting : "",
+  ].filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
+
+  const updateFilters = (next: Partial<typeof filters>) => {
+    setFilters((prev) => ({ ...prev, ...next }));
+    setPage(1);
+    setShifts([]);
+  };
 
   return (
     <div className="space-y-4">
@@ -478,11 +562,7 @@ const Shifts: React.FC = () => {
             Фильтры
             {hasActiveFilters && (
               <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-[#0a192f]">
-                {
-                  [filters.driver_id, filters.truck_id, filters.date].filter(
-                    Boolean
-                  ).length
-                }
+                {activeFilterCount}
               </span>
             )}
             <ChevronDown
@@ -494,7 +574,7 @@ const Shifts: React.FC = () => {
           </button>
 
           {showFilters && (
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase text-slate-500">
                   Водитель
@@ -502,12 +582,7 @@ const Shifts: React.FC = () => {
                 <select
                   value={filters.driver_id}
                   onChange={(event) => {
-                    setFilters((prev) => ({
-                      ...prev,
-                      driver_id: event.target.value,
-                    }));
-                    setPage(1);
-                    setShifts([]);
+                    updateFilters({ driver_id: event.target.value });
                   }}
                   className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 >
@@ -527,12 +602,7 @@ const Shifts: React.FC = () => {
                 <select
                   value={filters.truck_id}
                   onChange={(event) => {
-                    setFilters((prev) => ({
-                      ...prev,
-                      truck_id: event.target.value,
-                    }));
-                    setPage(1);
-                    setShifts([]);
+                    updateFilters({ truck_id: event.target.value });
                   }}
                   className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 >
@@ -547,25 +617,86 @@ const Shifts: React.FC = () => {
 
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase text-slate-500">
-                  Дата
+                  Объект
+                </label>
+                <select
+                  value={filters.site_id}
+                  onChange={(event) => updateFilters({ site_id: event.target.value })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="">Все объекты</option>
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.id}>
+                      {site.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase text-slate-500">
+                  Период с
                 </label>
                 <input
                   type="date"
-                  value={filters.date}
-                  onChange={(event) => {
-                    setFilters((prev) => ({
-                      ...prev,
-                      date: event.target.value,
-                    }));
-                    setPage(1);
-                    setShifts([]);
-                  }}
+                  value={filters.date_from}
+                  onChange={(event) => updateFilters({ date_from: event.target.value })}
                   className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
               </div>
 
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase text-slate-500">
+                  Период по
+                </label>
+                <input
+                  type="date"
+                  value={filters.date_to}
+                  onChange={(event) => updateFilters({ date_to: event.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase text-slate-500">
+                  Статус
+                </label>
+                <select
+                  value={filters.status}
+                  onChange={(event) => updateFilters({ status: event.target.value })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="">Все статусы</option>
+                  <option value="active">Активна</option>
+                  <option value="finished">Завершена</option>
+                  <option value="cancelled">Отменена</option>
+                  <option value="awaiting_odo_start">Ожидает старт</option>
+                  <option value="awaiting_odo_end">Ожидает финиш</option>
+                  <option value="awaiting_invoice">Ожидает накладную</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase text-slate-500">
+                  Учёт
+                </label>
+                <select
+                  value={filters.accounting}
+                  onChange={(event) =>
+                    updateFilters({
+                      accounting: event.target.value as "included" | "excluded" | "all",
+                    })
+                  }
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="included">Учитываемые</option>
+                  <option value="excluded">Не учитываемые</option>
+                  <option value="all">Все</option>
+                </select>
+              </div>
+
               {hasActiveFilters && (
-                <div className="flex justify-end md:col-span-3">
+                <div className="flex justify-end sm:col-span-2 xl:col-span-4">
                   <button
                     onClick={resetFilters}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 transition-colors hover:text-red-600"
@@ -594,14 +725,24 @@ const Shifts: React.FC = () => {
           </div>
 
           {isAdmin && (
-            <button
-              onClick={handleExcelExport}
-              disabled={exporting}
-              className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Download size={15} />
-              {exporting ? "Загрузка..." : "Выгрузить в Excel"}
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                onClick={handleExcelExport}
+                disabled={exporting || exportingZip}
+                className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download size={15} />
+                {exporting ? "Загрузка..." : "Выгрузить в Excel"}
+              </button>
+              <button
+                onClick={handleZipExport}
+                disabled={exportingZip || exporting}
+                className="flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download size={15} />
+                {exportingZip ? "Загрузка..." : "Выгрузить фото ZIP"}
+              </button>
+            </div>
           )}
         </div>
 
@@ -625,7 +766,9 @@ const Shifts: React.FC = () => {
                 displayShifts.map((shift) => (
                   <tr
                     key={shift.id}
-                    className="transition-colors hover:bg-indigo-50/10"
+                    className={`transition-colors hover:bg-indigo-50/10 ${
+                      shift.is_excluded ? "bg-slate-50/60 text-slate-500 opacity-75" : ""
+                    }`}
                   >
                     <td className="px-4 py-2">
                       <span className="font-mono text-xs font-semibold text-slate-600">
@@ -640,6 +783,14 @@ const Shifts: React.FC = () => {
                         <p className="text-[10px] font-semibold text-slate-400">
                           {shift.truck_name}
                         </p>
+                      )}
+                      {shift.is_excluded && (
+                        <span
+                          title={shift.exclusion_reason || undefined}
+                          className="mt-1 inline-flex rounded-full border border-rose-100 bg-rose-50 px-2 py-0.5 text-[9px] font-bold uppercase text-rose-700"
+                        >
+                          НЕ УЧИТЫВАТЬ
+                        </span>
                       )}
                     </td>
                     <td className="hidden px-4 py-2 text-xs font-medium text-slate-600 md:table-cell">
@@ -657,7 +808,7 @@ const Shifts: React.FC = () => {
                           shift.status
                         )}`}
                       >
-                        {shift.status}
+                        {getStatusLabel(shift.status)}
                       </span>
                     </td>
                     <td className="px-4 py-2 text-right">

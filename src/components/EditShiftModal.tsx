@@ -77,6 +77,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [showAuditSkeleton, setShowAuditSkeleton] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
+  const [adminActionLoading, setAdminActionLoading] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,13 +164,6 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   useEffect(() => {
     if (activeTab === 'comments' && comments.length === 0 && !loadingComments) {
       loadComments();
-    }
-  }, [activeTab]);
-
-  // Load audit logs when History tab becomes active (lazy loading)
-  useEffect(() => {
-    if (activeTab === 'history' && auditLogs.length === 0 && !loadingAudit) {
-      loadAuditLogs();
     }
   }, [activeTab]);
 
@@ -308,10 +302,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
 
     try {
       const data = await api.get(API_ENDPOINTS.AUDIT_SHIFT(shift.id));
-      if (Array.isArray(data)) {
-        setAuditLogs(data);
-      } else if (data?.logs && Array.isArray(data.logs)) {
+      if (data?.logs && Array.isArray(data.logs)) {
         setAuditLogs(data.logs);
+      } else if (data?.audit_logs && Array.isArray(data.audit_logs)) {
+        setAuditLogs(data.audit_logs);
+      } else if (Array.isArray(data)) {
+        setAuditLogs(data);
       } else {
         setAuditLogs([]);
       }
@@ -619,6 +615,62 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
     }
   };
 
+  const promptForReason = (title: string) => {
+    const reason = window.prompt(`${title}\n\nУкажите причину:`);
+    if (reason === null) return null;
+    const normalized = reason.trim();
+    if (normalized.length < 3) {
+      setError("Причина должна содержать не менее 3 символов");
+      return null;
+    }
+    return normalized;
+  };
+
+  const runAdminAction = async (
+    action: "exclude" | "include" | "cancel",
+    title: string
+  ) => {
+    if (adminActionLoading) return;
+    if (isDemoMode) {
+      setError("В демо-режиме изменение данных недоступно");
+      setSuccessMessage(null);
+      return;
+    }
+    const reason = promptForReason(title);
+    if (!reason) return;
+
+    setAdminActionLoading(action);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const response =
+        action === "cancel"
+          ? await api.post(API_ENDPOINTS.CANCEL_SHIFT(shift.id), { reason })
+          : await api.patch(API_ENDPOINTS.UPDATE_SHIFT_ACCOUNTING(shift.id), {
+              excluded: action === "exclude",
+              reason,
+            });
+
+      if (response?.shift) {
+        setModalShift((prev) => ({ ...prev, ...response.shift } as Shift));
+        onSave(response.shift);
+      } else {
+        onSave(undefined, { refreshList: true });
+      }
+      setAuditLogs([]);
+      if (activeTab === "history") {
+        await loadAuditLogs();
+      }
+      setSuccessMessage("Действие выполнено");
+    } catch (err: any) {
+      const message = err?.response?.data?.error || err?.message || "Не удалось выполнить действие";
+      setError(message);
+    } finally {
+      setAdminActionLoading(null);
+    }
+  };
+
   const handlePhotoPreview = async (photoType: ShiftFileType) => {
     if (previewingPhotoType) {
       return;
@@ -648,6 +700,11 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const endTimeMax = tenantNow || undefined;
   const shiftStatus = currentShift.status;
   const isFinishedShift = shiftStatus === 'finished';
+  const isCancelledShift = shiftStatus === "cancelled";
+  const canExcludeShift = isAdmin && isFinishedShift && !currentShift.is_excluded;
+  const canIncludeShift = isAdmin && isFinishedShift && currentShift.is_excluded;
+  const canCancelShift = isAdmin && !isFinishedShift && !isCancelledShift;
+  const demoMutationMessage = "В демо-режиме изменение данных недоступно";
 
   // Validate tenant-local datetime-local values without browser timezone conversion.
   const isEndTimeBeforeStart = startTime && endTime
@@ -919,16 +976,46 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const formatAuditTime = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleString('en-GB', {
-        day: 'numeric',
-        month: 'short',
+      return date.toLocaleString('ru-RU', {
+        timeZone: effectiveTimezone,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
       });
     } catch {
       return dateString;
     }
+  };
+
+  const accountingLabel = (value: unknown) =>
+    value === true ? "не учитывается" : value === false ? "учитывается" : String(value ?? "-");
+
+  const formatStateValue = (key: string, value: unknown) => {
+    if (key === "is_excluded") return accountingLabel(value);
+    if (key.includes("time") && typeof value === "string") return formatAuditTime(value);
+    if (value === null || value === undefined || value === "") return "-";
+    return String(value);
+  };
+
+  const renderStateDiff = (label: string, state: Record<string, unknown> | undefined) => {
+    if (!state || typeof state !== "object") return null;
+    const entries = Object.entries(state).filter(([, value]) => value !== undefined);
+    if (entries.length === 0) return null;
+
+    return (
+      <div className="mt-1 text-xs text-slate-500">
+        <span className="font-semibold text-slate-600">{label}: </span>
+        {entries.map(([key, value], index) => (
+          <span key={key}>
+            {index > 0 ? "; " : ""}
+            {key === "is_excluded" ? "" : `${key}: `}
+            {formatStateValue(key, value)}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   // Format comment header with Technical Header format
@@ -1019,7 +1106,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || Boolean(adminActionLoading)}
               className="text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
             >
               <X size={20} />
@@ -1069,6 +1156,63 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'details' && currentShift.is_excluded && (
+              <div className="px-4 py-3 rounded-lg border border-rose-100 bg-rose-50 text-rose-800">
+                <p className="text-sm font-semibold">Смена не учитывается</p>
+                {currentShift.exclusion_reason && (
+                  <p className="mt-1 text-sm text-rose-700">
+                    Причина: {currentShift.exclusion_reason}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'details' && isAdmin && (
+              <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  {canExcludeShift && (
+                    <button
+                      type="button"
+                      disabled={Boolean(adminActionLoading) || isDemoMode}
+                      title={isDemoMode ? demoMutationMessage : undefined}
+                      onClick={() => runAdminAction("exclude", "Исключить смену из учёта?")}
+                      className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {adminActionLoading === "exclude" ? "Выполняется..." : "Не учитывать"}
+                    </button>
+                  )}
+                  {canIncludeShift && (
+                    <button
+                      type="button"
+                      disabled={Boolean(adminActionLoading) || isDemoMode}
+                      title={isDemoMode ? demoMutationMessage : undefined}
+                      onClick={() => runAdminAction("include", "Вернуть смену в учёт?")}
+                      className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {adminActionLoading === "include" ? "Выполняется..." : "Вернуть в учёт"}
+                    </button>
+                  )}
+                  {canCancelShift && (
+                    <button
+                      type="button"
+                      disabled={Boolean(adminActionLoading) || isDemoMode}
+                      title={isDemoMode ? demoMutationMessage : undefined}
+                      onClick={() => runAdminAction("cancel", "Отменить ошибочно начатую смену?")}
+                      className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {adminActionLoading === "cancel" ? "Выполняется..." : "Отменить смену"}
+                    </button>
+                  )}
+                  {!canExcludeShift && !canIncludeShift && !canCancelShift && (
+                    <span className="text-sm text-slate-400">Административные действия недоступны для текущего статуса.</span>
+                  )}
+                </div>
+                {isDemoMode && (canExcludeShift || canIncludeShift || canCancelShift) && (
+                  <p className="mt-2 text-sm text-slate-500">{demoMutationMessage}</p>
+                )}
               </div>
             )}
 
@@ -1538,29 +1682,37 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 max-h-64 overflow-y-auto">
                     <div className="border-l-2 border-slate-200 pl-4 space-y-3">
                       {auditLogs.map((log, index) => {
-                        const IconComponent = getAuditIcon(log.action || log.action_name || log.action_type);
+                        const actionText = log.action_display || log.action || log.action_name || log.action_type || "Действие";
+                        const IconComponent = getAuditIcon(actionText);
+                        const details = log.details && typeof log.details === "object" ? log.details : {};
                         return (
                           <div key={index} className="relative">
                             {/* Timeline dot */}
                             <div className="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-slate-400"></div>
 
                             <div className="flex gap-3">
-                              {/* Timestamp - left aligned */}
-                              <div className="text-[10px] font-mono text-slate-400 shrink-0">
+                              <div className="text-[10px] font-mono text-slate-400 shrink-0 w-24">
                                 {formatAuditTime(log.created_at || log.timestamp)}
                               </div>
 
-                              {/* Description - right aligned */}
                               <div className="flex-1">
-                                <div className="flex items-center gap-2 text-sm">
+                                <div className="flex flex-wrap items-center gap-2 text-sm">
                                   <IconComponent size={12} className="text-slate-400" />
                                   <span className="font-semibold text-slate-600">
-                                    {log.user_name || log.user || 'Система'}
+                                    {log.performed_by || log.user_name || log.user || 'Система'}
                                   </span>
-                                  <span className="text-slate-500">
-                                    {log.action || log.action_name || log.action_type}
+                                  <span className="text-slate-500">·</span>
+                                  <span className="text-slate-700">
+                                    {actionText}
                                   </span>
                                 </div>
+                                {details.reason && (
+                                  <p className="mt-1 text-xs text-slate-600">
+                                    Причина: {String(details.reason)}
+                                  </p>
+                                )}
+                                {renderStateDiff("Было", details.before)}
+                                {renderStateDiff("Стало", details.after)}
                               </div>
                             </div>
                           </div>
@@ -1574,7 +1726,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 {!loadingAudit && !showAuditSkeleton && auditLogs.length === 0 && !auditError && (
                   <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
                     <p className="text-sm text-slate-400 text-center py-4">
-                      История изменений пуста
+                      История этой смены отсутствует или была записана до включения детального аудита.
                     </p>
                   </div>
                 )}
@@ -1605,7 +1757,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || Boolean(adminActionLoading)}
               className="flex-1 px-6 py-3 rounded-lg border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Закрыть
@@ -1613,7 +1765,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
             <button
               type="submit"
               form="edit-shift-form"
-              disabled={loading || !canSave}
+              disabled={loading || Boolean(adminActionLoading) || !canSave}
               className="flex-1 px-6 py-3 rounded-lg bg-[#0a192f] text-white font-semibold text-sm hover:bg-[#152238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
