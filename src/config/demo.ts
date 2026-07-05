@@ -3,6 +3,9 @@ export const MARKETING_HOSTNAME = "kontrolsmen.ru";
 export const WWW_MARKETING_HOSTNAME = "www.kontrolsmen.ru";
 export const DEMO_HOSTNAME = "demo.kontrolsmen.ru";
 export const APP_HOSTNAME = "app.kontrolsmen.ru";
+export const EXPLICIT_DEMO_LOGOUT_KEY = "explicit_demo_logout";
+export const APP_DEMO_PERSONA_KEY = "demoPersona";
+export const DEMO_ACTIVE_SHIFT_STORAGE_KEY_PREFIX = "logishift_active_shift_demo";
 
 export const isDemoTenantId = (tenantId: unknown): boolean =>
   tenantId === DEMO_TENANT_ID || String(tenantId) === String(DEMO_TENANT_ID);
@@ -19,6 +22,11 @@ export const isMarketingHostname = (hostname: string): boolean =>
 export const getDemoAppUrl = (): string => `https://${DEMO_HOSTNAME}`;
 export const getProductionAppUrl = (pathname: string = "/"): string =>
   `https://${APP_HOSTNAME}${pathname}`;
+export const redirectToLogin = (): void => {
+  if (typeof window !== "undefined") {
+    window.location.replace("/login");
+  }
+};
 
 // Demo driver persona ----------------------------------------------------
 // Demo-only: when an admin previews the driver UI on demo.kontrolsmen.ru,
@@ -34,8 +42,27 @@ export const DEMO_PERSONA_KEY = "logishift_demo_persona_driver_id";
 
 export const demoActiveShiftKey = (personaId: number | null): string =>
   personaId == null
-    ? "logishift_active_shift_demo"
-    : `logishift_active_shift_demo_${personaId}`;
+    ? DEMO_ACTIVE_SHIFT_STORAGE_KEY_PREFIX
+    : `${DEMO_ACTIVE_SHIFT_STORAGE_KEY_PREFIX}_${personaId}`;
+
+export const isDemoActiveShiftStorageKey = (key: string | null): boolean =>
+  Boolean(
+    key &&
+      (key === DEMO_ACTIVE_SHIFT_STORAGE_KEY_PREFIX ||
+        key.startsWith(`${DEMO_ACTIVE_SHIFT_STORAGE_KEY_PREFIX}_`))
+  );
+
+export const clearDemoLocalState = (storage: Storage): void => {
+  storage.removeItem(APP_DEMO_PERSONA_KEY);
+  storage.removeItem(DEMO_PERSONA_KEY);
+
+  for (let index = storage.length - 1; index >= 0; index -= 1) {
+    const key = storage.key(index);
+    if (isDemoActiveShiftStorageKey(key)) {
+      storage.removeItem(key as string);
+    }
+  }
+};
 
 // Fallback persona used when /users cannot be fetched or returns no drivers.
 // Display-only: id=null means we cannot run driver_id-scoped backend queries

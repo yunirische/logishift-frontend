@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
+  EXPLICIT_DEMO_LOGOUT_KEY,
   getDemoAppUrl,
   isDemoHostname,
   isProductionAppHostname,
@@ -65,6 +66,7 @@ const Login: React.FC = () => {
   const handleDemoLogin = async () => {
     setError(null);
     setIsDemoLoading(true);
+    sessionStorage.removeItem(EXPLICIT_DEMO_LOGOUT_KEY);
 
     try {
       const data = await loginUser('demo@logishift.ru', 'demo123');
@@ -102,7 +104,8 @@ const Login: React.FC = () => {
     if (
       hasTriggeredAutoDemoLogin.current ||
       typeof window === 'undefined' ||
-      !isDemoHostname(window.location.hostname)
+      !isDemoHostname(window.location.hostname) ||
+      sessionStorage.getItem(EXPLICIT_DEMO_LOGOUT_KEY) === '1'
     ) {
       return;
     }

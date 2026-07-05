@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { DriverView } from "../DriverView";
 import { API_ENDPOINTS } from "../../constants";
+import { UserRole } from "../../types";
 
 const {
   mockUseAuth,
@@ -555,5 +556,33 @@ describe("DriverView comments", () => {
 
     expect(await screen.findByText(/Выберите объект/i)).toBeInTheDocument();
     expect(screen.queryByText(/Объект \/ площадка/i)).not.toBeInTheDocument();
+  });
+
+  it("uses the unified logout flow from the driver header", async () => {
+    const logout = vi.fn();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Тестовый водитель",
+        role: UserRole.DRIVER,
+        current_state: "active",
+      },
+      logout,
+      refreshUser: vi.fn(),
+    });
+    mockGetCurrentShift.mockResolvedValueOnce(null);
+
+    render(<DriverView />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /выйти/i }));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(logout).toHaveBeenCalledWith({
+      redirectToLogin: true,
+      markExplicitDemoLogout: true,
+    });
   });
 });

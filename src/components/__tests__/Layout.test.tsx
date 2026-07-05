@@ -3,22 +3,33 @@ import userEvent from "@testing-library/user-event";
 import Layout from "../Layout";
 import { SUPPORT_EMAIL, PUBLIC_LEGAL_LINKS } from "../../config/legal";
 import { UserRole } from "../../types";
+import {
+  APP_DEMO_PERSONA_KEY,
+  DEMO_PERSONA_KEY,
+  EXPLICIT_DEMO_LOGOUT_KEY,
+  demoActiveShiftKey,
+} from "../../config/demo";
 
-const { mockGetUserInfo, mockClearAuth } = vi.hoisted(() => ({
-  mockGetUserInfo: vi.fn(),
-  mockClearAuth: vi.fn(),
+const { mockUseAuth, mockIsDemoHostname, mockIsDemoTenantId } = vi.hoisted(() => ({
+  mockUseAuth: vi.fn(),
+  mockIsDemoHostname: vi.fn(() => false),
+  mockIsDemoTenantId: vi.fn(() => false),
 }));
 
-vi.mock("../../services/api", () => ({
-  default: {
-    getUserInfo: mockGetUserInfo,
-    clearAuth: mockClearAuth,
-  },
+vi.mock("../../context/AuthContext", () => ({
+  useAuth: () => mockUseAuth(),
 }));
 
 vi.mock("../../config/demo", () => ({
-  isDemoHostname: vi.fn(() => false),
-  isDemoTenantId: vi.fn(() => false),
+  APP_DEMO_PERSONA_KEY: "demoPersona",
+  DEMO_PERSONA_KEY: "logishift_demo_persona_driver_id",
+  EXPLICIT_DEMO_LOGOUT_KEY: "explicit_demo_logout",
+  demoActiveShiftKey: (personaId: number | null) =>
+    personaId == null
+      ? "logishift_active_shift_demo"
+      : `logishift_active_shift_demo_${personaId}`,
+  isDemoHostname: mockIsDemoHostname,
+  isDemoTenantId: mockIsDemoTenantId,
   getDemoAppUrl: vi.fn(),
   getProductionAppUrl: vi.fn(),
 }));
@@ -32,12 +43,15 @@ vi.mock("../DemoBanner", () => ({
 }));
 
 const renderLayout = (role: UserRole) => {
-  mockGetUserInfo.mockReturnValue({
-    id: 1,
-    tenant_id: 16,
-    full_name: role === UserRole.ADMIN ? "Админ Тест" : "Водитель Тест",
-    role,
-    current_state: "idle",
+  mockUseAuth.mockReturnValue({
+    logout: vi.fn(),
+    user: {
+      id: 1,
+      tenant_id: 16,
+      full_name: role === UserRole.ADMIN ? "Админ Тест" : "Водитель Тест",
+      role,
+      current_state: "idle",
+    },
   });
 
   return render(
@@ -50,6 +64,8 @@ const renderLayout = (role: UserRole) => {
 describe("Authenticated legal navigation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsDemoHostname.mockReturnValue(false);
+    mockIsDemoTenantId.mockReturnValue(false);
   });
 
   it("does not render the old authenticated legal footer and toggles the sidebar menu for drivers", async () => {
@@ -100,5 +116,43 @@ describe("Authenticated legal navigation", () => {
       screen.getByRole("button", { name: /Документы и поддержка/i })
     ).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText(SUPPORT_EMAIL)).not.toBeInTheDocument();
+  });
+
+  it("uses the unified logout flow for demo logout", async () => {
+    const user = userEvent.setup();
+    const logout = vi.fn();
+
+    mockIsDemoHostname.mockReturnValue(true);
+    mockIsDemoTenantId.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({
+      logout,
+      user: {
+        id: 1,
+        tenant_id: 999,
+        full_name: "Админ Тест",
+        role: UserRole.ADMIN,
+        current_state: "idle",
+      },
+    });
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    localStorage.setItem(APP_DEMO_PERSONA_KEY, "driver");
+    localStorage.setItem(DEMO_PERSONA_KEY, "77");
+    localStorage.setItem(demoActiveShiftKey(77), JSON.stringify({ id: 500 }));
+    sessionStorage.setItem(EXPLICIT_DEMO_LOGOUT_KEY, "1");
+
+    render(
+      <Layout activeTab="dashboard" setActiveTab={vi.fn()}>
+        <div>Page content</div>
+      </Layout>
+    );
+
+    await user.click(screen.getByRole("button", { name: /выйти из системы/i }));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(logout).toHaveBeenCalledWith({
+      redirectToLogin: true,
+      markExplicitDemoLogout: true,
+    });
   });
 });

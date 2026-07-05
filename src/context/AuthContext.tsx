@@ -4,17 +4,34 @@ import {
   AUTH_SESSION_UPDATED_EVENT,
   TOKEN_KEY,
   USER_KEY,
+  clearAuth,
   getUserInfo,
   setUserInfo,
   refreshUser as apiRefreshUser,
 } from '../services/api';
 import PasswordChangeModal from '../components/common/PasswordChangeModal';
+import {
+  APP_DEMO_PERSONA_KEY,
+  DEMO_ACTIVE_SHIFT_STORAGE_KEY_PREFIX,
+  DEMO_PERSONA_KEY,
+  EXPLICIT_DEMO_LOGOUT_KEY,
+  redirectToLogin,
+} from '../config/demo';
+
+interface LogoutOptions {
+  redirectToLogin?: boolean;
+  markExplicitDemoLogout?: boolean;
+}
+
+type LogoutInput =
+  | LogoutOptions
+  | React.MouseEvent<HTMLElement>;
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (token: string, user: User) => Promise<void>;
-  logout: () => void;
+  logout: (options?: LogoutInput) => void;
   refreshUser: () => Promise<User>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -35,17 +52,102 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setError(null);
   }, []);
 
-  const logout = useCallback(() => {
-    try {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      setToken(null);
-      setUser(null);
-      setError(null);
-    } catch (err) {
-      console.error('Error during logout:', err);
-    }
+  const logLogoutError = useCallback((step: string, err: unknown) => {
+    console.error(`Error during logout ${step}:`, err);
   }, []);
+
+  const removeStorageKey = useCallback(
+    (storage: Storage, key: string, step: string) => {
+      try {
+        storage.removeItem(key);
+      } catch (err) {
+        logLogoutError(step, err);
+      }
+    },
+    [logLogoutError]
+  );
+
+  const clearDemoStorage = useCallback((storage: Storage) => {
+    removeStorageKey(
+      storage,
+      APP_DEMO_PERSONA_KEY,
+      `removeItem(${APP_DEMO_PERSONA_KEY})`
+    );
+    removeStorageKey(
+      storage,
+      DEMO_PERSONA_KEY,
+      `removeItem(${DEMO_PERSONA_KEY})`
+    );
+
+    let storageLength = 0;
+    try {
+      storageLength = storage.length;
+    } catch (err) {
+      logLogoutError('read localStorage.length', err);
+      return;
+    }
+
+    for (let index = storageLength - 1; index >= 0; index -= 1) {
+      let key: string | null = null;
+
+      try {
+        key = storage.key(index);
+      } catch (err) {
+        logLogoutError(`localStorage.key(${index})`, err);
+        continue;
+      }
+
+      if (
+        key === DEMO_ACTIVE_SHIFT_STORAGE_KEY_PREFIX ||
+        key?.startsWith(`${DEMO_ACTIVE_SHIFT_STORAGE_KEY_PREFIX}_`)
+      ) {
+        removeStorageKey(storage, key, `removeItem(${key})`);
+      }
+    }
+  }, [logLogoutError, removeStorageKey]);
+
+  const logout = useCallback((input?: LogoutInput) => {
+    const options =
+      input && 'preventDefault' in input
+        ? undefined
+        : (input as LogoutOptions | undefined);
+    const shouldRedirectToLogin = options?.redirectToLogin ?? false;
+    const markExplicitDemoLogout = options?.markExplicitDemoLogout ?? false;
+
+    setToken(null);
+    setUser(null);
+    setError(null);
+    setShowPasswordModal(false);
+
+    try {
+      clearAuth();
+    } catch (err) {
+      logLogoutError('clearAuth()', err);
+    }
+
+    clearDemoStorage(localStorage);
+    removeStorageKey(
+      sessionStorage,
+      EXPLICIT_DEMO_LOGOUT_KEY,
+      `removeItem(${EXPLICIT_DEMO_LOGOUT_KEY})`
+    );
+
+    if (markExplicitDemoLogout) {
+      try {
+        sessionStorage.setItem(EXPLICIT_DEMO_LOGOUT_KEY, '1');
+      } catch (err) {
+        logLogoutError(`setItem(${EXPLICIT_DEMO_LOGOUT_KEY})`, err);
+      }
+    }
+
+    if (shouldRedirectToLogin) {
+      try {
+        redirectToLogin();
+      } catch (err) {
+        logLogoutError('redirectToLogin()', err);
+      }
+    }
+  }, [clearDemoStorage, logLogoutError, removeStorageKey]);
 
   const login = useCallback(async (newToken: string, newUser: User) => {
     try {

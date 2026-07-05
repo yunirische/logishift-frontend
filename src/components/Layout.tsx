@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import api from "../services/api";
 import { UserRole } from "../types";
 import {
   Menu,
@@ -20,6 +19,7 @@ import DemoBanner from './DemoBanner';
 import { isDemoHostname, isDemoTenantId } from "../config/demo";
 import BrandLogo from "./BrandLogo";
 import AuthenticatedLegalMenu from "./AuthenticatedLegalMenu";
+import { useAuth } from "../context/AuthContext";
 
 // Demo persona type
 type DemoPersona = 'admin' | 'driver';
@@ -52,7 +52,7 @@ const Layout: React.FC<LayoutProps> = ({
   demoPersona = 'admin',
   setDemoPersona,
 }) => {
-  const user = api.getUserInfo();
+  const { user, logout } = useAuth();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
   const isDemoMode = isDemoTenantId(user?.tenant_id);
@@ -156,13 +156,10 @@ const Layout: React.FC<LayoutProps> = ({
 
   const handleLogout = () => {
     if (confirm("Завершить сессию и выйти из системы?")) {
-      // 1. Очистка токена через API сервис
-      api.clearAuth();
-      // 2. Полная зачистка хранилищ браузера
-      localStorage.clear();
-      sessionStorage.clear();
-      // 3. Жесткая перезагрузка страницы для сброса всех состояний React
-      window.location.replace("/");
+      logout({
+        redirectToLogin: true,
+        markExplicitDemoLogout: isDemoHost || isDemoMode,
+      });
     }
   };
 

@@ -13,6 +13,7 @@ import OwnerDashboardView from "./views/OwnerDashboardView";
 import { DriverView } from "./views/DriverView";
 import AnalyticsConsent from "./components/AnalyticsConsent";
 import {
+  APP_DEMO_PERSONA_KEY,
   isDemoHostname,
   isDemoTenantId,
   isMarketingHostname,
@@ -126,7 +127,7 @@ const AppContent: React.FC = () => {
   });
   // Initialize from localStorage or default to 'admin'
   const [demoPersona, setDemoPersona] = useState<DemoPersona>(() => {
-    const saved = localStorage.getItem('demoPersona');
+    const saved = localStorage.getItem(APP_DEMO_PERSONA_KEY);
     return (saved === 'driver' || saved === 'admin') ? saved : 'admin';
   });
   const { isAuthenticated, isLoading, error, clearError, user } = useAuth();
@@ -150,7 +151,7 @@ const AppContent: React.FC = () => {
 
   // Persist to localStorage on change
   useEffect(() => {
-    localStorage.setItem('demoPersona', demoPersona);
+    localStorage.setItem(APP_DEMO_PERSONA_KEY, demoPersona);
   }, [demoPersona]);
 
   // Check if user is in demo mode

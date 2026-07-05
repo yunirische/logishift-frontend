@@ -103,6 +103,15 @@ export const DriverView: React.FC<DriverViewProps> = ({
       ? "Выберите объект."
       : "";
 
+  const handleLogout = useCallback(() => {
+    if (window.confirm("Завершить сессию и выйти из системы?")) {
+      logout({
+        redirectToLogin: true,
+        markExplicitDemoLogout: isDemoMode,
+      });
+    }
+  }, [isDemoMode, logout]);
+
   // Demo-driver mode: fetch tenant users once and pick a driver persona.
   // Falls back to a synthetic persona if /users fails or has no drivers.
   useEffect(() => {
@@ -978,7 +987,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
           </div>
         </div>
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="rounded-lg p-3 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
           aria-label="Выйти"
         >
