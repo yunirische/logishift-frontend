@@ -32,6 +32,7 @@ const Analytics = lazy(() => import("./components/Analytics"));
 
 // Demo persona type
 type DemoPersona = 'admin' | 'driver';
+const DEFAULT_DEMO_PERSONA: DemoPersona = "admin";
 type AppTab =
   | "dashboard"
   | "my-shifts"
@@ -128,7 +129,7 @@ const AppContent: React.FC = () => {
   // Initialize from localStorage or default to 'admin'
   const [demoPersona, setDemoPersona] = useState<DemoPersona>(() => {
     const saved = localStorage.getItem(APP_DEMO_PERSONA_KEY);
-    return (saved === 'driver' || saved === 'admin') ? saved : 'admin';
+    return (saved === 'driver' || saved === 'admin') ? saved : DEFAULT_DEMO_PERSONA;
   });
   const { isAuthenticated, isLoading, error, clearError, user } = useAuth();
   const pathname = window.location.pathname;
@@ -149,14 +150,37 @@ const AppContent: React.FC = () => {
     setActiveTab(nextTab);
   };
 
-  // Persist to localStorage on change
-  useEffect(() => {
-    localStorage.setItem(APP_DEMO_PERSONA_KEY, demoPersona);
-  }, [demoPersona]);
-
-  // Check if user is in demo mode
   const isDemoMode = isDemoTenantId(user?.tenant_id);
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (!isAuthenticated || !isDemoMode) {
+      localStorage.removeItem(APP_DEMO_PERSONA_KEY);
+      return;
+    }
+
+    localStorage.setItem(APP_DEMO_PERSONA_KEY, demoPersona);
+  }, [demoPersona, isAuthenticated, isDemoMode, isLoading]);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (isAuthenticated && isDemoMode) {
+      return;
+    }
+
+    setDemoPersona((currentPersona) =>
+      currentPersona === DEFAULT_DEMO_PERSONA
+        ? currentPersona
+        : DEFAULT_DEMO_PERSONA
+    );
+  }, [isAuthenticated, isDemoMode, isLoading]);
 
   useEffect(() => {
     if (!user) return;

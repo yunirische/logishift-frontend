@@ -1,9 +1,19 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "../App";
 import React from "react";
 
-const { mockUseAuth } = vi.hoisted(() => ({
+const {
+  mockUseAuth,
+  mockIsDemoHostname,
+  mockIsDemoTenantId,
+  mockIsMarketingHostname,
+  mockIsProductionAppHostname,
+} = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
+  mockIsDemoHostname: vi.fn(),
+  mockIsDemoTenantId: vi.fn(),
+  mockIsMarketingHostname: vi.fn(),
+  mockIsProductionAppHostname: vi.fn(),
 }));
 
 vi.mock("../context/AuthContext", () => ({
@@ -16,7 +26,20 @@ vi.mock("../components/Login", () => ({
 }));
 
 vi.mock("../components/Layout", () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  default: ({
+    children,
+    setDemoPersona,
+  }: {
+    children: React.ReactNode;
+    setDemoPersona?: (persona: "admin" | "driver") => void;
+  }) => (
+    <div>
+      <button type="button" onClick={() => setDemoPersona?.("driver")}>
+        Switch demo persona
+      </button>
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock("../components/Dashboard", () => ({
@@ -61,16 +84,36 @@ vi.mock("../components/AnalyticsConsent", () => ({
 
 vi.mock("../config/demo", () => ({
   APP_DEMO_PERSONA_KEY: "demoPersona",
-  isDemoHostname: vi.fn(() => true),
-  isDemoTenantId: vi.fn(() => false),
-  isMarketingHostname: vi.fn(() => false),
-  isProductionAppHostname: vi.fn(() => false),
+  isDemoHostname: mockIsDemoHostname,
+  isDemoTenantId: mockIsDemoTenantId,
+  isMarketingHostname: mockIsMarketingHostname,
+  isProductionAppHostname: mockIsProductionAppHostname,
 }));
 
 describe("App protected routes", () => {
+  const createDemoAdminUser = () => ({
+    id: 999,
+    full_name: "Demo Admin",
+    role: "admin",
+    tenant_id: 999,
+  });
+
+  const createNonDemoAdminUser = () => ({
+    id: 5,
+    full_name: "Prod Admin",
+    role: "admin",
+    tenant_id: 5,
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    sessionStorage.clear();
     window.history.replaceState({}, "", "/");
+    mockIsDemoHostname.mockReturnValue(true);
+    mockIsDemoTenantId.mockImplementation((tenantId: unknown) => tenantId === 999);
+    mockIsMarketingHostname.mockReturnValue(false);
+    mockIsProductionAppHostname.mockReturnValue(false);
     mockUseAuth.mockReturnValue({
       isAuthenticated: false,
       isLoading: false,
@@ -85,5 +128,233 @@ describe("App protected routes", () => {
 
     expect(screen.getByText("Login screen")).toBeInTheDocument();
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+  });
+
+  it("removes demoPersona on logout and does not restore it on guest rerender", async () => {
+    localStorage.setItem("demoPersona", "driver");
+    localStorage.setItem("keep_me", "1");
+
+    const clearError = vi.fn();
+    let authState = {
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError,
+      user: {
+        id: 999,
+        full_name: "Demo Admin",
+        role: "admin",
+        tenant_id: 999,
+      },
+    };
+    mockUseAuth.mockImplementation(() => authState);
+
+    const { rerender } = render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Driver view")).toBeInTheDocument();
+      expect(localStorage.getItem("demoPersona")).toBe("driver");
+    });
+
+    authState = {
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+      clearError,
+      user: null,
+    };
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Login screen")).toBeInTheDocument();
+      expect(localStorage.getItem("demoPersona")).toBeNull();
+      expect(localStorage.getItem("keep_me")).toBe("1");
+    });
+
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBeNull();
+      expect(localStorage.getItem("keep_me")).toBe("1");
+    });
+  });
+
+  it("allows demo persona to be saved again after explicit re-login", async () => {
+    localStorage.setItem("demoPersona", "driver");
+
+    const clearError = vi.fn();
+    let authState = {
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError,
+      user: {
+        id: 999,
+        full_name: "Demo Admin",
+        role: "admin",
+        tenant_id: 999,
+      },
+    };
+    mockUseAuth.mockImplementation(() => authState);
+
+    const { rerender } = render(<App />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBe("driver");
+    });
+
+    authState = {
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+      clearError,
+      user: null,
+    };
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBeNull();
+    });
+
+    authState = {
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError,
+      user: {
+        id: 999,
+        full_name: "Demo Admin",
+        role: "admin",
+        tenant_id: 999,
+      },
+    };
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBe("admin");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch demo persona" }));
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBe("driver");
+    });
+  });
+
+  it("preserves driver persona through auth hydration into an authenticated demo session", async () => {
+    localStorage.setItem("demoPersona", "driver");
+
+    const clearError = vi.fn();
+    let authState = {
+      isAuthenticated: false,
+      isLoading: true,
+      error: null,
+      clearError,
+      user: null,
+    };
+    mockUseAuth.mockImplementation(() => authState);
+
+    const { rerender } = render(<App />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBe("driver");
+    });
+
+    authState = {
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError,
+      user: createDemoAdminUser(),
+    };
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Driver view")).toBeInTheDocument();
+      expect(localStorage.getItem("demoPersona")).toBe("driver");
+    });
+  });
+
+  it("keeps persona during loading, then cleans it up for the final guest state", async () => {
+    localStorage.setItem("demoPersona", "driver");
+    localStorage.setItem("keep_me", "1");
+
+    const clearError = vi.fn();
+    let authState = {
+      isAuthenticated: false,
+      isLoading: true,
+      error: null,
+      clearError,
+      user: null,
+    };
+    mockUseAuth.mockImplementation(() => authState);
+
+    const { rerender } = render(<App />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBe("driver");
+    });
+
+    authState = {
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+      clearError,
+      user: null,
+    };
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Login screen")).toBeInTheDocument();
+      expect(localStorage.getItem("demoPersona")).toBeNull();
+      expect(localStorage.getItem("keep_me")).toBe("1");
+    });
+
+    authState = {
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError,
+      user: createDemoAdminUser(),
+    };
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBe("admin");
+    });
+  });
+
+  it("removes demoPersona after hydration for an authenticated non-demo tenant", async () => {
+    localStorage.setItem("demoPersona", "driver");
+
+    const clearError = vi.fn();
+    let authState = {
+      isAuthenticated: false,
+      isLoading: true,
+      error: null,
+      clearError,
+      user: null,
+    };
+    mockUseAuth.mockImplementation(() => authState);
+
+    const { rerender } = render(<App />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBe("driver");
+    });
+
+    authState = {
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError,
+      user: createNonDemoAdminUser(),
+    };
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(localStorage.getItem("demoPersona")).toBeNull();
+      expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    });
   });
 });
