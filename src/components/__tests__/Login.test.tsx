@@ -109,7 +109,7 @@ describe("Login single-window demo contract", () => {
     });
   });
 
-  it("auto-logins into demo on the demo root host", async () => {
+  it("auto-logins into demo on the demo root host without showing the old redirect text", async () => {
     mockIsDemoHostname.mockReturnValue(true);
     mockLoginUser.mockResolvedValue({
       token: "demo.token.value",
@@ -125,11 +125,12 @@ describe("Login single-window demo contract", () => {
       id: 999,
       full_name: "Demo User",
     });
+    expect(screen.queryByText(/перенаправляем на единый экран входа/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/логин/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/пароль/i)).not.toBeInTheDocument();
   });
 
-  it("demo root with explicit entry clears the suppression marker, strips the query, and starts demo flow", async () => {
+  it("demo root with explicit entry clears the suppression marker, strips the query, and starts demo flow without showing the old redirect text", async () => {
     window.history.pushState({}, "", "/?enterDemo=1");
     sessionStorage.setItem("explicit_demo_logout", "1");
     mockIsDemoHostname.mockReturnValue(true);
@@ -145,18 +146,20 @@ describe("Login single-window demo contract", () => {
     });
     expect(sessionStorage.getItem("explicit_demo_logout")).toBeNull();
     expect(mockHistoryReplaceState).toHaveBeenLastCalledWith({}, "", "/");
+    expect(screen.queryByText(/перенаправляем на единый экран входа/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/логин/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/пароль/i)).not.toBeInTheDocument();
   });
 
-  it("suppresses demo auto-login after explicit demo logout and keeps only the app login redirect state", () => {
+  it("suppresses demo auto-login after explicit demo logout and shows the neutral app-login redirect state", () => {
     sessionStorage.setItem("explicit_demo_logout", "1");
     mockIsDemoHostname.mockReturnValue(true);
 
     render(<Login />);
 
     expect(mockLoginUser).not.toHaveBeenCalled();
-    expect(screen.getByText(/перенаправляем на единый экран входа/i)).toBeInTheDocument();
+    expect(screen.queryByText(/перенаправляем на единый экран входа/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/открываем рабочий вход/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/логин/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/пароль/i)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /открыть рабочий вход/i })).toHaveAttribute(
@@ -166,14 +169,15 @@ describe("Login single-window demo contract", () => {
     expect(mockLoginUser).not.toHaveBeenCalledWith("demo@logishift.ru", "demo123");
   });
 
-  it("does not render the credential form on demo host /login and redirects to app login", () => {
+  it("does not render the credential form on demo host /login, redirects to app login, and does not show the old redirect text", () => {
     window.history.pushState({}, "", "/login");
     mockIsDemoHostname.mockReturnValue(true);
 
     render(<Login />);
 
     expect(mockLoginUser).not.toHaveBeenCalled();
-    expect(screen.getByText(/перенаправляем на единый экран входа/i)).toBeInTheDocument();
+    expect(screen.queryByText(/перенаправляем на единый экран входа/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/открываем рабочий вход/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /войти в систему/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/логин/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/пароль/i)).not.toBeInTheDocument();

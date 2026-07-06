@@ -144,6 +144,31 @@ const Login: React.FC = () => {
     }
   }, [productionLoginUrl, shouldRedirectToProductionLogin]);
 
+  if (isDemoHost) {
+    return (
+      <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
+        <div
+          className="w-full max-w-sm text-center"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#0a192f]" />
+          <p className="mt-4 text-sm font-medium text-slate-500">
+            {shouldRedirectToProductionLogin
+              ? 'Открываем рабочий вход...'
+              : 'Загрузка демо...'}
+          </p>
+          <a
+            href={productionLoginUrl}
+            className="mt-4 inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-slate-500 transition-colors hover:text-[#0a192f]"
+          >
+            Открыть рабочий вход
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-lg shadow-2xl p-10 border border-slate-50">
@@ -163,86 +188,66 @@ const Login: React.FC = () => {
           </div>
         )}
 
-        {isDemoHost ? (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-              {shouldRedirectToProductionLogin ? (
-                <span>Перенаправляем на единый экран входа.</span>
-              ) : (
-                <span>
-                  {isDemoLoading ? 'Запускаем демо-приложение...' : 'Открываем демо-приложение...'}
-                </span>
-              )}
-            </div>
-            <a
-              href={productionLoginUrl}
-              className="flex w-full items-center justify-center rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:border-[#0a192f] hover:text-[#0a192f]"
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-1">
+            <label
+              htmlFor="username"
+              className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest"
             >
-              Открыть рабочий вход
-            </a>
+              Логин
+            </label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin"
+              autoComplete="username"
+              spellCheck={false}
+              className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
+              required
+            />
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1">
-              <label
-                htmlFor="username"
-                className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest"
-              >
-                Логин
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
-                autoComplete="username"
-                spellCheck={false}
-                className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
-                required
-              />
-            </div>
 
-            <div className="space-y-1">
-              <label
-                htmlFor="password"
-                className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest"
-              >
-                Пароль
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
-                required
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={navigateToForgotPassword}
-                className="text-sm text-slate-500 hover:text-[#0a192f] transition-colors"
-              >
-                Забыли пароль?
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#0a192f] hover:bg-[#152238] text-white font-bold py-4 rounded-lg shadow-xl shadow-[#0a192f]/10 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
+          <div className="space-y-1">
+            <label
+              htmlFor="password"
+              className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest"
             >
-              {isLoading ? 'Вход...' : 'Войти в систему'}
+              Пароль
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={navigateToForgotPassword}
+              className="text-sm text-slate-500 hover:text-[#0a192f] transition-colors"
+            >
+              Забыли пароль?
             </button>
-          </form>
-        )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-[#0a192f] hover:bg-[#152238] text-white font-bold py-4 rounded-lg shadow-xl shadow-[#0a192f]/10 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
+          >
+            {isLoading ? 'Вход...' : 'Войти в систему'}
+          </button>
+        </form>
 
         {!isDemoHost && (
           <div className="mt-4">
