@@ -146,26 +146,11 @@ const Login: React.FC = () => {
 
   if (isDemoHost) {
     return (
-      <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
-        <div
-          className="w-full max-w-sm text-center"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#0a192f]" />
-          <p className="mt-4 text-sm font-medium text-slate-500">
-            {shouldRedirectToProductionLogin
-              ? 'Открываем рабочий вход...'
-              : 'Загрузка демо...'}
-          </p>
-          <a
-            href={productionLoginUrl}
-            className="mt-4 inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-slate-500 transition-colors hover:text-[#0a192f]"
-          >
-            Открыть рабочий вход
-          </a>
-        </div>
-      </div>
+      <div
+        className="min-h-screen bg-[#F4F7FE]"
+        aria-hidden="true"
+        data-testid="demo-host-handoff-shell"
+      />
     );
   }
 
