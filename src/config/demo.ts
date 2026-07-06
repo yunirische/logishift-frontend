@@ -22,9 +22,12 @@ export const isMarketingHostname = (hostname: string): boolean =>
 export const getDemoAppUrl = (): string => `https://${DEMO_HOSTNAME}`;
 export const getProductionAppUrl = (pathname: string = "/"): string =>
   `https://${APP_HOSTNAME}${pathname}`;
+export const getLoginRedirectUrl = (hostname: string): string =>
+  isDemoHostname(hostname) ? getProductionAppUrl("/login") : "/login";
+
 export const redirectToLogin = (): void => {
   if (typeof window !== "undefined") {
-    window.location.replace("/login");
+    window.location.replace(getLoginRedirectUrl(window.location.hostname));
   }
 };
 

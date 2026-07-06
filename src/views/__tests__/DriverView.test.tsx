@@ -36,6 +36,8 @@ vi.mock("../../services/api", () => ({
 describe("DriverView comments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    sessionStorage.clear();
     mockUseAuth.mockReturnValue({
       user: {
         id: 33,
@@ -429,6 +431,69 @@ describe("DriverView comments", () => {
       expect(within(card).getByRole("button", { name: /Загрузить/i })).toBeDisabled();
     });
     expect(mockApiPostFormData).not.toHaveBeenCalled();
+  });
+
+  it("renders demo photo warning state and never opens preview blobs in demo mode", async () => {
+    const windowOpenSpy = vi.spyOn(window, "open");
+
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: "driver",
+        current_state: "active",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockGetCurrentShift.mockResolvedValue(null);
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+
+      if (url === "/trucks" || url === "/sites") {
+        return Promise.resolve([]);
+      }
+
+      if (url === "/shifts?driver_id=33&status=finished&limit=20") {
+        return Promise.resolve({
+          data: [
+            {
+              id: 113,
+              user_id: 33,
+              status: "finished",
+              truck_name: "КАМАЗ",
+              site_name: "Объект 1",
+              start_time: "2026-06-27T13:32:00.000Z",
+              end_time: "2026-06-27T13:32:46.000Z",
+              proof_requirements: { start: true, end: true, invoice: false },
+              photos: { start: true, end: true, invoice: false },
+              photo_start_url: "/uploads/999/demo/included-finished-start.png",
+              photo_end_url: "/uploads/999/demo/included-finished-end.png",
+              comment: "",
+            },
+          ],
+        });
+      }
+
+      return Promise.resolve([]);
+    });
+
+    render(<DriverView focusHistory />);
+    const card = await screen.findByTestId("driver-history-card-113");
+    fireEvent.click(within(card).getByRole("button", { name: /подробнее/i }));
+
+    expect(await within(card).findByText(/Фотографии смены/i)).toBeInTheDocument();
+    const demoButtons = within(card).getAllByRole("button", { name: /фото недоступно в демо/i });
+    expect(demoButtons).toHaveLength(2);
+    expect(within(card).queryByRole("button", { name: /открыть фото:/i })).not.toBeInTheDocument();
+
+    fireEvent.click(demoButtons[0]);
+
+    expect(mockOpenShiftFilePreview).not.toHaveBeenCalled();
+    expect(windowOpenSpy).not.toHaveBeenCalled();
   });
 
   it("cancels and clears the inline form for missing photo", async () => {

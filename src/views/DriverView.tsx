@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DriverShiftHistoryCard } from "../components/DriverShiftHistoryCard";
+import { FinishedShiftPhotosDemoModeProvider } from "../components/FinishedShiftPhotos";
 import { Button, Card } from "../components/ui";
 import {
   DEMO_FALLBACK_PERSONA,
@@ -158,7 +159,8 @@ export const DriverView: React.FC<DriverViewProps> = ({
     }
 
     return (
-      <div className="mx-auto w-full max-w-6xl space-y-4">
+      <FinishedShiftPhotosDemoModeProvider value={isDemoMode}>
+        <div className="mx-auto w-full max-w-6xl space-y-4">
         {historyItems.map((shift) => {
           const summary = formatDriverShiftSummary(
             shift as Shift,
@@ -249,7 +251,8 @@ export const DriverView: React.FC<DriverViewProps> = ({
             />
           );
         })}
-      </div>
+        </div>
+      </FinishedShiftPhotosDemoModeProvider>
     );
   };
 
@@ -564,6 +567,21 @@ export const DriverView: React.FC<DriverViewProps> = ({
   );
 
   const previewHistoryShiftPhoto = useCallback(async (shiftId: number, type: FinishedShiftPhotoType) => {
+    if (isDemoMode) {
+      const message = "Фото в демо недоступны.";
+      setActionMessage({
+        show: true,
+        message,
+        type: "info",
+      });
+      setToast({ show: true, message, type: "success" });
+      window.setTimeout(
+        () => setToast({ show: false, message: "", type: "success" }),
+        2000
+      );
+      return;
+    }
+
     const formKey = `${shiftId}:${type}`;
     setHistoryPhotoPreviewing((current) => ({
       ...current,
@@ -586,7 +604,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
         [formKey]: false,
       }));
     }
-  }, []);
+  }, [isDemoMode]);
 
   const submitHistoryPhotoBackfill = useCallback(
     async ({

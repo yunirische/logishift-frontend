@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useContext, useEffect, useMemo, useRef } from "react";
 import {
   AlertCircle,
   Camera,
@@ -23,6 +23,7 @@ type PhotoDraft = {
 interface FinishedShiftPhotosProps {
   shift: Shift;
   className?: string;
+  isDemoMode?: boolean;
   openFormKey: string | null;
   focusReturnKey: string | null;
   drafts: Record<string, PhotoDraft>;
@@ -39,6 +40,11 @@ interface FinishedShiftPhotosProps {
   }) => void;
   onPreview: (shiftId: number, type: FinishedShiftPhotoType) => void;
 }
+
+const FinishedShiftPhotosDemoModeContext = React.createContext(false);
+
+export const FinishedShiftPhotosDemoModeProvider =
+  FinishedShiftPhotosDemoModeContext.Provider;
 
 const toneStyles = {
   success: {
@@ -58,6 +64,7 @@ const toneStyles = {
 export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
   shift,
   className = "mt-4 rounded-lg border border-slate-200 bg-white px-3 py-3",
+  isDemoMode,
   openFormKey,
   focusReturnKey,
   drafts,
@@ -71,6 +78,8 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
   onSubmit,
   onPreview,
 }) => {
+  const inheritedDemoMode = useContext(FinishedShiftPhotosDemoModeContext);
+  const isDemoPhotoMode = isDemoMode ?? inheritedDemoMode;
   const slots = useMemo(() => getFinishedShiftPhotoSlots(shift), [shift]);
   const { requiredCount, uploadedCount, hasRequiredPhotos } = useMemo(
     () => getFinishedShiftPhotoProgress(shift),
@@ -145,7 +154,17 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
-                    {slot.hasPhoto ? (
+                    {slot.hasPhoto && isDemoPhotoMode ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex min-h-[40px] items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700"
+                        title={`${slot.label}: фото недоступно в демо`}
+                        aria-label={`Фото недоступно в демо: ${slot.label}`}
+                      >
+                        Демо
+                      </button>
+                    ) : slot.hasPhoto ? (
                       <Button
                         ref={(element: HTMLButtonElement | null) => {
                           triggerRefs.current[formKey] = element;

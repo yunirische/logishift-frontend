@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import {
   EXPLICIT_DEMO_LOGOUT_KEY,
   getDemoAppUrl,
+  getProductionAppUrl,
   isDemoHostname,
-  isProductionAppHostname,
 } from '../config/demo';
 import { loginUser } from '../services/api';
 import BrandLogo from './BrandLogo';
@@ -19,8 +19,15 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const hasTriggeredAutoDemoLogin = useRef(false);
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-  const shouldShowDirectDemoLogin =
-    isDemoHostname(hostname) || !isProductionAppHostname(hostname);
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const isDemoHost = isDemoHostname(hostname);
+  const hasExplicitDemoLogout =
+    typeof window !== 'undefined' &&
+    sessionStorage.getItem(EXPLICIT_DEMO_LOGOUT_KEY) === '1';
+  const shouldRedirectToProductionLogin =
+    isDemoHost && (pathname === '/login' || hasExplicitDemoLogout);
+  const shouldAutoLoginDemo = isDemoHost && !shouldRedirectToProductionLogin;
+  const productionLoginUrl = getProductionAppUrl('/login');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -42,10 +49,6 @@ const Login: React.FC = () => {
     url.pathname = '/forgot-password';
     url.search = '';
     window.location.href = url.toString();
-  };
-
-  const navigateToDemo = () => {
-    window.location.href = getDemoAppUrl();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,15 +107,26 @@ const Login: React.FC = () => {
     if (
       hasTriggeredAutoDemoLogin.current ||
       typeof window === 'undefined' ||
-      !isDemoHostname(window.location.hostname) ||
-      sessionStorage.getItem(EXPLICIT_DEMO_LOGOUT_KEY) === '1'
+      !shouldAutoLoginDemo
     ) {
       return;
     }
 
     hasTriggeredAutoDemoLogin.current = true;
     void handleDemoLogin();
-  }, []);
+  }, [shouldAutoLoginDemo]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !shouldRedirectToProductionLogin) {
+      return;
+    }
+
+    try {
+      window.location.replace(productionLoginUrl);
+    } catch (error) {
+      console.error('Login redirect error:', error);
+    }
+  }, [productionLoginUrl, shouldRedirectToProductionLogin]);
 
   return (
     <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
@@ -127,140 +141,118 @@ const Login: React.FC = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-lg text-xs font-bold border border-red-100 animate-shake">
-              ⚠️ {error}
+        {error && (
+          <div className="mb-5 p-4 bg-red-50 text-red-600 rounded-lg text-xs font-bold border border-red-100 animate-shake">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {isDemoHost ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
+              {shouldRedirectToProductionLogin ? (
+                <span>Перенаправляем на единый экран входа.</span>
+              ) : (
+                <span>
+                  {isDemoLoading ? 'Запускаем демо-приложение...' : 'Открываем демо-приложение...'}
+                </span>
+              )}
             </div>
-          )}
-
-          <div className="space-y-1">
-            <label
-              htmlFor="username"
-              className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest"
+            <a
+              href={productionLoginUrl}
+              className="flex w-full items-center justify-center rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:border-[#0a192f] hover:text-[#0a192f]"
             >
-              Логин
-            </label>
-            <input
-              id="username"
-              name="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
-              autoComplete="username"
-              spellCheck={false}
-              className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
-              required
-            />
+              Открыть рабочий вход
+            </a>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1">
+              <label
+                htmlFor="username"
+                className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest"
+              >
+                Логин
+              </label>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
+                autoComplete="username"
+                spellCheck={false}
+                className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
+                required
+              />
+            </div>
 
-          <div className="space-y-1">
-            <label
-              htmlFor="password"
-              className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest"
+            <div className="space-y-1">
+              <label
+                htmlFor="password"
+                className="text-[10px] font-semibold text-slate-400 uppercase ml-4 tracking-widest"
+              >
+                Пароль
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
+                required
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={navigateToForgotPassword}
+                className="text-sm text-slate-500 hover:text-[#0a192f] transition-colors"
+              >
+                Забыли пароль?
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#0a192f] hover:bg-[#152238] text-white font-bold py-4 rounded-lg shadow-xl shadow-[#0a192f]/10 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
             >
-              Пароль
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              className="w-full bg-[#F4F7FE] border-none rounded-lg px-6 py-4 text-sm focus:ring-2 focus:ring-[#0a192f] transition-all"
-              required
-            />
-          </div>
+              {isLoading ? 'Вход...' : 'Войти в систему'}
+            </button>
+          </form>
+        )}
 
-          <div className="flex justify-end">
+        {!isDemoHost && (
+          <div className="mt-4">
+            <a
+              href={getDemoAppUrl()}
+              className="flex w-full items-center justify-center rounded-lg border-2 border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 transition-all hover:border-[#0a192f] hover:text-[#0a192f]"
+            >
+              Войти в демо
+            </a>
+            <p className="text-center text-xs text-slate-400 mt-2 leading-relaxed px-2">
+              Демо-версия открывается на отдельном домене.
+            </p>
+          </div>
+        )}
+
+        {!isDemoHost && (
+          <div className="text-center mt-6">
             <button
               type="button"
-              onClick={navigateToForgotPassword}
+              onClick={navigateToRegister}
               className="text-sm text-slate-500 hover:text-[#0a192f] transition-colors"
             >
-              Забыли пароль?
+              Нет аккаунта? Зарегистрироваться
             </button>
           </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-[#0a192f] hover:bg-[#152238] text-white font-bold py-4 rounded-lg shadow-xl shadow-[#0a192f]/10 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
-          >
-            {isLoading ? 'Вход...' : 'Войти в систему'}
-          </button>
-        </form>
-
-        <div className="mt-4">
-          {shouldShowDirectDemoLogin ? (
-            <>
-              <button
-                type="button"
-                onClick={handleDemoLogin}
-                disabled={isDemoLoading}
-                className="w-full border-2 border-[#0a192f] text-[#0a192f] hover:bg-[#0a192f] hover:text-white font-bold py-3 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-2"
-              >
-                {isDemoLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Входим в демо...
-                  </>
-                ) : (
-                  'Войти в демо-организацию'
-                )}
-              </button>
-              <p className="text-center text-xs text-slate-400 mt-2 leading-relaxed px-2">
-                Откроется тестовая компания с демо-данными. Для реальной компании
-                используйте регистрацию.
-              </p>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={navigateToDemo}
-                className="w-full border-2 border-slate-300 text-slate-700 hover:border-[#0a192f] hover:text-[#0a192f] font-bold py-3 rounded-lg transition-all active:scale-[0.98] text-sm"
-              >
-                Открыть демо
-              </button>
-              <p className="text-center text-xs text-slate-400 mt-2 leading-relaxed px-2">
-                Демо-версия открывается на отдельном домене.
-              </p>
-            </>
-          )}
-        </div>
-
-        <div className="text-center mt-6">
-          <button
-            type="button"
-            onClick={navigateToRegister}
-            className="text-sm text-slate-500 hover:text-[#0a192f] transition-colors"
-          >
-            Нет аккаунта? Зарегистрироваться
-          </button>
-        </div>
+        )}
 
         <div className="mt-8 border-t border-slate-100 pt-6">
           <LegalLinks compact />
