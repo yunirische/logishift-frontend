@@ -6,6 +6,7 @@ export const APP_HOSTNAME = "app.kontrolsmen.ru";
 export const EXPLICIT_DEMO_LOGOUT_KEY = "explicit_demo_logout";
 export const APP_DEMO_PERSONA_KEY = "demoPersona";
 export const DEMO_ACTIVE_SHIFT_STORAGE_KEY_PREFIX = "logishift_active_shift_demo";
+export const DEMO_ENTRY_QUERY_PARAM = "enterDemo";
 
 export const isDemoTenantId = (tenantId: unknown): boolean =>
   tenantId === DEMO_TENANT_ID || String(tenantId) === String(DEMO_TENANT_ID);
@@ -20,6 +21,8 @@ export const isMarketingHostname = (hostname: string): boolean =>
   hostname === MARKETING_HOSTNAME || hostname === WWW_MARKETING_HOSTNAME;
 
 export const getDemoAppUrl = (): string => `https://${DEMO_HOSTNAME}`;
+export const getDemoEntryUrl = (): string =>
+  `https://${DEMO_HOSTNAME}/?${DEMO_ENTRY_QUERY_PARAM}=1`;
 export const getProductionAppUrl = (pathname: string = "/"): string =>
   `https://${APP_HOSTNAME}${pathname}`;
 export const getLoginRedirectUrl = (hostname: string): string =>

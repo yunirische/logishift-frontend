@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
+  DEMO_ENTRY_QUERY_PARAM,
   EXPLICIT_DEMO_LOGOUT_KEY,
-  getDemoAppUrl,
+  getDemoEntryUrl,
   getProductionAppUrl,
   isDemoHostname,
 } from '../config/demo';
@@ -20,12 +21,16 @@ const Login: React.FC = () => {
   const hasTriggeredAutoDemoLogin = useRef(false);
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const search = typeof window !== 'undefined' ? window.location.search : '';
   const isDemoHost = isDemoHostname(hostname);
+  const searchParams =
+    typeof window !== 'undefined' ? new URLSearchParams(search) : null;
+  const hasExplicitDemoEntry = searchParams?.get(DEMO_ENTRY_QUERY_PARAM) === '1';
   const hasExplicitDemoLogout =
     typeof window !== 'undefined' &&
     sessionStorage.getItem(EXPLICIT_DEMO_LOGOUT_KEY) === '1';
   const shouldRedirectToProductionLogin =
-    isDemoHost && (pathname === '/login' || hasExplicitDemoLogout);
+    isDemoHost && (pathname === '/login' || (hasExplicitDemoLogout && !hasExplicitDemoEntry));
   const shouldAutoLoginDemo = isDemoHost && !shouldRedirectToProductionLogin;
   const productionLoginUrl = getProductionAppUrl('/login');
 
@@ -102,6 +107,17 @@ const Login: React.FC = () => {
       setIsDemoLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !hasExplicitDemoEntry) {
+      return;
+    }
+
+    sessionStorage.removeItem(EXPLICIT_DEMO_LOGOUT_KEY);
+
+    const nextUrl = `${window.location.pathname}${window.location.hash}`;
+    window.history.replaceState({}, '', nextUrl);
+  }, [hasExplicitDemoEntry]);
 
   useEffect(() => {
     if (
@@ -231,7 +247,7 @@ const Login: React.FC = () => {
         {!isDemoHost && (
           <div className="mt-4">
             <a
-              href={getDemoAppUrl()}
+              href={getDemoEntryUrl()}
               className="flex w-full items-center justify-center rounded-lg border-2 border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 transition-all hover:border-[#0a192f] hover:text-[#0a192f]"
             >
               Войти в демо

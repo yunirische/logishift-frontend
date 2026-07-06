@@ -1,4 +1,10 @@
-import { redirectToLogin } from "../demo";
+import { getDemoEntryUrl, redirectToLogin } from "../demo";
+
+describe("getDemoEntryUrl", () => {
+  it('returns the demo root explicit entry URL and not "/login"', () => {
+    expect(getDemoEntryUrl()).toBe("https://demo.kontrolsmen.ru/?enterDemo=1");
+  });
+});
 
 describe("redirectToLogin", () => {
   afterEach(() => {
