@@ -11,14 +11,22 @@ import { loginUser } from '../services/api';
 import BrandLogo from './BrandLogo';
 import LegalLinks from './LegalLinks';
 
+const DEMO_RECOVERY_TIMEOUT_MS = 8000;
+const DEMO_RECOVERY_TITLE = 'Демо не открылось';
+const DEMO_RECOVERY_TEXT =
+  'Не удалось автоматически запустить демо. Проверьте соединение и попробуйте ещё раз.';
+
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDemoLoading, setIsDemoLoading] = useState(false);
+  const [showDemoRecovery, setShowDemoRecovery] = useState(false);
   const { login } = useAuth();
   const hasTriggeredAutoDemoLogin = useRef(false);
+  const demoLoginAttemptRef = useRef(0);
+  const demoRecoveryTimeoutRef = useRef<number | null>(null);
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
   const search = typeof window !== 'undefined' ? window.location.search : '';
@@ -33,6 +41,28 @@ const Login: React.FC = () => {
     isDemoHost && (pathname === '/login' || (hasExplicitDemoLogout && !hasExplicitDemoEntry));
   const shouldAutoLoginDemo = isDemoHost && !shouldRedirectToProductionLogin;
   const productionLoginUrl = getProductionAppUrl('/login');
+
+  const clearDemoRecoveryTimeout = () => {
+    if (demoRecoveryTimeoutRef.current !== null && typeof window !== 'undefined') {
+      window.clearTimeout(demoRecoveryTimeoutRef.current);
+      demoRecoveryTimeoutRef.current = null;
+    }
+  };
+
+  const scheduleDemoRecoveryTimeout = (attemptId: number) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    clearDemoRecoveryTimeout();
+    demoRecoveryTimeoutRef.current = window.setTimeout(() => {
+      if (demoLoginAttemptRef.current !== attemptId) {
+        return;
+      }
+
+      setShowDemoRecovery(true);
+    }, DEMO_RECOVERY_TIMEOUT_MS);
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -72,9 +102,12 @@ const Login: React.FC = () => {
   };
 
   const handleDemoLogin = async () => {
-    setError(null);
+    const attemptId = demoLoginAttemptRef.current + 1;
+    demoLoginAttemptRef.current = attemptId;
     setIsDemoLoading(true);
+    setShowDemoRecovery(false);
     sessionStorage.removeItem(EXPLICIT_DEMO_LOGOUT_KEY);
+    scheduleDemoRecoveryTimeout(attemptId);
 
     try {
       const data = await loginUser('demo@logishift.ru', 'demo123');
@@ -85,26 +118,17 @@ const Login: React.FC = () => {
 
       await login(data.token, data.user);
     } catch (err: any) {
-      console.error('Demo login error:', err);
-
-      let errorMessage = 'Ошибка подключения к демо-режиму';
-
-      if (err.message) {
-        if (err.message.includes('сети') || err.message.includes('network')) {
-          errorMessage = 'Ошибка сети. Проверьте подключение к интернету';
-        } else if (
-          err.message.includes('авторизации') ||
-          err.message.includes('401')
-        ) {
-          errorMessage = 'Демо-доступ временно недоступен. Попробуйте позже.';
-        } else {
-          errorMessage = err.message;
-        }
+      if (demoLoginAttemptRef.current !== attemptId) {
+        return;
       }
 
-      setError(errorMessage);
+      console.error('Demo login error:', err);
+      setShowDemoRecovery(true);
     } finally {
-      setIsDemoLoading(false);
+      if (demoLoginAttemptRef.current === attemptId) {
+        clearDemoRecoveryTimeout();
+        setIsDemoLoading(false);
+      }
     }
   };
 
@@ -144,7 +168,39 @@ const Login: React.FC = () => {
     }
   }, [productionLoginUrl, shouldRedirectToProductionLogin]);
 
+  useEffect(() => clearDemoRecoveryTimeout, []);
+
   if (isDemoHost) {
+    if (shouldAutoLoginDemo && showDemoRecovery) {
+      return (
+        <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
+          <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-lg">
+            <h1 className="text-base font-semibold text-slate-900">
+              {DEMO_RECOVERY_TITLE}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {DEMO_RECOVERY_TEXT}
+            </p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => void handleDemoLogin()}
+                className="min-h-[40px] flex-1 rounded-lg bg-[#0a192f] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#152238] disabled:opacity-60"
+              >
+                Попробовать снова
+              </button>
+              <a
+                href={productionLoginUrl}
+                className="min-h-[40px] flex-1 rounded-lg border border-slate-200 px-4 py-2 text-center text-sm font-semibold text-slate-700 transition-colors hover:border-[#0a192f] hover:text-[#0a192f]"
+              >
+                Вернуться ко входу
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className="min-h-screen bg-[#F4F7FE]"

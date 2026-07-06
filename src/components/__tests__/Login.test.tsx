@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import Login from "../Login";
 
 const {
@@ -51,6 +51,7 @@ vi.mock("../LegalLinks", () => ({
 describe("Login single-window demo contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     localStorage.clear();
     sessionStorage.clear();
     window.history.replaceState({}, "", "/");
@@ -159,6 +160,59 @@ describe("Login single-window demo contract", () => {
     expect(screen.getByTestId("demo-host-handoff-shell")).toBeInTheDocument();
   });
 
+  it("renders demo recovery UI when demo auto-login fails and retries safely", async () => {
+    mockIsDemoHostname.mockReturnValue(true);
+    mockLoginUser
+      .mockRejectedValueOnce(new Error("network error"))
+      .mockResolvedValueOnce({
+        token: "demo.token.value",
+        user: { id: 999, full_name: "Demo User" },
+      });
+
+    render(<Login />);
+
+    expect(await screen.findByText(/демо не открылось/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /не удалось автоматически запустить демо\. проверьте соединение и попробуйте ещё раз\./i
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/логин/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /попробовать снова/i }));
+
+    await waitFor(() => {
+      expect(mockLoginUser).toHaveBeenCalledTimes(2);
+    });
+    expect(mockLogin).toHaveBeenCalledWith("demo.token.value", {
+      id: 999,
+      full_name: "Demo User",
+    });
+  });
+
+  it("renders demo recovery UI after the timeout delay", async () => {
+    vi.useFakeTimers();
+    mockIsDemoHostname.mockReturnValue(true);
+    mockLoginUser.mockImplementation(
+      () => new Promise(() => undefined)
+    );
+
+    render(<Login />);
+
+    expect(screen.queryByText(/демо не открылось/i)).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(8000);
+    });
+
+    expect(screen.getByText(/демо не открылось/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /попробовать снова/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /вернуться ко входу/i })).toHaveAttribute(
+      "href",
+      "https://app.kontrolsmen.ru/login"
+    );
+  });
+
   it("suppresses demo auto-login after explicit demo logout without rendering visible transition UI", () => {
     sessionStorage.setItem("explicit_demo_logout", "1");
     mockIsDemoHostname.mockReturnValue(true);
@@ -190,6 +244,7 @@ describe("Login single-window demo contract", () => {
     expect(screen.queryByLabelText(/логин/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/пароль/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /открыть рабочий вход/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /вернуться ко входу/i })).not.toBeInTheDocument();
     expect(screen.getByTestId("demo-host-handoff-shell")).toBeInTheDocument();
   });
 });
