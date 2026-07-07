@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import BrandLogo from "../components/BrandLogo";
 import LegalLinks from "../components/LegalLinks";
+import PageMetadata from "../components/PageMetadata";
 import {
   LEGAL_DOCUMENTS,
   LEGAL_REVISION_LABEL,
@@ -10,6 +11,40 @@ import {
   SUPPORT_PHONE,
   SUPPORT_TELEGRAM_URL,
 } from "../config/legal";
+
+const LEGAL_META: Record<
+  LegalDocumentKey,
+  {
+    description: string;
+    canonicalPath: string;
+  }
+> = {
+  offer: {
+    description:
+      "Публичная оферта и пользовательское соглашение LogiShift для сервиса контроля смен водителей и спецтехники.",
+    canonicalPath: "/offer",
+  },
+  privacy: {
+    description:
+      "Политика обработки персональных данных LogiShift для публичного сайта и сервиса контроля смен.",
+    canonicalPath: "/privacy",
+  },
+  "payment-and-refund": {
+    description:
+      "Публичные условия оплаты и возврата LogiShift для доступа к сервису контроля смен.",
+    canonicalPath: "/payment-and-refund",
+  },
+  contacts: {
+    description:
+      "Контакты и реквизиты LogiShift для обращений по подключению, поддержке и документам.",
+    canonicalPath: "/contacts",
+  },
+  "personal-data-consent": {
+    description:
+      "Согласие на обработку персональных данных при регистрации и использовании сервиса LogiShift.",
+    canonicalPath: "/personal-data-consent",
+  },
+};
 
 type LegalDocumentViewProps = {
   documentKey: LegalDocumentKey;
@@ -75,6 +110,7 @@ const renderInlineLinks = (text: string) => {
 
 const LegalDocumentView: React.FC<LegalDocumentViewProps> = ({ documentKey }) => {
   const legalDocument = LEGAL_DOCUMENTS[documentKey];
+  const legalMeta = LEGAL_META[documentKey];
 
   useEffect(() => {
     const previousTitle = window.document.title;
@@ -87,6 +123,35 @@ const LegalDocumentView: React.FC<LegalDocumentViewProps> = ({ documentKey }) =>
 
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-slate-900">
+      <PageMetadata
+        title={legalDocument.pageTitle}
+        meta={[
+          {
+            selector: 'meta[name="description"]',
+            tagName: "meta",
+            attributes: {
+              name: "description",
+              content: legalMeta.description,
+            },
+          },
+          {
+            selector: 'meta[name="robots"]',
+            tagName: "meta",
+            attributes: {
+              name: "robots",
+              content: "noindex,follow",
+            },
+          },
+          {
+            selector: 'link[rel="canonical"]',
+            tagName: "link",
+            attributes: {
+              rel: "canonical",
+              href: `https://kontrolsmen.ru${legalMeta.canonicalPath}`,
+            },
+          },
+        ]}
+      />
       <div className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(119,194,255,0.22),_transparent_36%),linear-gradient(180deg,_#f7f9fc_0%,_#eef2f6_100%)]">
         <div className="mx-auto flex max-w-5xl flex-col gap-8 px-5 py-6 sm:px-6 lg:px-10">
           <header className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">

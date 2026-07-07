@@ -1,6 +1,12 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import LandingView from "../LandingView";
+import LegalDocumentView from "../LegalDocumentView";
 import Login from "../../components/Login";
+
+const LANDING_DESCRIPTION =
+  "Контроль смен водителей и спецтехники: фотофиксация, путевые листы, объекты, техника и журнал действий для малого автопарка.";
 
 vi.mock("../../config/demo", async () => {
   const actual = await vi.importActual<typeof import("../../config/demo")>(
@@ -51,9 +57,7 @@ describe("Landing SEO metadata", () => {
     expect(document.title).toBe(
       "LogiShift — контроль смен водителей и спецтехники"
     );
-    expect(getMetaContent('meta[name="description"]')).toBe(
-      "LogiShift помогает контролировать смены водителей и спецтехники: техника, объекты, время, фото и история смен в одном сервисе."
-    );
+    expect(getMetaContent('meta[name="description"]')).toBe(LANDING_DESCRIPTION);
     expect(getMetaContent('link[rel="canonical"]')).toBe(
       "https://kontrolsmen.ru/"
     );
@@ -62,7 +66,7 @@ describe("Landing SEO metadata", () => {
       "LogiShift — контроль смен водителей и спецтехники"
     );
     expect(getMetaContent('meta[property="og:description"]')).toBe(
-      "LogiShift помогает контролировать смены водителей и спецтехники: техника, объекты, время, фото и история смен в одном сервисе."
+      LANDING_DESCRIPTION
     );
     expect(getMetaContent('meta[property="og:url"]')).toBe(
       "https://kontrolsmen.ru/"
@@ -128,6 +132,51 @@ describe("Landing SEO metadata", () => {
     expect(
       document.querySelectorAll('script[type="application/ld+json"]')
     ).toHaveLength(2);
+  });
+});
+
+describe("Public legal SEO metadata", () => {
+  afterEach(() => {
+    cleanup();
+    document.title = "";
+  });
+
+  it("sets description and root-domain canonical for public legal pages", () => {
+    render(<LegalDocumentView documentKey="privacy" />);
+
+    expect(document.title).toBe(
+      "LogiShift | Политика обработки персональных данных"
+    );
+    expect(getMetaContent('meta[name="description"]')).toBe(
+      "Политика обработки персональных данных LogiShift для публичного сайта и сервиса контроля смен."
+    );
+    expect(getMetaContent('meta[name="robots"]')).toBe("noindex,follow");
+    expect(getMetaContent('link[rel="canonical"]')).toBe(
+      "https://kontrolsmen.ru/privacy"
+    );
+  });
+});
+
+describe("Public sitemap", () => {
+  it("contains only the landing page and excludes legal, app, demo, and internal routes", () => {
+    const sitemap = readFileSync(
+      resolve(process.cwd(), "public", "sitemap.xml"),
+      "utf8"
+    );
+
+    expect(sitemap).toContain("<loc>https://kontrolsmen.ru/</loc>");
+    expect(sitemap).not.toContain("https://kontrolsmen.ru/offer");
+    expect(sitemap).not.toContain("https://kontrolsmen.ru/privacy");
+    expect(sitemap).not.toContain("https://kontrolsmen.ru/personal-data-consent");
+    expect(sitemap).not.toContain("https://kontrolsmen.ru/payment-and-refund");
+    expect(sitemap).not.toContain("https://kontrolsmen.ru/contacts");
+    expect(sitemap).not.toContain("https://app.kontrolsmen.ru/");
+    expect(sitemap).not.toContain("https://app.kontrolsmen.ru/login");
+    expect(sitemap).not.toContain("https://app.kontrolsmen.ru/register");
+    expect(sitemap).not.toContain("https://demo.kontrolsmen.ru/");
+    expect(sitemap).not.toContain("https://api.kontrolsmen.ru/");
+    expect(sitemap).not.toContain("/owner");
+    expect(sitemap).not.toContain("/internal");
   });
 });
 

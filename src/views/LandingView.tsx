@@ -19,6 +19,9 @@ import {
   SUPPORT_TELEGRAM_URL,
 } from "../config/legal";
 
+const LANDING_META_DESCRIPTION =
+  "Контроль смен водителей и спецтехники: фотофиксация, путевые листы, объекты, техника и журнал действий для малого автопарка.";
+
 const workSteps = [
   {
     title: "Водители",
@@ -77,8 +80,7 @@ const landingMeta = [
     tagName: "meta" as const,
     attributes: {
       name: "description",
-      content:
-        "LogiShift помогает контролировать смены водителей и спецтехники: техника, объекты, время, фото и история смен в одном сервисе.",
+      content: LANDING_META_DESCRIPTION,
     },
   },
   {
@@ -110,8 +112,7 @@ const landingMeta = [
     tagName: "meta" as const,
     attributes: {
       property: "og:description",
-      content:
-        "LogiShift помогает контролировать смены водителей и спецтехники: техника, объекты, время, фото и история смен в одном сервисе.",
+      content: LANDING_META_DESCRIPTION,
     },
   },
   {
