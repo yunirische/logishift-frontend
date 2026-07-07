@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import api, { getAnalyticsUsage, unlinkTelegram } from "../services/api";
+import api, { getAnalyticsUsage } from "../services/api";
 import { API_ENDPOINTS } from "../constants";
-import { useAuth } from "../context/AuthContext";
-import { Save, Loader2, CheckCircle2, AlertCircle, CreditCard, BarChart3, Calendar, ExternalLink, Send } from "lucide-react";
+import { Save, Loader2, CheckCircle2, AlertCircle, CreditCard, BarChart3, Calendar, Send } from "lucide-react";
 import SecurityCard from "./common/SecurityCard";
 import { AnalyticsUsage } from "../types";
 import { useTenantBillingSummary } from "../hooks/useTenantBillingSummary";
@@ -23,12 +22,9 @@ const System: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const { user, refreshUser } = useAuth();
   const { billing, refreshBilling: refreshBillingSummary } = useTenantBillingSummary({
     autoLoad: false,
   });
-  const [tgLinkCode, setTgLinkCode] = useState<string | null>(null);
-  const [tgLoading, setTgLoading] = useState(false);
 
   useEffect(() => {
     fetchSystemData();
@@ -86,65 +82,6 @@ const System: React.FC = () => {
       setSaving(false);
     }
   };
-
-  const handleGenerateTelegramLink = async () => {
-    setTgLoading(true);
-    setMessage(null);
-    try {
-      const result = await api.get(API_ENDPOINTS.AUTH_LINK_TOKEN);
-
-      // Check if already linked
-      if (result.alreadyLinked) {
-        setMessage({ type: "success", text: "Ваш аккаунт уже связан с Telegram." });
-        // Immediately refresh user profile to update UI
-        await refreshUser();
-        return;
-      }
-
-      setTgLinkCode(result.code);
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Ошибка генерации ссылки" });
-    } finally {
-      setTgLoading(false);
-    }
-  };
-
-  const openTelegramBot = () => {
-    if (tgLinkCode) {
-      window.open(`https://t.me/kontrol_smen_bot?start=${tgLinkCode}`, '_blank');
-    }
-  };
-
-  const handleDisconnect = async () => {
-    if (!confirm("Отключить Telegram-интеграцию?")) return;
-    setTgLoading(true);
-    setMessage(null);
-    try {
-      await unlinkTelegram();
-      // Refresh user profile to get updated tg_user_id
-      await refreshUser();
-      setMessage({ type: "success", text: "Telegram отключен" });
-    } catch (error: any) {
-      setMessage({ type: "error", text: error.message || "Ошибка отключения" });
-    } finally {
-      setTgLoading(false);
-    }
-  };
-
-  // Refresh user profile when returning from Telegram bot window
-  useEffect(() => {
-    const handleFocus = () => {
-      // Only refresh if user has generated a link code (indicating they're in linking flow)
-      if (tgLinkCode) {
-        refreshUser().catch(() => {
-          // Silently fail - user will see updated state on next action
-        });
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [tgLinkCode, refreshUser]);
 
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return "Не ограничено";
@@ -310,12 +247,12 @@ const System: React.FC = () => {
         </div>
       </div>
 
-      {/* Zone B: Security, Telegram, Zone C: Tenant Settings (Bottom Row) */}
+      {/* Zone B: Security, Messenger Status, Zone C: Tenant Settings (Bottom Row) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Security Card */}
         <SecurityCard onSuccess={() => setMessage({ type: "success", text: "Пароль успешно изменен" })} />
 
-        {/* Telegram Integration Card */}
+        {/* Messenger Status Card */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-[#0a192f] to-[#1e293b] p-5">
             <div className="flex items-center gap-3">
@@ -323,80 +260,26 @@ const System: React.FC = () => {
                 <Send className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">Telegram</h2>
-                <p className="text-sm text-slate-300">Связь с ботом</p>
+                <h2 className="text-lg font-semibold text-white">Мессенджер MAX</h2>
+                <p className="text-sm text-slate-300">Интеграция со статусом roadmap</p>
               </div>
             </div>
           </div>
-          <div className="p-6 bg-white">
-            {user?.tg_user_id ? (
-              // Connected state
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-700">
-                      ✅ Связано с Telegram (ID: <span className="font-mono">{user.tg_user_id}</span>)
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleDisconnect}
-                  disabled={tgLoading}
-                  className="px-4 py-2 text-sm font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-all disabled:opacity-50"
-                >
-                  Отключить
-                </button>
-              </div>
-            ) : (
-              // Not connected state
-              <div className="space-y-4">
+          <div className="p-6 bg-white space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-slate-800">Мессенджер MAX</p>
                 <p className="text-sm text-slate-600">
-                  Подключите Telegram-бота для получения уведомлений о сменах, объектах и важных событиях.
+                  Интеграция с MAX запланирована. Сейчас подключение недоступно.
                 </p>
-                {!tgLinkCode ? (
-                  <button
-                    type="button"
-                    onClick={handleGenerateTelegramLink}
-                    disabled={tgLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#0a192f] hover:bg-[#152238] text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-[#0a192f]/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {tgLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Генерация...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Связать с Telegram
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="bg-white rounded-md p-3 border border-slate-200">
-                      <p className="text-xs text-slate-500 mb-1">Ваш код для связи:</p>
-                      <p className="font-mono text-lg font-bold text-[#0a192f] tracking-wider">{tgLinkCode}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={openTelegramBot}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#0088cc] hover:bg-[#0077b5] text-white text-sm font-bold rounded-lg transition-all shadow-lg shadow-[#0088cc]/20 active:scale-95"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Открыть Telegram
-                    </button>
-                    <p className="text-xs text-slate-500">
-                      Нажмите кнопку и перейдите в бота для завершения привязки
-                    </p>
-                  </div>
-                )}
               </div>
-            )}
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-800">
+                В разработке
+              </span>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+              Информационный статус. Подключение мессенджера и действия привязки появятся в отдельной фазе.
+            </div>
           </div>
         </div>
 
