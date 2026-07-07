@@ -414,6 +414,8 @@ const Shifts: React.FC = () => {
     setShifts([]);
   };
 
+  const showCancelled = filters.accounting === "all";
+
   const getStatusStyle = (status: any) => {
     const normalizedStatus = (status || "").toLowerCase();
 
@@ -727,6 +729,21 @@ const Shifts: React.FC = () => {
           {isAdmin && (
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
+                type="button"
+                onClick={() =>
+                  updateFilters({
+                    accounting: showCancelled ? "included" : "all",
+                  })
+                }
+                className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                  showCancelled
+                    ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {showCancelled ? "Скрыть отмененные" : "Показать отмененные"}
+              </button>
+              <button
                 onClick={handleExcelExport}
                 disabled={exporting || exportingZip}
                 className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -791,6 +808,11 @@ const Shifts: React.FC = () => {
                         >
                           НЕ УЧИТЫВАТЬ
                         </span>
+                      )}
+                      {shift.exclusion_reason && (
+                        <p className="mt-1 max-w-[18rem] text-[10px] leading-relaxed text-rose-700">
+                          Причина: {shift.exclusion_reason}
+                        </p>
                       )}
                     </td>
                     <td className="hidden px-4 py-2 text-xs font-medium text-slate-600 md:table-cell">

@@ -107,3 +107,101 @@ describe("Shifts demo ZIP export", () => {
     });
   });
 });
+
+describe("Shifts cancelled visibility", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetUserInfo.mockReturnValue({
+      id: 1,
+      tenant_id: 1,
+      role: "admin",
+      full_name: "Администратор",
+    });
+    mockGetAuthToken.mockReturnValue("admin-token");
+    mockApiGet.mockImplementation((endpoint: string) => {
+      if (endpoint === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+      if (endpoint === API_ENDPOINTS.DRIVERS) {
+        return Promise.resolve([]);
+      }
+      if (endpoint === API_ENDPOINTS.TRUCKS) {
+        return Promise.resolve([]);
+      }
+      if (endpoint === API_ENDPOINTS.SITES) {
+        return Promise.resolve([]);
+      }
+      if (endpoint.startsWith(`${API_ENDPOINTS.SHIFTS}?`)) {
+        const url = new URL(endpoint);
+        const accounting = url.searchParams.get("accounting");
+        if (accounting === "all") {
+          return Promise.resolve({
+            data: [
+              {
+                id: 42,
+                driver_name: "Иван Петров",
+                truck_name: "КамАЗ",
+                site_name: "База",
+                status: "cancelled",
+                is_excluded: true,
+                exclusion_reason: "Водитель ошибочно начал вторую смену",
+                created_at: "2026-07-07T09:00:00.000Z",
+              },
+            ],
+            total: 1,
+          });
+        }
+        return Promise.resolve({ data: [], total: 0 });
+      }
+      return Promise.resolve([]);
+    });
+  });
+
+  it("adds a quick toggle that switches the shifts query to accounting=all", async () => {
+    render(<Shifts />);
+
+    await waitFor(() => {
+      expect(mockApiGet).toHaveBeenCalledWith(
+        expect.stringContaining(`${API_ENDPOINTS.SHIFTS}?`)
+      );
+    });
+
+    expect(
+      mockApiGet.mock.calls.some(
+        ([endpoint]) =>
+          typeof endpoint === "string" &&
+          endpoint.startsWith(`${API_ENDPOINTS.SHIFTS}?`) &&
+          endpoint.includes("accounting=included")
+      )
+    ).toBe(true);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Показать отмененные" })
+    );
+
+    await waitFor(() => {
+      expect(
+        mockApiGet.mock.calls.some(
+          ([endpoint]) =>
+            typeof endpoint === "string" &&
+            endpoint.startsWith(`${API_ENDPOINTS.SHIFTS}?`) &&
+            endpoint.includes("accounting=all")
+        )
+      ).toBe(true);
+    });
+  });
+
+  it("shows cancelled rows with a visible reason when the quick toggle is enabled", async () => {
+    render(<Shifts />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Показать отмененные" })
+    );
+
+    expect(await screen.findByText("ОТМЕНЕНА")).toBeInTheDocument();
+    expect(
+      screen.getByText("Причина: Водитель ошибочно начал вторую смену")
+    ).toBeInTheDocument();
+    expect(screen.getByText("НЕ УЧИТЫВАТЬ")).toBeInTheDocument();
+  });
+});

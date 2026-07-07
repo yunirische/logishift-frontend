@@ -4,49 +4,148 @@ import { apiRequest } from "../services/api";
 import { AuditLog } from "../types";
 import {
   FileText,
+  ArrowRightLeft,
+  Bell,
+  CircleSlash,
+  Clock3,
+  MessageSquare,
+  Pencil,
+  Truck,
+  User,
 } from "lucide-react";
 
-// Helper function to format details into human-readable text
-const formatDetails = (details?: string): string => {
-  if (!details) return '';
-  
+type AuditDetails = Record<string, unknown>;
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "Активна",
+  finished: "Завершена",
+  cancelled: "Отменена",
+  awaiting_odo_start: "Ожидает старт",
+  awaiting_odo_end: "Ожидает финиш",
+  awaiting_invoice: "Ожидает накладную",
+  pending_site: "Ожидает объект",
+  pending_truck: "Ожидает машину",
+};
+
+const AUDIT_PRESENTATIONS = [
+  { match: ["смена отменена"], label: "Смена отменена", Icon: CircleSlash },
+  { match: ["смена исключена из учета", "смена исключена из учёта"], label: "Смена исключена из учета", Icon: CircleSlash },
+  { match: ["смена возвращена в учет", "смена возвращена в учёт"], label: "Смена возвращена в учет", Icon: ArrowRightLeft },
+  { match: ["смена завершена", "завершение смены"], label: "Смена завершена", Icon: Clock3 },
+  { match: ["смена начата", "начало смены", "смена создана"], label: "Смена начата", Icon: Clock3 },
+  { match: ["время смены изменено"], label: "Время смены изменено", Icon: Pencil },
+  { match: ["комментарий добавлен"], label: "Комментарий добавлен", Icon: MessageSquare },
+  { match: ["уведомление водителю"], label: "Уведомление водителю", Icon: Bell },
+  { match: ["пользователь"], label: "Изменение пользователя", Icon: User },
+  { match: ["машина"], label: "Изменение машины", Icon: Truck },
+] as const;
+
+const normalizeAuditDisplay = (value: string): string =>
+  value
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+    .trim()
+    .toLowerCase();
+
+const getAuditPresentation = (actionDisplay?: string) => {
+  const fallbackLabel = actionDisplay?.trim() || "Неизвестное действие";
+  const normalized = normalizeAuditDisplay(fallbackLabel);
+  const known = AUDIT_PRESENTATIONS.find(({ match }) =>
+    match.some((variant) => normalized.includes(variant))
+  );
+
+  return {
+    Icon: known?.Icon || FileText,
+    label: known?.label || fallbackLabel,
+  };
+};
+
+const parseDetails = (details?: string): AuditDetails | null => {
+  if (!details) return null;
+
   try {
     const obj = JSON.parse(details);
-    const parts: string[] = [];
-    
-    if (obj.hours !== undefined) parts.push(`${obj.hours} ч`);
-    if (obj.shift_id) parts.push(`смена #${obj.shift_id}`);
-    if (obj.truck_name) parts.push(obj.truck_name);
-    if (obj.site_name) parts.push(obj.site_name);
-    if (obj.status) parts.push(`статус: ${obj.status}`);
-    if (obj.age_minutes) parts.push(`${obj.age_minutes} мин`);
-    
-    return parts.length > 0 ? parts.join(', ') : '';
+    return obj && typeof obj === "object" ? (obj as AuditDetails) : null;
   } catch {
-    return '';
+    return null;
   }
 };
 
-// Format date to "27 января 2026"
+const formatAuditStatus = (status: unknown): string | null => {
+  if (typeof status !== "string" || !status.trim()) {
+    return null;
+  }
+
+  return STATUS_LABELS[status] || status;
+};
+
+const formatAuditDetails = (details?: string): string[] => {
+  const parsed = parseDetails(details);
+  if (!parsed) return [];
+
+  const lines: string[] = [];
+  const reason =
+    typeof parsed.reason === "string"
+      ? parsed.reason
+      : typeof parsed.exclusion_reason === "string"
+        ? parsed.exclusion_reason
+        : null;
+
+  if (reason) {
+    lines.push(`Причина: ${reason}`);
+  }
+
+  const before =
+    parsed.before && typeof parsed.before === "object"
+      ? (parsed.before as AuditDetails)
+      : null;
+  const after =
+    parsed.after && typeof parsed.after === "object"
+      ? (parsed.after as AuditDetails)
+      : null;
+
+  const beforeStatus = formatAuditStatus(before?.status);
+  const afterStatus = formatAuditStatus(after?.status);
+  if (beforeStatus || afterStatus) {
+    if (beforeStatus && afterStatus) {
+      lines.push(`Статус: ${beforeStatus} -> ${afterStatus}`);
+    } else {
+      lines.push(`Статус: ${beforeStatus || afterStatus}`);
+    }
+  }
+
+  const summary: string[] = [];
+  const shiftId = parsed.shift_id;
+  if (typeof shiftId === "number") summary.push(`Смена #${shiftId}`);
+  if (typeof parsed.driver_id === "number") summary.push(`Водитель #${parsed.driver_id}`);
+  if (typeof parsed.truck_id === "number") summary.push(`Машина #${parsed.truck_id}`);
+  if (typeof parsed.site_id === "number") summary.push(`Объект #${parsed.site_id}`);
+  if (parsed.hours !== undefined) summary.push(`${parsed.hours} ч`);
+  if (parsed.age_minutes !== undefined) summary.push(`${parsed.age_minutes} мин`);
+
+  if (summary.length > 0) {
+    lines.push(summary.join(" • "));
+  }
+
+  return lines;
+};
+
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
+  return date.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 };
 
-// Format time to "13:22"
 const formatTime = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleTimeString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleTimeString("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
-// Group logs by date
 const groupLogsByDate = (logs: AuditLog[]): Record<string, AuditLog[]> => {
   const grouped: Record<string, AuditLog[]> = {};
 
@@ -69,8 +168,7 @@ const AuditLogs: React.FC = () => {
     const fetchLogs = async () => {
       try {
         const data = await apiRequest(API_ENDPOINTS.AUDIT);
-        console.log("Audit data:", data);
-        const logsArray = Array.isArray(data) ? data : (data?.data || []);
+        const logsArray = Array.isArray(data) ? data : data?.data || [];
         setLogs(logsArray);
       } catch (error) {
         console.error("Error fetching logs:", error);
@@ -81,7 +179,6 @@ const AuditLogs: React.FC = () => {
     fetchLogs();
   }, []);
 
-  // Group logs by date
   const groupedLogs = useMemo(() => groupLogsByDate(logs), [logs]);
 
   if (loading)
@@ -93,11 +190,8 @@ const AuditLogs: React.FC = () => {
 
   return (
     <div className="bg-white rounded-lg border border-slate-50 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-50 flex justify-between items-center">
+      <div className="px-6 py-4 border-b border-slate-50">
         <h3 className="text-lg font-semibold text-[#1B254B]">Системный журнал</h3>
-        <button className="text-[#0a192f] text-xs font-semibold hover:underline">
-          Экспорт CSV
-        </button>
       </div>
 
       <div className="divide-y divide-slate-100">
@@ -108,49 +202,47 @@ const AuditLogs: React.FC = () => {
         ) : (
           Object.entries(groupedLogs).map(([date, dateLogs]) => (
             <div key={date} className="border-b border-slate-100 last:border-b-0">
-              {/* Date header */}
               <div className="px-6 py-2 bg-slate-50 border-b border-slate-200">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   {date}
                 </span>
               </div>
 
-              {/* Logs for this date */}
               <div className="divide-y divide-slate-50">
                 {dateLogs.map((log) => {
+                  const { Icon, label } = getAuditPresentation(log.action_display);
+                  const detailLines = formatAuditDetails(log.details);
                   return (
                     <div
                       key={log.id}
                       className="p-4 hover:bg-slate-50/50 transition-colors flex gap-4"
                     >
-                      {/* Time */}
                       <div className="text-slate-400 font-mono text-xs pt-0.5 w-16 shrink-0">
                         {formatTime(log.timestamp)}
                       </div>
 
-                      {/* Icon - использует эмодзи из action_display */}
-                      <div className="text-2xl shrink-0 leading-none">
-                        {log.action_display?.[0] || '📄'}
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                        <Icon size={16} />
                       </div>
 
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                           <span className="font-semibold text-[#1B254B] text-sm">
                             {log.performed_by}
                           </span>
                           <span className="text-sm text-slate-600">
-                            {log.action_display?.substring(2) || log.action_display || 'Неизвестное действие'}
+                            {label}
                           </span>
                         </div>
-                        {(() => {
-                          const details = formatDetails(log.details);
-                          return details && (
-                            <p className="text-xs text-slate-500 leading-relaxed">
-                              {details}
-                            </p>
-                          );
-                        })()}
+                        {detailLines.length > 0 && (
+                          <div className="mt-1 space-y-1">
+                            {detailLines.map((line) => (
+                              <p key={line} className="text-xs text-slate-500 leading-relaxed">
+                                {line}
+                              </p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
