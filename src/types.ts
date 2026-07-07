@@ -283,6 +283,66 @@ export interface OwnerTenantRow {
   };
 }
 
+export type OwnerInternalOverviewWindow = "1h" | "24h" | "7d";
+
+export interface OwnerInternalOverview {
+  generatedAt: string;
+  window: OwnerInternalOverviewWindow;
+  baseline: {
+    backend: string;
+    frontend: string;
+  };
+  health: {
+    api: "ok" | "warning" | "error" | "unknown";
+    db: "ok" | "warning" | "error" | "unknown";
+    systemSnapshot: OwnerSystemStatus;
+  };
+  totals: {
+    tenants: number;
+    users: number;
+    activeShifts: number;
+    stuckShifts: number;
+  };
+  activity: {
+    invitesCreated: number | null;
+    invitesAccepted: number | null;
+    shiftsCreated: number | null;
+    shiftsStarted: number | null;
+    shiftsFinished: number | null;
+    shiftsCancelled: number | null;
+    billingCheckouts: number | null;
+    paymentsSucceeded: number | null;
+    paymentsCanceled: number | null;
+    auditEvents: number | null;
+  };
+  funnel: {
+    tenantsTotal: number;
+    tenantsWithUsers: number;
+    tenantsWithInvites: number;
+    tenantsWithShifts: number;
+    tenantsWithFinishedShift: number;
+    tenantsWithBillingPayment: number;
+  };
+  audit: {
+    count: number;
+    byAction: Record<string, number>;
+    recent: Array<{
+      time: string | null;
+      action: string;
+      tenantId: number | null;
+      entity: string | null;
+      entityId: number | null;
+      summary: string;
+    }>;
+  };
+  billing: {
+    paymentsByStatus: Record<string, number>;
+    providerEventsByStatus: Record<string, number>;
+    providerEventsWithError: number;
+  };
+  risks: string[];
+}
+
 export type OwnerSystemStatus = "ok" | "warning" | "error" | "stale" | "unknown" | "unavailable";
 
 export interface OwnerBackupSnapshot {

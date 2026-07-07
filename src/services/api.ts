@@ -10,6 +10,8 @@ import {
   BillingPaymentSummary,
   BillingCheckoutResponse,
   OwnerSummary,
+  OwnerInternalOverview,
+  OwnerInternalOverviewWindow,
   OwnerSystemSnapshot,
   OwnerTenantRow,
 } from "../types";
@@ -780,6 +782,12 @@ export const getOwnerSystem = async (): Promise<OwnerSystemSnapshot> => {
   return await get(API_ENDPOINTS.OWNER_SYSTEM);
 };
 
+export const getOwnerInternalOverview = async (
+  window: OwnerInternalOverviewWindow
+): Promise<OwnerInternalOverview> => {
+  return await get(`${API_ENDPOINTS.OWNER_INTERNAL_OVERVIEW}?window=${encodeURIComponent(window)}`);
+};
+
 /**
  * Get current shift for the logged-in user.
  * Returns null if no active shift exists (400/404), instead of throwing.
@@ -887,6 +895,7 @@ const api = {
   createBillingCheckout,
   getOwnerSummary,
   getOwnerSystem,
+  getOwnerInternalOverview,
   getOwnerTenants,
   getCurrentShift,
   acceptInvite,

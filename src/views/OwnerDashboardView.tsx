@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Activity,
   AlertTriangle,
   Building2,
   Clock,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   ApiError,
+  getOwnerInternalOverview,
   getOwnerSummary,
   getOwnerSystem,
   getOwnerTenants,
@@ -19,6 +21,8 @@ import {
 import {
   OwnerBackupSnapshot,
   OwnerContainerSnapshot,
+  OwnerInternalOverview,
+  OwnerInternalOverviewWindow,
   OwnerSummary,
   OwnerSystemSnapshot,
   OwnerSystemStatus,
@@ -134,6 +138,211 @@ const StatCard = ({
   </div>
 );
 
+const OWNER_ACTIVITY_WINDOWS: Array<{ value: OwnerInternalOverviewWindow; label: string }> = [
+  { value: "1h", label: "1ч" },
+  { value: "24h", label: "24ч" },
+  { value: "7d", label: "7д" },
+];
+
+const formatNullableCount = (value?: number | null) =>
+  typeof value === "number" && Number.isFinite(value) ? String(value) : "не отслеживается";
+
+const sumNullableCounts = (values: Array<number | null | undefined>) => {
+  if (values.some((value) => value === null || value === undefined)) {
+    return null;
+  }
+
+  return values.reduce((sum, value) => sum + (value || 0), 0);
+};
+
+const OwnerActivitySection = ({
+  overview,
+  selectedWindow,
+  loading,
+  error,
+  onWindowChange,
+}: {
+  overview: OwnerInternalOverview | null;
+  selectedWindow: OwnerInternalOverviewWindow;
+  loading: boolean;
+  error: boolean;
+  onWindowChange: (window: OwnerInternalOverviewWindow) => void;
+}) => {
+  const periodShiftTotal = overview
+    ? sumNullableCounts([
+        overview.activity.shiftsCreated,
+        overview.activity.shiftsStarted,
+        overview.activity.shiftsFinished,
+        overview.activity.shiftsCancelled,
+      ])
+    : null;
+  const periodWarningTotal = overview
+    ? (overview.risks.length || 0) + (overview.billing.providerEventsWithError || 0)
+    : null;
+
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Статус и активность</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Внутренние факты LogiShift: здоровье API/DB, продуктовые действия,
+            воронка и безопасные события аудита. Компании и пользователи
+            показаны как всего; период применяется к timestamped-активности.
+          </p>
+        </div>
+        <div className="inline-flex w-fit rounded-lg border border-slate-200 bg-slate-50 p-1">
+          {OWNER_ACTIVITY_WINDOWS.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => onWindowChange(item.value)}
+              className={`min-w-12 rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+                selectedWindow === item.value
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-600 hover:bg-white"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading && (
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Загрузка статуса и активности
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Статус и активность временно недоступны.
+        </div>
+      )}
+
+      {!loading && !error && overview && (
+        <div className="mt-4 space-y-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+            <StatCard
+              label="API / DB"
+              value={overview.health.api === "ok" && overview.health.db === "ok" ? "OK" : "Проверь"}
+              detail={`API: ${overview.health.api}, DB: ${overview.health.db}`}
+              icon={Server}
+            />
+            <StatCard
+              label="Компании всего"
+              value={overview.totals.tenants}
+              detail="Не за период: у tenants нет created_at"
+              icon={Building2}
+            />
+            <StatCard
+              label="Пользователи всего"
+              value={overview.totals.users}
+              detail="Не за период: у users нет created_at"
+              icon={Users}
+            />
+            <StatCard
+              label="Инвайты за период"
+              value={formatNullableCount(overview.activity.invitesAccepted)}
+              detail={`Созданы: ${formatNullableCount(overview.activity.invitesCreated)}, приняты: ${formatNullableCount(overview.activity.invitesAccepted)}`}
+              icon={Clock}
+            />
+            <StatCard
+              label="Смены за период"
+              value={formatNullableCount(periodShiftTotal)}
+              detail={`Созданы: ${formatNullableCount(overview.activity.shiftsCreated)}, завершены: ${formatNullableCount(overview.activity.shiftsFinished)}`}
+              icon={Activity}
+            />
+            <StatCard
+              label="Ошибки / предупреждения"
+              value={formatNullableCount(periodWarningTotal)}
+              detail={overview.risks.length ? overview.risks[0] : "Нет явных рисков"}
+              icon={AlertTriangle}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1.2fr]">
+            <div className="rounded-lg border border-slate-200">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <h3 className="text-sm font-semibold">Внутренняя воронка</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Только backend/product факты, без внешней аналитики.
+                </p>
+              </div>
+              <table className="w-full text-left text-sm">
+                <tbody className="divide-y divide-slate-100">
+                  {[
+                    ["Компании всего", overview.funnel.tenantsTotal],
+                    ["С пользователями", overview.funnel.tenantsWithUsers],
+                    ["С инвайтами", overview.funnel.tenantsWithInvites],
+                    ["Со сменами", overview.funnel.tenantsWithShifts],
+                    ["С завершенной сменой", overview.funnel.tenantsWithFinishedShift],
+                    ["С оплатой / платежом", overview.funnel.tenantsWithBillingPayment],
+                  ].map(([label, value]) => (
+                    <tr key={String(label)}>
+                      <td className="px-4 py-3 text-slate-600">{label}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-950">
+                        {value}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="rounded-lg border border-slate-200">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <h3 className="text-sm font-semibold">Последние события</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Без raw details, email, токенов и кодов инвайтов.
+                </p>
+              </div>
+              {overview.audit.recent.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-slate-500">
+                  За выбранный период событий нет.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[560px] text-left text-sm">
+                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3">Время</th>
+                        <th className="px-4 py-3">Действие</th>
+                        <th className="px-4 py-3">Tenant</th>
+                        <th className="px-4 py-3">Сводка</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {overview.audit.recent.map((event) => (
+                        <tr key={`${event.time}-${event.action}-${event.entityId ?? "none"}`}>
+                          <td className="px-4 py-3 text-slate-600">
+                            {formatDateTime(event.time)}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-700">
+                            {event.action}
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">
+                            {event.tenantId ?? "нет данных"}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-slate-900">
+                            {event.summary}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
+
 const BackupLine = ({
   label,
   backup,
@@ -234,6 +443,10 @@ const OwnerDashboardView: React.FC = () => {
   const [summary, setSummary] = useState<OwnerSummary | null>(null);
   const [tenants, setTenants] = useState<OwnerTenantRow[]>([]);
   const [systemSnapshot, setSystemSnapshot] = useState<OwnerSystemSnapshot | null>(null);
+  const [internalOverview, setInternalOverview] = useState<OwnerInternalOverview | null>(null);
+  const [activityWindow, setActivityWindow] = useState<OwnerInternalOverviewWindow>("24h");
+  const [internalOverviewLoading, setInternalOverviewLoading] = useState(true);
+  const [internalOverviewError, setInternalOverviewError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
 
@@ -270,6 +483,36 @@ const OwnerDashboardView: React.FC = () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadInternalOverview = async () => {
+      try {
+        setInternalOverviewLoading(true);
+        setInternalOverviewError(false);
+        const overview = await getOwnerInternalOverview(activityWindow);
+        if (!cancelled) {
+          setInternalOverview(overview);
+        }
+      } catch {
+        if (!cancelled) {
+          setInternalOverview(null);
+          setInternalOverviewError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setInternalOverviewLoading(false);
+        }
+      }
+    };
+
+    void loadInternalOverview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activityWindow]);
 
   useEffect(() => {
     let cancelled = false;
@@ -433,6 +676,14 @@ const OwnerDashboardView: React.FC = () => {
             icon={Server}
           />
         </section>
+
+        <OwnerActivitySection
+          overview={internalOverview}
+          selectedWindow={activityWindow}
+          loading={internalOverviewLoading}
+          error={internalOverviewError}
+          onWindowChange={setActivityWindow}
+        />
 
         {systemSnapshot ? <OwnerSystemSection snapshot={systemSnapshot} /> : null}
 

@@ -51,6 +51,7 @@ export const API_ENDPOINTS = {
   OWNER_SUMMARY: `${API_BASE_URL}/owner/summary`,
   OWNER_TENANTS: `${API_BASE_URL}/owner/tenants`,
   OWNER_SYSTEM: `${API_BASE_URL}/owner/system`,
+  OWNER_INTERNAL_OVERVIEW: `${API_BASE_URL}/owner/internal-overview`,
 
   // Auth
   AUTH_REGISTER_TENANT: `${API_BASE_URL}/auth/register-tenant`,
