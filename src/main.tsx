@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { reconcilePwaServiceWorker } from './services/pwaServiceWorker'
 
 // Global error handler for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
@@ -11,6 +12,8 @@ window.addEventListener('unhandledrejection', (event) => {
     // TODO: Send to Sentry or similar service
   }
 });
+
+reconcilePwaServiceWorker();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

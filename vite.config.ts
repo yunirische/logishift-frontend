@@ -7,6 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false,
       includeAssets: ['favicon.png', 'apple-touch-icon.png'],
       workbox: {
         // ДОБАВЬ ЭТИ СТРОКИ - форсируй обновление и очистку

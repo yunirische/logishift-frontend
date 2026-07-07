@@ -456,15 +456,15 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
               ) : (
                 <ArrowUpRight className="h-4 w-4" />
               )}
-              Обновить
+              Проверить статус
             </button>
           </div>
 
           <div className="mt-6 space-y-4">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm leading-6 text-slate-600">
-                Фронтенд не подтверждает оплату сам. После возврата из платежной формы состояние тарифа
-                перечитывается с backend.
+                После оплаты статус тарифа обновится автоматически. Если вы только что вернулись со
+                страницы оплаты, нажмите «Проверить статус».
               </p>
             </div>
 

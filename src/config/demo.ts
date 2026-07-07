@@ -25,6 +25,41 @@ export const getDemoEntryUrl = (): string =>
   `https://${DEMO_HOSTNAME}/?${DEMO_ENTRY_QUERY_PARAM}=1`;
 export const getProductionAppUrl = (pathname: string = "/"): string =>
   `https://${APP_HOSTNAME}${pathname}`;
+
+export const MARKETING_PUBLIC_PATHS = new Set([
+  "/",
+  "/offer",
+  "/privacy",
+  "/personal-data-consent",
+  "/payment-and-refund",
+  "/contacts",
+]);
+
+const APP_PATHS_ALLOWED_FROM_MARKETING = new Set([
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/owner",
+  "/payment/success",
+  "/payment/cancel",
+]);
+
+export const isMarketingPublicPath = (pathname: string): boolean =>
+  MARKETING_PUBLIC_PATHS.has(pathname);
+
+export const getMarketingHostAppRedirectUrl = (
+  pathname: string,
+  search: string = ""
+): string => {
+  const appPath = APP_PATHS_ALLOWED_FROM_MARKETING.has(pathname)
+    ? pathname
+    : "/";
+
+  const appSearch = APP_PATHS_ALLOWED_FROM_MARKETING.has(pathname) ? search : "";
+  return getProductionAppUrl(`${appPath}${appSearch}`);
+};
+
 export const getLoginRedirectUrl = (hostname: string): string =>
   isDemoHostname(hostname) ? getProductionAppUrl("/login") : "/login";
 

@@ -88,6 +88,7 @@ const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<{
     activeShifts: number;
     activeDrivers: number;
+    totalShifts: number;
     trucksInWork?: number;
     activeShiftsDetails: Array<{
       driver_name: string;
@@ -98,6 +99,7 @@ const Dashboard: React.FC = () => {
   }>({
     activeShifts: 0,
     activeDrivers: 0,
+    totalShifts: 0,
     activeShiftsDetails: [],
   });
 
@@ -124,7 +126,7 @@ const Dashboard: React.FC = () => {
     },
     {
       label: "Проверьте первую смену в реестре",
-      done: stats.activeShifts > 0,
+      done: stats.totalShifts > 0,
     },
   ];
   const shouldHighlightOnboarding =
@@ -181,12 +183,14 @@ const Dashboard: React.FC = () => {
       // Handle both camelCase (frontend) and snake_case (backend) field names
       const activeShifts = statsRes.activeShifts ?? statsRes.active_shifts ?? 0;
       const activeDrivers = statsRes.activeDrivers ?? statsRes.active_drivers ?? 0;
+      const totalShifts = statsRes.totalShifts ?? statsRes.total_shifts ?? 0;
       const trucksInWork = statsRes.trucksInWork ?? statsRes.trucks_in_work;
       const activeShiftsDetails = statsRes.activeShiftsDetails ?? statsRes.active_shifts_details ?? [];
 
       setStats({
         activeShifts,
         activeDrivers,
+        totalShifts,
         trucksInWork,
         activeShiftsDetails,
       });
@@ -409,12 +413,14 @@ const Dashboard: React.FC = () => {
                 // Handle both camelCase (frontend) and snake_case (backend) field names
                 const activeShifts = statsRes.activeShifts ?? statsRes.active_shifts ?? 0;
                 const activeDrivers = statsRes.activeDrivers ?? statsRes.active_drivers ?? 0;
+                const totalShifts = statsRes.totalShifts ?? statsRes.total_shifts ?? 0;
                 const trucksInWork = statsRes.trucksInWork ?? statsRes.trucks_in_work;
                 const activeShiftsDetails = statsRes.activeShiftsDetails ?? statsRes.active_shifts_details ?? [];
 
                 setStats({
                   activeShifts,
                   activeDrivers,
+                  totalShifts,
                   trucksInWork,
                   activeShiftsDetails,
                 });

@@ -78,14 +78,22 @@ vi.mock("../views/DriverView", () => ({
   DriverView: () => <div>Driver view</div>,
 }));
 
+vi.mock("../services/navigation", () => ({
+  replaceLocation: vi.fn(),
+}));
+
 vi.mock("../components/AnalyticsConsent", () => ({
   default: () => null,
 }));
 
 vi.mock("../config/demo", () => ({
   APP_DEMO_PERSONA_KEY: "demoPersona",
+  getMarketingHostAppRedirectUrl: (pathname: string, search = "") =>
+    `https://app.kontrolsmen.ru${pathname === "/dashboard" ? "/" : pathname}${search}`,
   isDemoHostname: mockIsDemoHostname,
   isDemoTenantId: mockIsDemoTenantId,
+  isMarketingPublicPath: (pathname: string) =>
+    ["/", "/offer", "/privacy", "/personal-data-consent", "/payment-and-refund", "/contacts"].includes(pathname),
   isMarketingHostname: mockIsMarketingHostname,
   isProductionAppHostname: mockIsProductionAppHostname,
 }));
@@ -356,5 +364,54 @@ describe("App protected routes", () => {
       expect(localStorage.getItem("demoPersona")).toBeNull();
       expect(screen.getByText("Dashboard")).toBeInTheDocument();
     });
+  });
+
+  it("keeps marketing root on landing even when apex has an auth state", () => {
+    mockIsMarketingHostname.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError: vi.fn(),
+      user: createNonDemoAdminUser(),
+    });
+
+    render(<App />);
+
+    expect(screen.getByText("Landing")).toBeInTheDocument();
+    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+  });
+
+  it("does not render login on marketing /login and points to the app host", () => {
+    mockIsMarketingHostname.mockReturnValue(true);
+    window.history.replaceState({}, "", "/login");
+
+    render(<App />);
+
+    expect(screen.queryByText("Login screen")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Перейти вручную" })).toHaveAttribute(
+      "href",
+      "https://app.kontrolsmen.ru/login"
+    );
+  });
+
+  it("does not render dashboard on marketing /dashboard and redirects to app root", () => {
+    mockIsMarketingHostname.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError: vi.fn(),
+      user: createNonDemoAdminUser(),
+    });
+    window.history.replaceState({}, "", "/dashboard");
+
+    render(<App />);
+
+    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Перейти вручную" })).toHaveAttribute(
+      "href",
+      "https://app.kontrolsmen.ru/"
+    );
   });
 });

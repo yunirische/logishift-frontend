@@ -14,12 +14,15 @@ import { DriverView } from "./views/DriverView";
 import AnalyticsConsent from "./components/AnalyticsConsent";
 import {
   APP_DEMO_PERSONA_KEY,
+  getMarketingHostAppRedirectUrl,
   isDemoHostname,
   isDemoTenantId,
+  isMarketingPublicPath,
   isMarketingHostname,
   isProductionAppHostname,
 } from "./config/demo";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { replaceLocation } from "./services/navigation";
 
 // Bundle optimization: lazy load heavy components (bundle-dynamic-imports)
 const Drivers = lazy(() => import("./components/Drivers"));
@@ -61,6 +64,23 @@ const APP_TABS: AppTab[] = [
   "settings",
   "users",
 ];
+
+const ExternalRedirect: React.FC<{ to: string }> = ({ to }) => {
+  useEffect(() => {
+    replaceLocation(to);
+  }, [to]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6 text-center">
+      <div className="rounded-lg bg-white p-6 shadow-sm">
+        <p className="text-sm font-semibold text-[#041627]">Переадресация в приложение...</p>
+        <a className="mt-3 inline-flex text-sm text-[#006497]" href={to}>
+          Перейти вручную
+        </a>
+      </div>
+    </div>
+  );
+};
 
 const getAllowedTabs = ({
   role,
@@ -217,6 +237,14 @@ const AppContent: React.FC = () => {
   const shouldShowLandingOnRoot = isLandingPage && isMarketingHost;
   const shouldForceLoginOnRoot = isLandingPage && !isMarketingHost;
 
+  if (isMarketingHost && !isMarketingPublicPath(pathname)) {
+    return (
+      <ExternalRedirect
+        to={getMarketingHostAppRedirectUrl(pathname, window.location.search)}
+      />
+    );
+  }
+
   if (isOfferPage) {
     return <LegalDocumentView documentKey="offer" />;
   }
@@ -277,7 +305,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated && shouldShowLandingOnRoot) {
+  if (shouldShowLandingOnRoot) {
     return <LandingView />;
   }
 
