@@ -83,6 +83,29 @@ describe("Landing SEO metadata", () => {
     expect(parsed[1]["@type"]).toBe("FAQPage");
   });
 
+  it("renders landing logos from bundled responsive assets, not legacy /brand paths", () => {
+    render(<LandingView />);
+
+    const logos = screen.getAllByAltText("LogiShift Контроль смен");
+    expect(logos.length).toBeGreaterThanOrEqual(2);
+
+    logos.forEach((logo) => {
+      const image = logo as HTMLImageElement;
+      const sourceSets = Array.from(
+        image.closest("picture")?.querySelectorAll("source") ?? []
+      ).map((source) => source.getAttribute("srcset") ?? "");
+      const references = [
+        image.getAttribute("src") ?? "",
+        image.getAttribute("srcset") ?? "",
+        ...sourceSets,
+      ];
+
+      references.forEach((reference) => {
+        expect(reference).not.toMatch(/(^|https:\/\/kontrolsmen\.ru)\/brand\//);
+      });
+    });
+  });
+
   it("removes landing canonical, Open Graph and JSON-LD after unmount", () => {
     const { unmount } = render(<LandingView />);
 
