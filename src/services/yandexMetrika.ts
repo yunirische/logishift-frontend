@@ -10,7 +10,7 @@ declare global {
 }
 
 const YANDEX_METRIKA_SCRIPT_ID = "logishift-yandex-metrika";
-const YANDEX_METRIKA_SCRIPT_SRC = "https://mc.yandex.ru/metrika/tag.js";
+const YANDEX_METRIKA_SCRIPT_SRC = `https://mc.yandex.ru/metrika/tag.js?id=${YANDEX_METRIKA_ID}`;
 
 let initializedCounterId: number | null = null;
 
@@ -25,11 +25,15 @@ const setupYandexMetrikaStub = () => {
 };
 
 export const loadYandexMetrika = () => {
-  if (!YANDEX_METRIKA_ID || initializedCounterId === YANDEX_METRIKA_ID) return;
+  if (initializedCounterId === YANDEX_METRIKA_ID) return;
 
   setupYandexMetrikaStub();
 
-  if (!document.getElementById(YANDEX_METRIKA_SCRIPT_ID)) {
+  const hasMetrikaScript = Array.from(document.scripts).some(
+    (script) => script.src === YANDEX_METRIKA_SCRIPT_SRC
+  );
+
+  if (!document.getElementById(YANDEX_METRIKA_SCRIPT_ID) && !hasMetrikaScript) {
     const script = document.createElement("script");
     script.id = YANDEX_METRIKA_SCRIPT_ID;
     script.async = true;
@@ -38,10 +42,13 @@ export const loadYandexMetrika = () => {
   }
 
   window.ym?.(YANDEX_METRIKA_ID, "init", {
+    ssr: true,
+    webvisor: true,
     clickmap: true,
+    referrer: document.referrer,
+    url: location.href,
     trackLinks: true,
     accurateTrackBounce: true,
-    webvisor: false,
   });
   initializedCounterId = YANDEX_METRIKA_ID;
 };
