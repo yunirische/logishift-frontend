@@ -16,6 +16,7 @@ interface RegisterFormData {
   password: string;
   confirmPassword: string;
   companyName: string;
+  websiteUrl: string;
 }
 
 interface PasswordChecks {
@@ -36,6 +37,7 @@ const RegisterView: React.FC = () => {
     password: '',
     confirmPassword: '',
     companyName: '',
+    websiteUrl: '',
   }));
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -139,6 +141,7 @@ const RegisterView: React.FC = () => {
           adminName: formData.full_name.trim(),
           email: formData.email.trim().toLowerCase(),
           password: formData.password,
+          websiteUrl: formData.websiteUrl,
           consents: consentPayload,
         });
       } else {
@@ -263,6 +266,19 @@ const RegisterView: React.FC = () => {
               ⚠️ {error}
             </div>
           )}
+
+          <div aria-hidden="true" className="hidden">
+            <label htmlFor="websiteUrl">Website URL</label>
+            <input
+              id="websiteUrl"
+              name="websiteUrl"
+              type="text"
+              value={formData.websiteUrl}
+              onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+              autoComplete="off"
+              tabIndex={-1}
+            />
+          </div>
 
           {/* Invite Code (Driver mode only) */}
           {mode === 'driver' && (
