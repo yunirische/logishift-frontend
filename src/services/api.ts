@@ -15,6 +15,7 @@ import {
   OwnerSystemSnapshot,
   OwnerTenantRow,
 } from "../types";
+import type { Attribution } from "../lib/attribution";
 
 export const TOKEN_KEY = "logishift_auth_token";
 export const USER_KEY = "logishift_user_info";
@@ -788,6 +789,12 @@ export const getOwnerInternalOverview = async (
   return await get(`${API_ENDPOINTS.OWNER_INTERNAL_OVERVIEW}?window=${encodeURIComponent(window)}`);
 };
 
+export const recordDemoAttributionSuccess = async (
+  attribution: Attribution
+): Promise<void> => {
+  await post(API_ENDPOINTS.ATTRIBUTION_DEMO_SUCCESS, { attribution });
+};
+
 /**
  * Get current shift for the logged-in user.
  * Returns null if no active shift exists (400/404), instead of throwing.
@@ -896,6 +903,7 @@ const api = {
   getOwnerSummary,
   getOwnerSystem,
   getOwnerInternalOverview,
+  recordDemoAttributionSuccess,
   getOwnerTenants,
   getCurrentShift,
   acceptInvite,

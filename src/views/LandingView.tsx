@@ -7,7 +7,8 @@ import {
   Phone,
   Truck,
 } from "lucide-react";
-import { getDemoAppUrl, getProductionAppUrl } from "../config/demo";
+import { getDemoEntryUrl, getProductionAppUrl } from "../config/demo";
+import { getAttributionNavigationUrl } from "../lib/attribution";
 import { PUBLIC_TARIFFS } from "../config/tariffs";
 import BrandLogo from "../components/BrandLogo";
 import LegalLinks from "../components/LegalLinks";
@@ -168,15 +169,15 @@ const landingStructuredData = [
 ];
 
 const openLogin = () => {
-  window.location.href = getProductionAppUrl("/login");
+  window.location.href = getAttributionNavigationUrl(getProductionAppUrl("/login"));
 };
 
 const openRegister = () => {
-  window.location.href = getProductionAppUrl("/register");
+  window.location.href = getAttributionNavigationUrl(getProductionAppUrl("/register"));
 };
 
 const openDemo = () => {
-  window.location.href = getDemoAppUrl();
+  window.location.href = getAttributionNavigationUrl(getDemoEntryUrl());
 };
 
 const LandingView: React.FC = () => {

@@ -55,6 +55,7 @@ export const API_ENDPOINTS = {
 
   // Auth
   AUTH_REGISTER_TENANT: `${API_BASE_URL}/auth/register-tenant`,
+  ATTRIBUTION_DEMO_SUCCESS: `${API_BASE_URL}/attribution/demo-success`,
 
   // Maintenance & Monitoring
   MAINTENANCE_CLEANUP: `${API_BASE_URL}/maintenance/cleanup`,

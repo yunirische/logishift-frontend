@@ -5,6 +5,7 @@ const {
   mockHistoryReplaceState,
   mockLogin,
   mockLoginUser,
+  mockRecordDemoAttributionSuccess,
   mockGetDemoAppUrl,
   mockGetDemoEntryUrl,
   mockGetProductionAppUrl,
@@ -13,6 +14,7 @@ const {
   mockHistoryReplaceState: vi.fn(),
   mockLogin: vi.fn(),
   mockLoginUser: vi.fn(),
+  mockRecordDemoAttributionSuccess: vi.fn().mockResolvedValue(undefined),
   mockGetDemoAppUrl: vi.fn(() => "https://demo.kontrolsmen.ru"),
   mockGetDemoEntryUrl: vi.fn(() => "https://demo.kontrolsmen.ru/?enterDemo=1"),
   mockGetProductionAppUrl: vi.fn(
@@ -29,6 +31,7 @@ vi.mock("../../context/AuthContext", () => ({
 
 vi.mock("../../services/api", () => ({
   loginUser: mockLoginUser,
+  recordDemoAttributionSuccess: mockRecordDemoAttributionSuccess,
 }));
 
 vi.mock("../../config/demo", () => ({
@@ -136,7 +139,7 @@ describe("Login single-window demo contract", () => {
   });
 
   it("demo root with explicit entry clears the suppression marker, strips the query, and starts demo flow without rendering visible transition UI", async () => {
-    window.history.pushState({}, "", "/?enterDemo=1");
+    window.history.pushState({}, "", "/?enterDemo=1&yclid=demo-click&utm_source=yandex");
     sessionStorage.setItem("explicit_demo_logout", "1");
     mockIsDemoHostname.mockReturnValue(true);
     mockLoginUser.mockResolvedValue({
@@ -151,6 +154,10 @@ describe("Login single-window demo contract", () => {
     });
     expect(sessionStorage.getItem("explicit_demo_logout")).toBeNull();
     expect(mockHistoryReplaceState).toHaveBeenLastCalledWith({}, "", "/");
+    expect(mockRecordDemoAttributionSuccess).toHaveBeenCalledWith({
+      yclid: "demo-click",
+      utm_source: "yandex",
+    });
     expect(screen.queryByText(/перенаправляем на единый экран входа/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/загрузка демо/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/открываем рабочий вход/i)).not.toBeInTheDocument();

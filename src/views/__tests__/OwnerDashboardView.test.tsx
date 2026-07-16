@@ -113,6 +113,19 @@ const overview: OwnerInternalOverview = {
     providerEventsByStatus: {},
     providerEventsWithError: 0,
   },
+  attribution: {
+    demoSuccesses: 2,
+    registrations: 1,
+    rows: [
+      {
+        eventType: "demo_entry_success",
+        utmSource: "yandex",
+        utmCampaign: "summer",
+        utmTerm: "shift control",
+        count: 2,
+      },
+    ],
+  },
   risks: [],
 };
 
@@ -138,8 +151,9 @@ describe("OwnerDashboardView internal overview", () => {
     expect(screen.getByText("Последние события")).toBeInTheDocument();
     expect(screen.getByText("SHIFT_STARTED")).toBeInTheDocument();
     expect(screen.getByText("Смена начата")).toBeInTheDocument();
+    expect(screen.getByText("Рекламная атрибуция")).toBeInTheDocument();
+    expect(screen.getByText("yandex")).toBeInTheDocument();
     expect(screen.queryByText(/Метрика/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Yandex/i)).not.toBeInTheDocument();
   });
 
   it("switches overview windows", async () => {

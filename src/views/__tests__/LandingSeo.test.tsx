@@ -15,7 +15,7 @@ vi.mock("../../config/demo", async () => {
 
   return {
     ...actual,
-    getDemoAppUrl: () => "https://demo.kontrolsmen.ru/",
+    getDemoEntryUrl: () => "https://demo.kontrolsmen.ru/?enterDemo=1",
     getProductionAppUrl: (pathname: string = "/") =>
       `https://app.kontrolsmen.ru${pathname}`,
     isDemoHostname: () => false,

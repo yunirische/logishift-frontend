@@ -7,6 +7,12 @@ import {
   getProductionAppUrl,
   isDemoHostname,
 } from '../config/demo';
+import {
+  clearAttributionFromCurrentUrl,
+  getAttributionNavigationUrl,
+  readAttribution,
+} from '../lib/attribution';
+import { recordDemoAttributionSuccess } from '../services/api';
 import { loginUser } from '../services/api';
 import BrandLogo from './BrandLogo';
 import LegalLinks from './LegalLinks';
@@ -117,6 +123,17 @@ const Login: React.FC = () => {
       }
 
       await login(data.token, data.user);
+
+      try {
+        await recordDemoAttributionSuccess(readAttribution(window.location.search));
+        clearAttributionFromCurrentUrl();
+      } catch {
+        // The demo session is valid even when attribution observation is unavailable.
+      }
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete(DEMO_ENTRY_QUERY_PARAM);
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
     } catch (err: any) {
       if (demoLoginAttemptRef.current !== attemptId) {
         return;
@@ -131,17 +148,6 @@ const Login: React.FC = () => {
       }
     }
   };
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !hasExplicitDemoEntry) {
-      return;
-    }
-
-    sessionStorage.removeItem(EXPLICIT_DEMO_LOGOUT_KEY);
-
-    const nextUrl = `${window.location.pathname}${window.location.hash}`;
-    window.history.replaceState({}, '', nextUrl);
-  }, [hasExplicitDemoEntry]);
 
   useEffect(() => {
     if (
@@ -293,7 +299,7 @@ const Login: React.FC = () => {
         {!isDemoHost && (
           <div className="mt-4">
             <a
-              href={getDemoEntryUrl()}
+              href={getAttributionNavigationUrl(getDemoEntryUrl())}
               className="flex w-full items-center justify-center rounded-lg border-2 border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 transition-all hover:border-[#0a192f] hover:text-[#0a192f]"
             >
               Войти в демо

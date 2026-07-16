@@ -340,6 +340,17 @@ export interface OwnerInternalOverview {
     providerEventsByStatus: Record<string, number>;
     providerEventsWithError: number;
   };
+  attribution: {
+    demoSuccesses: number;
+    registrations: number;
+    rows: Array<{
+      eventType: "demo_entry_success" | "tenant_registered";
+      utmSource: string | null;
+      utmCampaign: string | null;
+      utmTerm: string | null;
+      count: number;
+    }>;
+  };
   risks: string[];
 }
 

@@ -7,6 +7,7 @@ import BrandLogo from '../components/BrandLogo';
 import LegalLinks from '../components/LegalLinks';
 import { REQUIRED_CONSENT_VERSIONS } from '../config/legal';
 import { getRegisterContextFromSearch, RegisterMode } from '../utils/registerInvite';
+import { readAttribution } from '../lib/attribution';
 type ConsentKey = keyof typeof REQUIRED_CONSENT_VERSIONS;
 
 interface RegisterFormData {
@@ -143,6 +144,7 @@ const RegisterView: React.FC = () => {
           password: formData.password,
           websiteUrl: formData.websiteUrl,
           consents: consentPayload,
+          attribution: readAttribution(window.location.search),
         });
       } else {
         // Driver registration - accept invite

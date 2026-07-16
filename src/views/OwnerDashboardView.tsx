@@ -261,6 +261,18 @@ const OwnerActivitySection = ({
               detail={overview.risks.length ? overview.risks[0] : "Нет явных рисков"}
               icon={AlertTriangle}
             />
+            <StatCard
+              label="Demo за период"
+              value={overview.attribution.demoSuccesses}
+              detail="Успешные demo-входы first-party"
+              icon={Activity}
+            />
+            <StatCard
+              label="Регистрации за период"
+              value={overview.attribution.registrations}
+              detail="Успешно созданные tenants"
+              icon={Building2}
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1.2fr]">
@@ -336,6 +348,47 @@ const OwnerActivitySection = ({
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200">
+            <div className="border-b border-slate-100 px-4 py-3">
+              <h3 className="text-sm font-semibold">Рекламная атрибуция</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                First-party события за выбранный период; yclid и персональные данные не отображаются.
+              </p>
+            </div>
+            {overview.attribution.rows.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-slate-500">
+                За выбранный период attribution-событий нет.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px] text-left text-sm">
+                  <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">Событие</th>
+                      <th className="px-4 py-3">UTM source</th>
+                      <th className="px-4 py-3">UTM campaign</th>
+                      <th className="px-4 py-3">UTM term</th>
+                      <th className="px-4 py-3 text-right">Количество</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {overview.attribution.rows.map((row) => (
+                      <tr key={`${row.eventType}-${row.utmSource}-${row.utmCampaign}-${row.utmTerm}`}>
+                        <td className="px-4 py-3 font-medium text-slate-900">
+                          {row.eventType === "demo_entry_success" ? "Demo success" : "Регистрация tenant"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{row.utmSource || "-"}</td>
+                        <td className="px-4 py-3 text-slate-600">{row.utmCampaign || "-"}</td>
+                        <td className="px-4 py-3 text-slate-600">{row.utmTerm || "-"}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-950">{row.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
