@@ -705,6 +705,36 @@ export const getTenantBilling = async (): Promise<TenantBillingSummary> => {
   const data = await get(API_ENDPOINTS.TENANT_BILLING);
   const currentPlan = data.current_plan || data.currentPlan || null;
   const lastPayment = data.last_payment || data.lastPayment || null;
+  const normalizePlan = (plan: any) => plan
+    ? {
+        ...(plan.id !== undefined ? { id: Number(plan.id) } : {}),
+        code: String(plan.code || ""),
+        name: String(plan.name || ""),
+        limit_machines: Number(plan.limit_machines ?? plan.limitMachines ?? 0),
+        limit_drivers: Number(plan.limit_drivers ?? plan.limitDrivers ?? 0),
+        limit_sites: Number(plan.limit_sites ?? plan.limitSites ?? 0),
+      }
+    : null;
+  const entitlement = data.entitlement || null;
+  const normalizeUsage = (usage: any) => usage && typeof usage === "object"
+    ? {
+        drivers: {
+          current: Number(usage.drivers?.current ?? 0),
+          limit: Number(usage.drivers?.limit ?? 0),
+          over_limit: Boolean(usage.drivers?.over_limit ?? usage.drivers?.overLimit),
+        },
+        trucks: {
+          current: Number(usage.trucks?.current ?? 0),
+          limit: Number(usage.trucks?.limit ?? 0),
+          over_limit: Boolean(usage.trucks?.over_limit ?? usage.trucks?.overLimit),
+        },
+        sites: {
+          current: Number(usage.sites?.current ?? 0),
+          limit: Number(usage.sites?.limit ?? 0),
+          over_limit: Boolean(usage.sites?.over_limit ?? usage.sites?.overLimit),
+        },
+      }
+    : null;
 
   return {
     current_plan: currentPlan
@@ -719,6 +749,17 @@ export const getTenantBilling = async (): Promise<TenantBillingSummary> => {
       : null,
     subscription_expires_at:
       data.subscription_expires_at || data.subscriptionExpiresAt || null,
+    stored_plan: normalizePlan(data.stored_plan || data.storedPlan),
+    effective_plan: normalizePlan(data.effective_plan || data.effectivePlan),
+    entitlement: entitlement
+      ? {
+          source: entitlement.source,
+          status: String(entitlement.status || "unknown"),
+          starts_at: entitlement.starts_at || entitlement.startsAt || null,
+          expires_at: entitlement.expires_at || entitlement.expiresAt || null,
+        }
+      : null,
+    usage: normalizeUsage(data.usage),
     last_payment: lastPayment
       ? {
           id: Number(lastPayment.id),

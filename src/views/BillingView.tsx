@@ -21,6 +21,7 @@ import { useAuth } from "../context/AuthContext";
 import { BILLING_CHECKOUT_PLAN_CODES, PUBLIC_TARIFFS } from "../config/tariffs";
 import { SUPPORT_TELEGRAM_URL } from "../config/legal";
 import { useTenantBillingSummary } from "../hooks/useTenantBillingSummary";
+import { entitlementSourceLabel, resolveEffectiveBillingDisplay } from "../utils/effectiveBilling";
 
 const SUPPORT_URL = SUPPORT_TELEGRAM_URL;
 const CHECKOUT_UNAVAILABLE_MESSAGE =
@@ -72,6 +73,8 @@ const formatMoney = (amount?: number, currency: string = "RUB") => {
     maximumFractionDigits: 2,
   }).format(value);
 };
+
+const formatLimit = (limit?: number) => limit === -1 ? "Без ограничений" : (limit ?? "—");
 
 const paymentStatusLabel = (status?: string) => {
   switch (status) {
@@ -308,8 +311,14 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
     }
   };
 
-  const currentPlan = billing?.current_plan ?? null;
+  const effectiveBilling = resolveEffectiveBillingDisplay(billing);
+  const effectivePlan = effectiveBilling.plan;
   const lastPayment = billing?.last_payment ?? null;
+  const usageValue = (resource: "trucks" | "drivers" | "sites", legacyLimit?: number) => {
+    const usage = effectiveBilling.usage?.[resource];
+    if (!usage) return formatLimit(legacyLimit);
+    return `${usage.current} / ${formatLimit(usage.limit)}`;
+  };
 
   if (isLoading) {
     return (
@@ -332,10 +341,11 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
                 Текущий тариф
               </div>
               <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#041627]">
-                {currentPlan?.name || "Тариф не назначен"}
+                {effectivePlan?.name || "Тариф не назначен"}
               </h1>
               <p className="mt-1 text-sm text-slate-500">
-                Код: <span className="font-semibold text-slate-700">{currentPlan?.code || "—"}</span>
+                Источник: <span className="font-semibold text-slate-700">{entitlementSourceLabel(effectiveBilling.source)}</span>
+                {effectivePlan?.code ? <span> · Код: <span className="font-semibold text-slate-700">{effectivePlan.code}</span></span> : null}
               </p>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e6f4ff] text-[#006497]">
@@ -349,31 +359,34 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
                 Машины
               </div>
               <div className="mt-2 text-lg font-semibold text-[#041627]">
-                {currentPlan ? currentPlan.limit_machines : "—"}
+                {usageValue("trucks", effectivePlan?.limit_machines)}
               </div>
+              {effectiveBilling.usage?.trucks.over_limit ? <p className="mt-1 text-xs font-semibold text-red-700">Превышен лимит</p> : null}
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Водители
               </div>
               <div className="mt-2 text-lg font-semibold text-[#041627]">
-                {currentPlan ? currentPlan.limit_drivers : "—"}
+                {usageValue("drivers", effectivePlan?.limit_drivers)}
               </div>
+              {effectiveBilling.usage?.drivers.over_limit ? <p className="mt-1 text-xs font-semibold text-red-700">Превышен лимит</p> : null}
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Объекты
               </div>
               <div className="mt-2 text-lg font-semibold text-[#041627]">
-                {currentPlan ? currentPlan.limit_sites : "—"}
+                {usageValue("sites", effectivePlan?.limit_sites)}
               </div>
+              {effectiveBilling.usage?.sites.over_limit ? <p className="mt-1 text-xs font-semibold text-red-700">Превышен лимит</p> : null}
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Оплачено до
+                Срок действия
               </div>
               <div className="mt-2 text-lg font-semibold text-[#041627]">
-                {formatDate(billing?.subscription_expires_at)}
+                {effectiveBilling.expiresAt ? formatDate(effectiveBilling.expiresAt) : "Без срока"}
               </div>
             </div>
           </div>
@@ -532,7 +545,7 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
 
         <div className="mt-6 grid gap-4 xl:grid-cols-3">
           {publicCheckoutPlans.map((plan) => {
-            const isCurrentPlan = currentPlan?.code === plan.code;
+            const isCurrentPlan = effectivePlan?.code === plan.code;
             const isBusy = checkoutPlanCode === plan.code || redirectingPlanCode === plan.code;
 
             return (

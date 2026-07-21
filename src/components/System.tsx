@@ -5,6 +5,7 @@ import { Save, Loader2, CheckCircle2, AlertCircle, CreditCard, BarChart3, Calend
 import SecurityCard from "./common/SecurityCard";
 import { AnalyticsUsage } from "../types";
 import { useTenantBillingSummary } from "../hooks/useTenantBillingSummary";
+import { entitlementSourceLabel, resolveEffectiveBillingDisplay } from "../utils/effectiveBilling";
 
 interface TenantSettings {
   name: string;
@@ -89,9 +90,10 @@ const System: React.FC = () => {
     return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
-  const activePlanName = billing?.current_plan?.name ?? null;
-  const subscriptionExpiry = billing?.subscription_expires_at ?? null;
-  const subscriptionStatus = billing?.current_plan ? "active" : "unknown";
+  const effectiveBilling = resolveEffectiveBillingDisplay(billing);
+  const activePlanName = effectiveBilling.plan?.name ?? null;
+  const subscriptionExpiry = effectiveBilling.expiresAt;
+  const subscriptionStatus = effectiveBilling.status === "active" ? "active" : "unknown";
 
   const getUsageColor = (percent: number | null): string => {
     if (percent === null) return "bg-slate-200";
@@ -107,7 +109,7 @@ const System: React.FC = () => {
     return "bg-[#0a192f]";
   };
 
-  const renderUsageBar = (current: number, limit: number, percent: number | null, label: string) => {
+  const renderUsageBar = (current: number, limit: number, percent: number | null, label: string, overLimit = false) => {
     const displayPercent = percent ?? 0;
     const isUnlimited = limit === -1;
 
@@ -116,7 +118,7 @@ const System: React.FC = () => {
         <div className="p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">{label}</span>
-            <span className={`text-sm font-mono font-semibold ${displayPercent >= 100 ? 'text-red-600' : displayPercent >= 80 ? 'text-amber-600' : 'text-[#0a192f]'}`}>
+            <span className={`text-sm font-mono font-semibold ${overLimit || displayPercent >= 100 ? 'text-red-600' : displayPercent >= 80 ? 'text-amber-600' : 'text-[#0a192f]'}`}>
               {isUnlimited ? "∞" : `${current} / ${limit}`}
             </span>
           </div>
@@ -128,6 +130,7 @@ const System: React.FC = () => {
               />
             </div>
           )}
+          {overLimit ? <p className="mt-2 text-xs font-semibold text-red-700">Превышен лимит</p> : null}
         </div>
       </div>
     );
@@ -183,7 +186,7 @@ const System: React.FC = () => {
                       : 'bg-slate-400'
                   }`} />
                   <span className="text-sm font-bold">
-                    {subscriptionStatus === 'active' ? 'Активна' : 'Статус уточняется'}
+                    {subscriptionStatus === 'active' ? 'Действует' : 'Статус уточняется'}
                   </span>
                 </div>
               </div>
@@ -191,7 +194,7 @@ const System: React.FC = () => {
             <div className="flex items-center justify-between py-3 border-t border-slate-100">
               <span className="text-sm text-slate-500 uppercase tracking-wider font-semibold">Истекает</span>
               <span className="font-mono text-sm text-slate-800 font-semibold">
-                {formatDate(subscriptionExpiry)}
+                {subscriptionExpiry ? formatDate(subscriptionExpiry) : "Без срока"}
               </span>
             </div>
             {activePlanName ? (
@@ -205,6 +208,10 @@ const System: React.FC = () => {
                 <span className="text-sm font-semibold text-slate-500">Не удалось загрузить тариф</span>
               </div>
             )}
+            <div className="flex items-center justify-between py-3 border-t border-slate-100">
+              <span className="text-sm text-slate-500 uppercase tracking-wider font-semibold">Источник</span>
+              <span className="font-mono text-sm text-slate-800 font-semibold">{entitlementSourceLabel(effectiveBilling.source)}</span>
+            </div>
             <a
               href="/?tab=billing"
               className="mt-4 flex items-center justify-center gap-2 w-full px-4 py-3 bg-[#0a192f] hover:bg-[#152238] text-white font-bold rounded-lg transition-all shadow-lg shadow-[#0a192f]/30 active:scale-95"
@@ -240,9 +247,33 @@ const System: React.FC = () => {
             </div>
           </div>
           <div className="p-5 space-y-3">
-            {renderUsageBar(usage?.trucks.current || 0, usage?.trucks.limit || 0, usage?.trucks.utilization_percent, "Грузовики")}
-            {renderUsageBar(usage?.drivers.current || 0, usage?.drivers.limit || 0, usage?.drivers.utilization_percent, "Водители")}
-            {renderUsageBar(usage?.sites.current || 0, usage?.sites.limit || 0, usage?.sites.utilization_percent, "Объекты")}
+            {renderUsageBar(
+              effectiveBilling.usage?.trucks.current ?? usage?.trucks.current ?? 0,
+              effectiveBilling.usage?.trucks.limit ?? usage?.trucks.limit ?? 0,
+              effectiveBilling.usage?.trucks.limit && effectiveBilling.usage.trucks.limit > 0
+                ? (effectiveBilling.usage.trucks.current / effectiveBilling.usage.trucks.limit) * 100
+                : usage?.trucks.utilization_percent ?? null,
+              "Грузовики",
+              effectiveBilling.usage?.trucks.over_limit
+            )}
+            {renderUsageBar(
+              effectiveBilling.usage?.drivers.current ?? usage?.drivers.current ?? 0,
+              effectiveBilling.usage?.drivers.limit ?? usage?.drivers.limit ?? 0,
+              effectiveBilling.usage?.drivers.limit && effectiveBilling.usage.drivers.limit > 0
+                ? (effectiveBilling.usage.drivers.current / effectiveBilling.usage.drivers.limit) * 100
+                : usage?.drivers.utilization_percent ?? null,
+              "Водители",
+              effectiveBilling.usage?.drivers.over_limit
+            )}
+            {renderUsageBar(
+              effectiveBilling.usage?.sites.current ?? usage?.sites.current ?? 0,
+              effectiveBilling.usage?.sites.limit ?? usage?.sites.limit ?? 0,
+              effectiveBilling.usage?.sites.limit && effectiveBilling.usage.sites.limit > 0
+                ? (effectiveBilling.usage.sites.current / effectiveBilling.usage.sites.limit) * 100
+                : usage?.sites.utilization_percent ?? null,
+              "Объекты",
+              effectiveBilling.usage?.sites.over_limit
+            )}
           </div>
         </div>
       </div>

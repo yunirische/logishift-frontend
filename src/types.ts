@@ -202,6 +202,35 @@ export interface BillingPlanInfo {
   limit_sites: number;
 }
 
+export interface EffectiveBillingPlanInfo {
+  id?: number;
+  code: string;
+  name: string;
+  limit_machines: number;
+  limit_drivers: number;
+  limit_sites: number;
+}
+
+export type BillingEntitlementSource =
+  | "free"
+  | "paid"
+  | "pilot"
+  | "individual"
+  | "internal_demo";
+
+export interface BillingEntitlementSummary {
+  source: BillingEntitlementSource;
+  status: string;
+  starts_at: string | null;
+  expires_at: string | null;
+}
+
+export interface BillingUsageMetric {
+  current: number;
+  limit: number;
+  over_limit: boolean;
+}
+
 export interface BillingPaymentSummary {
   id: number;
   plan_code?: string;
@@ -218,6 +247,14 @@ export interface TenantBillingSummary {
   current_plan: BillingPlanInfo | null;
   subscription_expires_at: string | null;
   last_payment: BillingPaymentSummary | null;
+  stored_plan?: EffectiveBillingPlanInfo | null;
+  effective_plan?: EffectiveBillingPlanInfo | null;
+  entitlement?: BillingEntitlementSummary | null;
+  usage?: {
+    drivers: BillingUsageMetric;
+    trucks: BillingUsageMetric;
+    sites: BillingUsageMetric;
+  } | null;
 }
 
 export interface BillingCheckoutResponse {

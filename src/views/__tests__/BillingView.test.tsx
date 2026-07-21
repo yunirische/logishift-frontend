@@ -23,6 +23,24 @@ vi.mock("../../hooks/useTenantBillingSummary", () => ({
         name: "Бесплатный",
         status: "active",
       },
+      effective_plan: {
+        code: "free",
+        name: "Бесплатный",
+        limit_machines: 2,
+        limit_drivers: 2,
+        limit_sites: 2,
+      },
+      entitlement: {
+        source: "free",
+        status: "active",
+        starts_at: null,
+        expires_at: null,
+      },
+      usage: {
+        drivers: { current: 3, limit: 2, over_limit: true },
+        trucks: { current: 1, limit: 2, over_limit: false },
+        sites: { current: 1, limit: 2, over_limit: false },
+      },
     },
     isLoading: false,
     error: null,
@@ -57,5 +75,9 @@ describe("BillingView UX copy", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/Фронтенд не подтверждает оплату сам/)).not.toBeInTheDocument();
     expect(screen.queryByText(/backend/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Источник:/)).toBeInTheDocument();
+    expect(screen.getAllByText("Бесплатный")).toHaveLength(2);
+    expect(screen.getByText("Без срока")).toBeInTheDocument();
+    expect(screen.getByText("Превышен лимит")).toBeInTheDocument();
   });
 });
