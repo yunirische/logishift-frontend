@@ -283,6 +283,96 @@ export interface OwnerTenantRow {
   };
 }
 
+export interface OwnerTenantPlan {
+  id: number;
+  code: string;
+  name: string;
+  limitMachines: number;
+  limitDrivers: number;
+  limitSites: number;
+}
+
+export type OwnerEntitlementSource =
+  | "free"
+  | "paid"
+  | "pilot"
+  | "individual"
+  | "internal_demo";
+
+export interface OwnerEffectiveEntitlement {
+  source: OwnerEntitlementSource;
+  status: "active";
+  startsAt: string | null;
+  expiresAt: string | null;
+  plan: OwnerTenantPlan;
+}
+
+export interface OwnerUsageMetric {
+  current: number;
+  limit: number;
+  overLimit: boolean;
+}
+
+export interface OwnerPilotSummary {
+  status: "active" | "expired" | "revoked" | "superseded_by_paid";
+  plan: Pick<OwnerTenantPlan, "code" | "name">;
+  startsAt: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  sourceChannel: "direct" | "community" | "product_radar" | "referral" | "other";
+  version: number;
+}
+
+export interface OwnerTenantDetail {
+  tenant: {
+    id: number;
+    name: string;
+    timezone: string | null;
+  };
+  storedPlan: OwnerTenantPlan;
+  effectiveEntitlement: OwnerEffectiveEntitlement;
+  usage: {
+    drivers: OwnerUsageMetric;
+    trucks: OwnerUsageMetric;
+    sites: OwnerUsageMetric;
+  };
+  shifts: {
+    active: number;
+    finished: number;
+    stuck: number;
+  };
+  pilot: OwnerPilotSummary | null;
+  billing: {
+    activePaidSubscription: {
+      plan: Pick<OwnerTenantPlan, "code" | "name">;
+      expiresAt: string | null;
+    } | null;
+    recentPayments: Array<{
+      id: number;
+      status: string;
+      plan: Pick<OwnerTenantPlan, "code" | "name"> | null;
+      amount: number;
+      currency: string;
+      periodMonths: number | null;
+      paidAt: string | null;
+      canceledAt: string | null;
+      createdAt: string | null;
+    }>;
+  };
+  attribution: {
+    utmSource: string | null;
+    utmCampaign: string | null;
+    utmTerm: string | null;
+  };
+  recentAudit: Array<{
+    id: number;
+    action: string;
+    entity: string;
+    entityId: number | null;
+    createdAt: string | null;
+  }>;
+}
+
 export type OwnerInternalOverviewWindow = "1h" | "24h" | "7d";
 
 export interface OwnerInternalOverview {

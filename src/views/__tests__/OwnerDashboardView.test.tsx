@@ -129,6 +129,15 @@ const overview: OwnerInternalOverview = {
   risks: [],
 };
 
+const tenantRow = {
+  id: 42,
+  name: "Safe tenant",
+  plan: { code: "free", name: "Free" },
+  subscription_expires_at: null,
+  subscription_status: "expired" as const,
+  counts: { users: 1, trucks: 1, sites: 1, active_shifts: 0, stuck_shifts: 0 },
+};
+
 describe("OwnerDashboardView internal overview", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -190,5 +199,17 @@ describe("OwnerDashboardView internal overview", () => {
 
     rerender(<OwnerDashboardView />);
     expect(screen.queryByText(/password_hash|reset token|invite code/i)).not.toBeInTheDocument();
+  });
+
+  it("provides row and explicit navigation to a tenant detail", async () => {
+    vi.mocked(getOwnerTenants).mockResolvedValue([tenantRow]);
+
+    render(<OwnerDashboardView />);
+
+    expect(await screen.findByRole("link", { name: "Открыть" })).toHaveAttribute(
+      "href",
+      "/owner/tenants/42"
+    );
+    expect(screen.getByRole("link", { name: "Открыть тенант Safe tenant" })).toBeInTheDocument();
   });
 });

@@ -10,6 +10,7 @@ import ResetPasswordView from "./views/ResetPasswordView";
 import BillingView from "./views/BillingView";
 import LegalDocumentView from "./views/LegalDocumentView";
 import OwnerDashboardView from "./views/OwnerDashboardView";
+import OwnerTenantDetailView from "./views/OwnerTenantDetailView";
 import { DriverView } from "./views/DriverView";
 import AnalyticsConsent from "./components/AnalyticsConsent";
 import {
@@ -231,6 +232,7 @@ const AppContent: React.FC = () => {
   const isContactsPage = pathname === "/contacts";
   const isPersonalDataConsentPage = pathname === "/personal-data-consent";
   const isOwnerPage = pathname === "/owner";
+  const ownerTenantDetailMatch = pathname.match(/^\/owner\/tenants\/(\d+)\/?$/);
   const isMarketingHost = isMarketingHostname(hostname);
   const isAppHost = isProductionAppHostname(hostname);
   const isDemoHost = isDemoHostname(hostname);
@@ -426,6 +428,14 @@ const AppContent: React.FC = () => {
       return <Login />;
     }
     return <LandingView />;
+  }
+
+  if (ownerTenantDetailMatch) {
+    return (
+      <ErrorBoundary>
+        <OwnerTenantDetailView tenantId={Number(ownerTenantDetailMatch[1])} />
+      </ErrorBoundary>
+    );
   }
 
   if (isOwnerPage) {

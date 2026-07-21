@@ -760,11 +760,25 @@ const OwnerDashboardView: React.FC = () => {
                   <th className="px-5 py-3">Объекты</th>
                   <th className="px-5 py-3">Смены</th>
                   <th className="px-5 py-3">Проблемные</th>
+                  <th className="px-5 py-3"><span className="sr-only">Открыть тенант</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {tenants.map((tenant) => (
-                  <tr key={tenant.id} className="hover:bg-slate-50">
+                  <tr
+                    key={tenant.id}
+                    className="cursor-pointer hover:bg-slate-50"
+                    onClick={() => { window.location.href = `/owner/tenants/${tenant.id}`; }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        window.location.href = `/owner/tenants/${tenant.id}`;
+                      }
+                    }}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Открыть тенант ${tenant.name}`}
+                  >
                     <td className="px-5 py-4 font-mono text-slate-500">
                       {tenant.id}
                     </td>
@@ -792,11 +806,20 @@ const OwnerDashboardView: React.FC = () => {
                     <td className="px-5 py-4">{tenant.counts.sites}</td>
                     <td className="px-5 py-4">{tenant.counts.active_shifts}</td>
                     <td className="px-5 py-4">{tenant.counts.stuck_shifts}</td>
+                    <td className="px-5 py-4 text-right">
+                      <a
+                        className="font-semibold text-[#006497] hover:text-[#004f79]"
+                        href={`/owner/tenants/${tenant.id}`}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        Открыть
+                      </a>
+                    </td>
                   </tr>
                 ))}
                 {tenants.length === 0 && (
                   <tr>
-                    <td className="px-5 py-8 text-center text-slate-500" colSpan={9}>
+                    <td className="px-5 py-8 text-center text-slate-500" colSpan={10}>
                       Тенанты не найдены
                     </td>
                   </tr>

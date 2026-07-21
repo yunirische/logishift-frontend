@@ -74,6 +74,10 @@ vi.mock("../views/OwnerDashboardView", () => ({
   default: () => <div>Owner dashboard</div>,
 }));
 
+vi.mock("../views/OwnerTenantDetailView", () => ({
+  default: ({ tenantId }: { tenantId: number }) => <div>Owner tenant detail {tenantId}</div>,
+}));
+
 vi.mock("../views/DriverView", () => ({
   DriverView: () => <div>Driver view</div>,
 }));
@@ -413,5 +417,20 @@ describe("App protected routes", () => {
       "href",
       "https://app.kontrolsmen.ru/"
     );
+  });
+
+  it("renders the owner tenant detail route for an authenticated session", () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError: vi.fn(),
+      user: createNonDemoAdminUser(),
+    });
+    window.history.replaceState({}, "", "/owner/tenants/42");
+
+    render(<App />);
+
+    expect(screen.getByText("Owner tenant detail 42")).toBeInTheDocument();
   });
 });

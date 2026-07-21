@@ -14,6 +14,7 @@ import {
   OwnerInternalOverviewWindow,
   OwnerSystemSnapshot,
   OwnerTenantRow,
+  OwnerTenantDetail,
 } from "../types";
 import type { Attribution } from "../lib/attribution";
 
@@ -779,6 +780,12 @@ export const getOwnerTenants = async (): Promise<OwnerTenantRow[]> => {
   return Array.isArray(data) ? data : [];
 };
 
+export const getOwnerTenantDetail = async (
+  tenantId: number
+): Promise<OwnerTenantDetail> => {
+  return await get(API_ENDPOINTS.OWNER_TENANT_DETAIL(tenantId));
+};
+
 export const getOwnerSystem = async (): Promise<OwnerSystemSnapshot> => {
   return await get(API_ENDPOINTS.OWNER_SYSTEM);
 };
@@ -905,6 +912,7 @@ const api = {
   getOwnerInternalOverview,
   recordDemoAttributionSuccess,
   getOwnerTenants,
+  getOwnerTenantDetail,
   getCurrentShift,
   acceptInvite,
   getTelegramLinkCode,
