@@ -786,6 +786,62 @@ export const getOwnerTenantDetail = async (
   return await get(API_ENDPOINTS.OWNER_TENANT_DETAIL(tenantId));
 };
 
+export type OwnerPilotPlanCode = "start" | "business" | "company";
+export type OwnerPilotDurationDays = 14 | 30 | 60 | 90;
+export type OwnerPilotSourceChannel =
+  | "direct"
+  | "community"
+  | "product_radar"
+  | "referral"
+  | "other";
+
+type OwnerPilotOperationResponse = {
+  pilot: {
+    status: "active" | "revoked";
+    plan: { code: string; name: string };
+    startsAt: string;
+    expiresAt: string;
+    sourceChannel: string;
+    version: number;
+  };
+  operation: { id: string; action: "granted" | "extended" | "ended" };
+};
+
+const postOwnerPilotOperation = async (
+  url: string,
+  body: Record<string, unknown>,
+  operationId: string
+): Promise<OwnerPilotOperationResponse> => {
+  return await apiRequest(url, {
+    method: "POST",
+    headers: { "Idempotency-Key": operationId },
+    body: JSON.stringify(body),
+  });
+};
+
+export const grantOwnerPilot = (
+  tenantId: number,
+  input: {
+    planCode: OwnerPilotPlanCode;
+    durationDays: OwnerPilotDurationDays;
+    sourceChannel: OwnerPilotSourceChannel;
+    reason: string;
+  },
+  operationId: string
+) => postOwnerPilotOperation(API_ENDPOINTS.OWNER_PILOT_GRANT(tenantId), input, operationId);
+
+export const extendOwnerPilot = (
+  tenantId: number,
+  input: { durationDays: OwnerPilotDurationDays; reason: string },
+  operationId: string
+) => postOwnerPilotOperation(API_ENDPOINTS.OWNER_PILOT_EXTEND(tenantId), input, operationId);
+
+export const endOwnerPilot = (
+  tenantId: number,
+  input: { reason: string },
+  operationId: string
+) => postOwnerPilotOperation(API_ENDPOINTS.OWNER_PILOT_END(tenantId), input, operationId);
+
 export const getOwnerSystem = async (): Promise<OwnerSystemSnapshot> => {
   return await get(API_ENDPOINTS.OWNER_SYSTEM);
 };
@@ -913,6 +969,9 @@ const api = {
   recordDemoAttributionSuccess,
   getOwnerTenants,
   getOwnerTenantDetail,
+  grantOwnerPilot,
+  extendOwnerPilot,
+  endOwnerPilot,
   getCurrentShift,
   acceptInvite,
   getTelegramLinkCode,

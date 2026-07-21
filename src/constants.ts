@@ -52,6 +52,12 @@ export const API_ENDPOINTS = {
   OWNER_TENANTS: `${API_BASE_URL}/owner/tenants`,
   OWNER_TENANT_DETAIL: (tenantId: number | string) =>
     `${API_BASE_URL}/owner/tenants/${tenantId}`,
+  OWNER_PILOT_GRANT: (tenantId: number | string) =>
+    `${API_BASE_URL}/owner/tenants/${tenantId}/pilot`,
+  OWNER_PILOT_EXTEND: (tenantId: number | string) =>
+    `${API_BASE_URL}/owner/tenants/${tenantId}/pilot/extend`,
+  OWNER_PILOT_END: (tenantId: number | string) =>
+    `${API_BASE_URL}/owner/tenants/${tenantId}/pilot/end`,
   OWNER_SYSTEM: `${API_BASE_URL}/owner/system`,
   OWNER_INTERNAL_OVERVIEW: `${API_BASE_URL}/owner/internal-overview`,
 
