@@ -6,7 +6,7 @@ import LegalDocumentView from "../LegalDocumentView";
 import Login from "../../components/Login";
 
 const LANDING_DESCRIPTION =
-  "Учёт текущих и завершённых смен: техника, водители, объекты, фото, комментарии, история и журнал действий.";
+  "LogiShift — учёт и контроль смен транспорта и спецтехники: техника, водители, объекты, фото, комментарии, история и журнал действий.";
 
 vi.mock("../../config/demo", async () => {
   const actual = await vi.importActual<typeof import("../../config/demo")>(
@@ -55,7 +55,7 @@ describe("Landing SEO metadata", () => {
     render(<LandingView />);
 
     expect(document.title).toBe(
-      "LogiShift — контроль смен водителей и спецтехники"
+      "LogiShift — учёт и контроль смен транспорта и спецтехники"
     );
     expect(getMetaContent('meta[name="description"]')).toBe(LANDING_DESCRIPTION);
     expect(getMetaContent('link[rel="canonical"]')).toBe(
@@ -63,7 +63,7 @@ describe("Landing SEO metadata", () => {
     );
     expect(getMetaContent('meta[property="og:type"]')).toBe("website");
     expect(getMetaContent('meta[property="og:title"]')).toBe(
-      "LogiShift — контроль смен водителей и спецтехники"
+      "LogiShift — учёт и контроль смен транспорта и спецтехники"
     );
     expect(getMetaContent('meta[property="og:description"]')).toBe(
       LANDING_DESCRIPTION
@@ -72,6 +72,8 @@ describe("Landing SEO metadata", () => {
       "https://kontrolsmen.ru/"
     );
     expect(getMetaContent('meta[name="twitter:card"]')).toBe("summary");
+    expect(document.title).not.toMatch(/пилот/i);
+    expect(getMetaContent('meta[name="description"]')).not.toMatch(/пилот/i);
 
     const scripts = Array.from(
       document.querySelectorAll('script[type="application/ld+json"]')
@@ -220,7 +222,7 @@ describe("Landing FAQ", () => {
     });
     const finalCtaHeading = screen.getByRole("heading", {
       level: 2,
-      name: "Откройте демо или станьте пилотом",
+      name: "Начните с бесплатного тарифа или демо",
     });
 
     const faqSection = faqHeading.closest("section");
@@ -265,7 +267,7 @@ describe("Landing product copy", () => {
     document.title = "";
   });
 
-  it("lists shipped features and presents pilot registration as the primary CTA", () => {
+  it("lists shipped features and keeps permanent CTAs separate from the pilot banner", () => {
     render(<LandingView />);
 
     [
@@ -274,15 +276,22 @@ describe("Landing product copy", () => {
       "фото к сменам",
       "комментарии к сменам",
       "история и журнал действий",
+      "роли пользователей и приглашения водителей",
+      "ручное создание, завершение и отмена смен",
+      "тарифы и лимиты для техники, водителей и объектов",
     ].forEach((feature) => {
       expect(screen.getByText(feature)).toBeInTheDocument();
     });
 
-    expect(screen.getAllByRole("button", { name: "Стать пилотом" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Открыть демо" }).length).toBeGreaterThanOrEqual(2);
-    expect(
-      screen.getByText("Ищем первые компании и помогаем начать работу на реальных сменах.")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Бесплатный тариф включает до 2 машин, 2 водителей и 2 объектов. Для растущего парка доступны тарифы с большими лимитами.")).toBeInTheDocument();
+
+    const pilotBanner = screen.getByRole("region", { name: "Пилотный запуск" });
+    expect(within(pilotBanner).getByText("Открыт набор пилотных компаний")).toBeInTheDocument();
+    expect(within(pilotBanner).getByText("Поможем настроить сервис и начать работу на реальных сменах.")).toBeInTheDocument();
+    expect(within(pilotBanner).getByRole("button", { name: "Обсудить пилот" })).toBeInTheDocument();
+    expect(screen.getAllByText(/пилот/i)).toHaveLength(2);
   });
 
   it("does not promise unsupported public capabilities", () => {
@@ -296,6 +305,7 @@ describe("Landing product copy", () => {
       "путевые листы",
       "интеграции",
       "автоматическое диспетчерское управление",
+      "пилотный запуск",
     ].forEach((unsupportedClaim) => {
       expect(publicCopy).not.toContain(unsupportedClaim);
     });

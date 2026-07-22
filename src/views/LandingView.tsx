@@ -21,7 +21,7 @@ import {
 } from "../config/legal";
 
 const LANDING_META_DESCRIPTION =
-  "Учёт текущих и завершённых смен: техника, водители, объекты, фото, комментарии, история и журнал действий.";
+  "LogiShift — учёт и контроль смен транспорта и спецтехники: техника, водители, объекты, фото, комментарии, история и журнал действий.";
 
 const workSteps = [
   {
@@ -46,12 +46,15 @@ const workSteps = [
   },
 ];
 
-const benefits = [
+const productCapabilities = [
   "учёт текущих и завершённых смен",
   "техника, водители и объекты",
   "фото к сменам",
   "комментарии к сменам",
   "история и журнал действий",
+  "роли пользователей и приглашения водителей",
+  "ручное создание, завершение и отмена смен",
+  "тарифы и лимиты для техники, водителей и объектов",
 ];
 
 const faqItems = [
@@ -72,7 +75,7 @@ const faqItems = [
   {
     question: "Можно ли сначала посмотреть сервис?",
     answer:
-      "Да. Можно открыть демо или стать пилотом и проверить сервис на своих сменах.",
+      "Да. Откройте демо, чтобы посмотреть путь водителя и диспетчера, или зарегистрируйте компанию и начните с бесплатного тарифа.",
   },
 ];
 
@@ -106,7 +109,7 @@ const landingMeta = [
     tagName: "meta" as const,
     attributes: {
       property: "og:title",
-      content: "LogiShift — контроль смен водителей и спецтехники",
+      content: "LogiShift — учёт и контроль смен транспорта и спецтехники",
     },
   },
   {
@@ -151,7 +154,7 @@ const landingStructuredData = [
         operatingSystem: "Web",
         url: "https://kontrolsmen.ru/",
         description:
-          "Сервис контроля смен водителей и спецтехники с объектами, фото и историей смен.",
+          "Сервис для учёта и контроля смен транспорта и спецтехники с объектами, фото, комментариями и историей смен.",
       },
     ],
   },
@@ -185,7 +188,7 @@ const LandingView: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-slate-900">
       <PageMetadata
-        title="LogiShift — контроль смен водителей и спецтехники"
+        title="LogiShift — учёт и контроль смен транспорта и спецтехники"
         meta={landingMeta}
         structuredData={landingStructuredData}
       />
@@ -218,23 +221,15 @@ const LandingView: React.FC = () => {
 
           <section className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-center">
             <div className="max-w-3xl">
-              <div className="inline-flex max-w-full flex-col gap-2 rounded-2xl border border-[#77c2ff]/70 bg-white/80 px-4 py-3 text-left shadow-sm backdrop-blur sm:w-auto">
-                <div className="text-xs font-bold uppercase tracking-[0.24em] text-[#006497]">
-                  ПИЛОТНЫЙ ЗАПУСК
-                </div>
-                <div className="max-w-xl text-sm font-medium leading-6 text-slate-600 break-words">
-                  Ищем первые компании и помогаем начать работу на реальных сменах.
-                </div>
-              </div>
-              <h1 className="mt-5 max-w-4xl text-4xl font-bold leading-tight tracking-tight text-[#041627] sm:text-5xl lg:text-6xl">
-                Контроль смен спецтехники без таблиц и путаницы
+              <h1 className="max-w-4xl text-4xl font-bold leading-tight tracking-tight text-[#041627] sm:text-5xl lg:text-6xl">
+                Учёт и контроль смен транспорта и спецтехники
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-                Водитель начинает смену с телефона. Вы видите технику, объект, время и фото.
-                История смен сохраняется и остается под рукой.
+                Ведите текущие и завершённые смены, технику, водителей и объекты в одном месте.
+                Фото, комментарии и история помогают подтвердить выполненную работу.
               </p>
               <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
-                Подходит для небольших парков, подрядчиков и строительных компаний.
+                Подходит для небольших автопарков, подрядчиков, транспорта и спецтехники.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <button
@@ -242,7 +237,7 @@ const LandingView: React.FC = () => {
                   onClick={openRegister}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#006497] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#006497]/20 transition-all hover:bg-[#004f79]"
                 >
-                  Стать пилотом
+                  Начать бесплатно
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
@@ -312,6 +307,25 @@ const LandingView: React.FC = () => {
       </div>
 
       <main className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-10 lg:py-20">
+        <section
+          aria-label="Пилотный запуск"
+          className="rounded-2xl border border-[#77c2ff]/70 bg-[#eef8ff] p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6"
+        >
+          <div>
+            <h2 className="text-lg font-semibold text-[#041627]">Открыт набор пилотных компаний</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Поможем настроить сервис и начать работу на реальных сменах.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openRegister}
+            className="mt-4 shrink-0 rounded-xl bg-[#006497] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#004f79] sm:mt-0"
+          >
+            Обсудить пилот
+          </button>
+        </section>
+
         <section>
           <div className="max-w-3xl">
             <div className="text-sm font-semibold uppercase tracking-[0.22em] text-[#006497]">
@@ -337,20 +351,20 @@ const LandingView: React.FC = () => {
         <section className="mt-16 grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
           <div>
             <div className="text-sm font-semibold uppercase tracking-[0.22em] text-[#006497]">
-              Польза
+              Возможности
             </div>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#041627] sm:text-4xl">
-              Меньше ручной сверки
+              Всё нужное для контроля смен
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
-              Смена фиксируется сразу. Диспетчер видит текущую картину, а руководитель может вернуться к истории позже.
+              Смена фиксируется сразу. Диспетчер видит текущую картину, а руководитель может вернуться к истории и журналу действий позже.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {benefits.map((benefit) => (
-              <div key={benefit} className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            {productCapabilities.map((capability) => (
+              <div key={capability} className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#27ae60]" />
-                <div className="text-base font-semibold leading-6 text-[#041627]">{benefit}</div>
+                <div className="text-base font-semibold leading-6 text-[#041627]">{capability}</div>
               </div>
             ))}
           </div>
@@ -359,14 +373,13 @@ const LandingView: React.FC = () => {
         <section className="mt-16">
           <div className="max-w-3xl">
             <div className="text-sm font-semibold uppercase tracking-[0.22em] text-[#006497]">
-              Предварительные тарифы
+              Тарифы и лимиты
             </div>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#041627] sm:text-4xl">
-              Показываем порядок стоимости заранее
+              Начните с бесплатного тарифа
             </h2>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Показываем порядок стоимости заранее, чтобы после начала работы не было неприятных сюрпризов.
-              Тарифы предварительные и могут уточняться по мере запуска.
+              Бесплатный тариф включает до 2 машин, 2 водителей и 2 объектов. Для растущего парка доступны тарифы с большими лимитами.
             </p>
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -398,9 +411,6 @@ const LandingView: React.FC = () => {
                 </ul>
               </div>
             ))}
-          </div>
-          <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-600 shadow-sm">
-            Ищем первые компании для пилотного запуска и помогаем настроить работу на реальных сменах.
           </div>
           <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-600 shadow-sm">
             Для крупного парка, отдельного внедрения или особых требований подготовим индивидуальные условия.
@@ -437,10 +447,10 @@ const LandingView: React.FC = () => {
                 Следующий шаг
               </div>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#041627]">
-                Откройте демо или станьте пилотом
+                Начните с бесплатного тарифа или демо
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-                Демо покажет путь водителя и диспетчера. Для реальной работы зарегистрируйте компанию и начните пилотный запуск.
+                Демо покажет путь водителя и диспетчера. Для реальной работы зарегистрируйте компанию и начните с бесплатного тарифа.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
@@ -449,7 +459,7 @@ const LandingView: React.FC = () => {
                 onClick={openRegister}
                 className="rounded-2xl bg-[#006497] px-6 py-4 text-base font-semibold text-white transition-colors hover:bg-[#004f79]"
               >
-                Стать пилотом
+                Начать бесплатно
               </button>
               <button
                 type="button"
