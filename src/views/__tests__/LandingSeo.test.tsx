@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import LandingView from "../LandingView";
 import LegalDocumentView from "../LegalDocumentView";
 import Login from "../../components/Login";
+import { SUPPORT_TELEGRAM_URL } from "../../config/legal";
 
 const LANDING_DESCRIPTION =
   "LogiShift — учёт и контроль смен транспорта и спецтехники: техника, водители, объекты, фото, комментарии, история и журнал действий.";
@@ -292,7 +293,13 @@ describe("Landing product copy", () => {
     expect(within(offerBanner).getByText("Специальные условия на старте")).toBeInTheDocument();
     expect(within(offerBanner).getByText("Начните с поддержкой команды LogiShift")).toBeInTheDocument();
     expect(within(offerBanner).getByText("Поможем настроить технику, водителей и объекты, а также предоставим расширенный доступ на период знакомства с сервисом.")).toBeInTheDocument();
-    expect(within(offerBanner).getByRole("button", { name: "Узнать условия" })).toBeInTheDocument();
+    const supportLink = within(offerBanner).getByRole("link", { name: "Обсудить условия" });
+    expect(supportLink).toHaveAttribute("href", SUPPORT_TELEGRAM_URL);
+    expect(supportLink).toHaveAttribute("target", "_blank");
+    expect(supportLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(within(offerBanner).queryByRole("button", { name: "Узнать условия" })).not.toBeInTheDocument();
+
+    expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(2);
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Учёт и контроль смен транспорта и спецтехники"

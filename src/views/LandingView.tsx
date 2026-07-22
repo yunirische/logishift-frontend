@@ -320,13 +320,14 @@ const LandingView: React.FC = () => {
               Поможем настроить технику, водителей и объекты, а также предоставим расширенный доступ на период знакомства с сервисом.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={openRegister}
+          <a
+            href={SUPPORT_TELEGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="mt-4 shrink-0 rounded-xl bg-[#006497] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#004f79] sm:mt-0"
           >
-            Узнать условия
-          </button>
+            Обсудить условия
+          </a>
         </section>
 
         <section className="mt-10 lg:mt-14">
