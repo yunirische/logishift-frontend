@@ -222,7 +222,7 @@ describe("Landing FAQ", () => {
     });
     const finalCtaHeading = screen.getByRole("heading", {
       level: 2,
-      name: "Начните с бесплатного тарифа или демо",
+      name: "Попробуйте LogiShift в работе",
     });
 
     const faqSection = faqHeading.closest("section");
@@ -267,8 +267,8 @@ describe("Landing product copy", () => {
     document.title = "";
   });
 
-  it("lists shipped features and keeps permanent CTAs separate from the pilot banner", () => {
-    render(<LandingView />);
+  it("lists shipped features and keeps permanent CTAs separate from the temporary offer", () => {
+    const { container } = render(<LandingView />);
 
     [
       "учёт текущих и завершённых смен",
@@ -287,11 +287,26 @@ describe("Landing product copy", () => {
     expect(screen.getAllByRole("button", { name: "Открыть демо" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Бесплатный тариф включает до 2 машин, 2 водителей и 2 объектов. Для растущего парка доступны тарифы с большими лимитами.")).toBeInTheDocument();
 
-    const pilotBanner = screen.getByRole("region", { name: "Пилотный запуск" });
-    expect(within(pilotBanner).getByText("Открыт набор пилотных компаний")).toBeInTheDocument();
-    expect(within(pilotBanner).getByText("Поможем настроить сервис и начать работу на реальных сменах.")).toBeInTheDocument();
-    expect(within(pilotBanner).getByRole("button", { name: "Обсудить пилот" })).toBeInTheDocument();
-    expect(screen.getAllByText(/пилот/i)).toHaveLength(2);
+    expect(screen.getAllByRole("region")).toHaveLength(1);
+    const offerBanner = screen.getByRole("region", { name: "Специальные условия на старте" });
+    expect(within(offerBanner).getByText("Специальные условия на старте")).toBeInTheDocument();
+    expect(within(offerBanner).getByText("Начните с поддержкой команды LogiShift")).toBeInTheDocument();
+    expect(within(offerBanner).getByText("Поможем настроить технику, водителей и объекты, а также предоставим расширенный доступ на период знакомства с сервисом.")).toBeInTheDocument();
+    expect(within(offerBanner).getByRole("button", { name: "Узнать условия" })).toBeInTheDocument();
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Учёт и контроль смен транспорта и спецтехники"
+    );
+    expect(container.textContent).toContain(
+      "Водитель начинает смену с телефона, а руководитель видит технику, водителя, объект, время, фото и комментарии."
+    );
+    expect(container.textContent).toContain(
+      "Откройте демо или зарегистрируйте компанию бесплатно, чтобы начать вести реальные смены."
+    );
+    expect(container.textContent).toContain(
+      "Да. Откройте демо, чтобы посмотреть основные сценарии работы, или зарегистрируйте компанию бесплатно."
+    );
+    expect(container.textContent).not.toMatch(/пилот|ищем первые компании|стать пилотом/i);
   });
 
   it("does not promise unsupported public capabilities", () => {
@@ -305,7 +320,6 @@ describe("Landing product copy", () => {
       "путевые листы",
       "интеграции",
       "автоматическое диспетчерское управление",
-      "пилотный запуск",
     ].forEach((unsupportedClaim) => {
       expect(publicCopy).not.toContain(unsupportedClaim);
     });

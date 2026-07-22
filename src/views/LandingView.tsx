@@ -75,7 +75,7 @@ const faqItems = [
   {
     question: "Можно ли сначала посмотреть сервис?",
     answer:
-      "Да. Откройте демо, чтобы посмотреть путь водителя и диспетчера, или зарегистрируйте компанию и начните с бесплатного тарифа.",
+      "Да. Откройте демо, чтобы посмотреть основные сценарии работы, или зарегистрируйте компанию бесплатно.",
   },
 ];
 
@@ -225,11 +225,11 @@ const LandingView: React.FC = () => {
                 Учёт и контроль смен транспорта и спецтехники
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-                Ведите текущие и завершённые смены, технику, водителей и объекты в одном месте.
-                Фото, комментарии и история помогают подтвердить выполненную работу.
+                Водитель начинает смену с телефона, а руководитель видит технику, водителя, объект, время, фото и комментарии.
+                История смен сохраняется и помогает подтвердить выполненную работу.
               </p>
               <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
-                Подходит для небольших автопарков, подрядчиков, транспорта и спецтехники.
+                Подходит небольшим автопаркам, подрядчикам и строительным компаниям.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <button
@@ -308,13 +308,16 @@ const LandingView: React.FC = () => {
 
       <main className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-10 lg:py-20">
         <section
-          aria-label="Пилотный запуск"
+          aria-label="Специальные условия на старте"
           className="rounded-2xl border border-[#77c2ff]/70 bg-[#eef8ff] p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6"
         >
           <div>
-            <h2 className="text-lg font-semibold text-[#041627]">Открыт набор пилотных компаний</h2>
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#006497]">
+              Специальные условия на старте
+            </div>
+            <h2 className="mt-2 text-lg font-semibold text-[#041627]">Начните с поддержкой команды LogiShift</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              Поможем настроить сервис и начать работу на реальных сменах.
+              Поможем настроить технику, водителей и объекты, а также предоставим расширенный доступ на период знакомства с сервисом.
             </p>
           </div>
           <button
@@ -322,7 +325,7 @@ const LandingView: React.FC = () => {
             onClick={openRegister}
             className="mt-4 shrink-0 rounded-xl bg-[#006497] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#004f79] sm:mt-0"
           >
-            Обсудить пилот
+            Узнать условия
           </button>
         </section>
 
@@ -447,10 +450,10 @@ const LandingView: React.FC = () => {
                 Следующий шаг
               </div>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#041627]">
-                Начните с бесплатного тарифа или демо
+                Попробуйте LogiShift в работе
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-                Демо покажет путь водителя и диспетчера. Для реальной работы зарегистрируйте компанию и начните с бесплатного тарифа.
+                Откройте демо или зарегистрируйте компанию бесплатно, чтобы начать вести реальные смены.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
