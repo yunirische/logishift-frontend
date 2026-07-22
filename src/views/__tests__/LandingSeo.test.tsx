@@ -6,7 +6,7 @@ import LegalDocumentView from "../LegalDocumentView";
 import Login from "../../components/Login";
 
 const LANDING_DESCRIPTION =
-  "Контроль смен водителей и спецтехники: фотофиксация, путевые листы, объекты, техника и журнал действий для малого автопарка.";
+  "Учёт текущих и завершённых смен: техника, водители, объекты, фото, комментарии, история и журнал действий.";
 
 vi.mock("../../config/demo", async () => {
   const actual = await vi.importActual<typeof import("../../config/demo")>(
@@ -220,7 +220,7 @@ describe("Landing FAQ", () => {
     });
     const finalCtaHeading = screen.getByRole("heading", {
       level: 2,
-      name: "Посмотрите демо или подключите компанию",
+      name: "Откройте демо или станьте пилотом",
     });
 
     const faqSection = faqHeading.closest("section");
@@ -256,5 +256,48 @@ describe("Landing FAQ", () => {
         expect(answers[index].textContent).toBe(entity.acceptedAnswer.text);
       }
     );
+  });
+});
+
+describe("Landing product copy", () => {
+  afterEach(() => {
+    cleanup();
+    document.title = "";
+  });
+
+  it("lists shipped features and presents pilot registration as the primary CTA", () => {
+    render(<LandingView />);
+
+    [
+      "учёт текущих и завершённых смен",
+      "техника, водители и объекты",
+      "фото к сменам",
+      "комментарии к сменам",
+      "история и журнал действий",
+    ].forEach((feature) => {
+      expect(screen.getByText(feature)).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByRole("button", { name: "Стать пилотом" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Открыть демо" }).length).toBeGreaterThanOrEqual(2);
+    expect(
+      screen.getByText("Ищем первые компании и помогаем начать работу на реальных сменах.")
+    ).toBeInTheDocument();
+  });
+
+  it("does not promise unsupported public capabilities", () => {
+    const { container } = render(<LandingView />);
+    const publicCopy = `${LANDING_DESCRIPTION} ${container.textContent ?? ""}`.toLowerCase();
+
+    [
+      "gps",
+      "глонасс",
+      "бухгалтер",
+      "путевые листы",
+      "интеграции",
+      "автоматическое диспетчерское управление",
+    ].forEach((unsupportedClaim) => {
+      expect(publicCopy).not.toContain(unsupportedClaim);
+    });
   });
 });

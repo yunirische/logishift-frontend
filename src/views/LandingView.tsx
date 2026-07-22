@@ -21,7 +21,7 @@ import {
 } from "../config/legal";
 
 const LANDING_META_DESCRIPTION =
-  "Контроль смен водителей и спецтехники: фотофиксация, путевые листы, объекты, техника и журнал действий для малого автопарка.";
+  "Учёт текущих и завершённых смен: техника, водители, объекты, фото, комментарии, история и журнал действий.";
 
 const workSteps = [
   {
@@ -47,10 +47,11 @@ const workSteps = [
 ];
 
 const benefits = [
-  "меньше звонков и таблиц",
-  "видно, кто и где работает",
-  "фото и история смен под рукой",
-  "проще контролировать технику",
+  "учёт текущих и завершённых смен",
+  "техника, водители и объекты",
+  "фото к сменам",
+  "комментарии к сменам",
+  "история и журнал действий",
 ];
 
 const faqItems = [
@@ -71,7 +72,7 @@ const faqItems = [
   {
     question: "Можно ли сначала посмотреть сервис?",
     answer:
-      "Да. Можно открыть демо или зарегистрировать компанию и проверить сервис на своих сменах.",
+      "Да. Можно открыть демо или стать пилотом и проверить сервис на своих сменах.",
   },
 ];
 
@@ -222,7 +223,7 @@ const LandingView: React.FC = () => {
                   ПИЛОТНЫЙ ЗАПУСК
                 </div>
                 <div className="max-w-xl text-sm font-medium leading-6 text-slate-600 break-words">
-                  Подключаем первые компании и помогаем с настройкой.
+                  Ищем первые компании и помогаем начать работу на реальных сменах.
                 </div>
               </div>
               <h1 className="mt-5 max-w-4xl text-4xl font-bold leading-tight tracking-tight text-[#041627] sm:text-5xl lg:text-6xl">
@@ -238,18 +239,18 @@ const LandingView: React.FC = () => {
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
-                  onClick={openDemo}
+                  onClick={openRegister}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#006497] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#006497]/20 transition-all hover:bg-[#004f79]"
                 >
-                  Открыть демо
+                  Стать пилотом
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={openRegister}
+                  onClick={openDemo}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#041627] bg-white px-6 py-4 text-base font-semibold text-[#041627] transition-colors hover:bg-[#041627] hover:text-white"
                 >
-                  Подключиться
+                  Открыть демо
                 </button>
               </div>
             </div>
@@ -399,7 +400,7 @@ const LandingView: React.FC = () => {
             ))}
           </div>
           <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-600 shadow-sm">
-            Для первых компаний доступно тестовое подключение: помощь в настройке и специальные условия на первые месяцы работы.
+            Ищем первые компании для пилотного запуска и помогаем настроить работу на реальных сменах.
           </div>
           <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-600 shadow-sm">
             Для крупного парка, отдельного внедрения или особых требований подготовим индивидуальные условия.
@@ -436,26 +437,26 @@ const LandingView: React.FC = () => {
                 Следующий шаг
               </div>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#041627]">
-                Посмотрите демо или подключите компанию
+                Откройте демо или станьте пилотом
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-                Демо покажет путь водителя и диспетчера. Для реального запуска используйте регистрацию компании.
+                Демо покажет путь водителя и диспетчера. Для реальной работы зарегистрируйте компанию и начните пилотный запуск.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
               <button
                 type="button"
-                onClick={openDemo}
+                onClick={openRegister}
                 className="rounded-2xl bg-[#006497] px-6 py-4 text-base font-semibold text-white transition-colors hover:bg-[#004f79]"
               >
-                Открыть демо
+                Стать пилотом
               </button>
               <button
                 type="button"
-                onClick={openRegister}
+                onClick={openDemo}
                 className="rounded-2xl border border-[#041627] px-6 py-4 text-base font-semibold text-[#041627] transition-colors hover:bg-[#041627] hover:text-white"
               >
-                Подключиться
+                Открыть демо
               </button>
             </div>
           </div>
