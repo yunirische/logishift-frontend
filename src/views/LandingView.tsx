@@ -306,7 +306,7 @@ const LandingView: React.FC = () => {
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-10 lg:py-20">
+      <main className="mx-auto max-w-7xl px-5 pb-12 pt-8 sm:px-6 lg:px-10 lg:pb-20 lg:pt-10">
         <section
           aria-label="Специальные условия на старте"
           className="rounded-2xl border border-[#77c2ff]/70 bg-[#eef8ff] p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6"
@@ -329,7 +329,7 @@ const LandingView: React.FC = () => {
           </button>
         </section>
 
-        <section>
+        <section className="mt-10 lg:mt-14">
           <div className="max-w-3xl">
             <div className="text-sm font-semibold uppercase tracking-[0.22em] text-[#006497]">
               Как работает
