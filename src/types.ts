@@ -318,6 +318,29 @@ export interface OwnerTenantRow {
     active_shifts: number;
     stuck_shifts: number;
   };
+  health: OwnerTenantHealth;
+}
+
+export type OwnerTenantHealthStage =
+  | "not_configured"
+  | "configuring"
+  | "ready_for_first_shift"
+  | "first_shift_started"
+  | "working"
+  | "inactive";
+
+export interface OwnerTenantHealth {
+  stage: OwnerTenantHealthStage;
+  label: string;
+  lastActivityAt: string | null;
+  attentionCount: number;
+}
+
+export interface OwnerTenantAttention {
+  code: string;
+  severity: "info" | "warning" | "critical";
+  title: string;
+  description: string;
 }
 
 export interface OwnerTenantPlan {
@@ -366,6 +389,8 @@ export interface OwnerTenantDetail {
     name: string;
     timezone: string | null;
   };
+  health: OwnerTenantHealth;
+  attention: OwnerTenantAttention[];
   storedPlan: OwnerTenantPlan;
   effectiveEntitlement: OwnerEffectiveEntitlement;
   usage: {
@@ -377,6 +402,61 @@ export interface OwnerTenantDetail {
     active: number;
     finished: number;
     stuck: number;
+  };
+  usersSummary: {
+    total: number;
+    admins: number;
+    foremen: number;
+    drivers: number;
+    other: number;
+  };
+  users: Array<{
+    id: number;
+    name: string;
+    role: string;
+    roleLabel: string;
+    hasEmail: boolean;
+    hasTelegram: boolean;
+    activityAt: string | null;
+  }>;
+  resources: {
+    trucks: { total: number; active: number; busy: number };
+    sites: { total: number; active: number };
+  };
+  recentTrucks: Array<{
+    id: number;
+    name: string;
+    plate: string | null;
+    active: boolean;
+    busy: boolean;
+  }>;
+  recentSites: Array<{
+    id: number;
+    name: string;
+    active: boolean;
+  }>;
+  recentShifts: Array<{
+    id: number;
+    status: string;
+    statusLabel: string;
+    driverName: string;
+    truckName: string | null;
+    siteName: string | null;
+    startedAt: string | null;
+    endedAt: string | null;
+    updatedAt: string | null;
+    hasStartPhoto: boolean;
+    hasEndPhoto: boolean;
+    hasInvoicePhoto: boolean;
+    hasComment: boolean;
+    durationWarning: boolean;
+  }>;
+  invitesSummary: {
+    pending: number;
+    accepted: number;
+    revoked: number;
+    expired: number;
+    expiringSoon: number;
   };
   pilot: OwnerPilotSummary | null;
   billing: {
@@ -401,12 +481,12 @@ export interface OwnerTenantDetail {
     utmCampaign: string | null;
     utmTerm: string | null;
   };
-  recentAudit: Array<{
-    id: number;
-    action: string;
-    entity: string;
-    entityId: number | null;
-    createdAt: string | null;
+  timeline: Array<{
+    id: string;
+    type: string;
+    title: string;
+    description: string | null;
+    occurredAt: string | null;
   }>;
 }
 

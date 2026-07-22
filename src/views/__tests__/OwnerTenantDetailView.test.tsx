@@ -22,6 +22,11 @@ vi.mock("../../services/api", async () => {
 
 const freeDetail: OwnerTenantDetail = {
   tenant: { id: 42, name: "Безопасный тенант", timezone: "Europe/Moscow" },
+  health: { stage: "working", label: "Работает", lastActivityAt: "2026-07-20T12:00:00.000Z", attentionCount: 2 },
+  attention: [
+    { code: "STUCK_SHIFTS", severity: "critical", title: "Есть проблемные смены", description: "Требуют проверки: 1." },
+    { code: "INVITE_EXPIRING", severity: "warning", title: "Скоро истекут приглашения", description: "Приглашений с истекающим сроком: 1." },
+  ],
   storedPlan: { id: 1, code: "free", name: "Free", limitMachines: 2, limitDrivers: 2, limitSites: 2 },
   effectiveEntitlement: {
     source: "free",
@@ -36,6 +41,17 @@ const freeDetail: OwnerTenantDetail = {
     sites: { current: 3, limit: 2, overLimit: true },
   },
   shifts: { active: 4, finished: 5, stuck: 1 },
+  usersSummary: { total: 3, admins: 1, foremen: 1, drivers: 1, other: 0 },
+  users: [{ id: 1, name: "Иван", role: "driver", roleLabel: "Водитель", hasEmail: true, hasTelegram: false, activityAt: null }],
+  resources: { trucks: { total: 2, active: 2, busy: 1 }, sites: { total: 3, active: 2 } },
+  recentTrucks: [{ id: 1, name: "КАМАЗ", plate: "А123АА", active: true, busy: true }],
+  recentSites: [{ id: 1, name: "Объект", active: true }],
+  recentShifts: [{
+    id: 1, status: "finished", statusLabel: "Завершена", driverName: "Иван", truckName: "КАМАЗ", siteName: "Объект",
+    startedAt: "2026-07-20T08:00:00.000Z", endedAt: "2026-07-20T10:00:00.000Z", updatedAt: "2026-07-20T10:00:00.000Z",
+    hasStartPhoto: true, hasEndPhoto: true, hasInvoicePhoto: false, hasComment: true, durationWarning: false,
+  }],
+  invitesSummary: { pending: 1, accepted: 2, revoked: 1, expired: 0, expiringSoon: 1 },
   pilot: null,
   billing: {
     activePaidSubscription: null,
@@ -52,13 +68,7 @@ const freeDetail: OwnerTenantDetail = {
     }],
   },
   attribution: { utmSource: "direct", utmCampaign: "launch", utmTerm: "shifts" },
-  recentAudit: [{
-    id: 7,
-    action: "OWNER_PILOT_GRANTED",
-    entity: "pilot_entitlement",
-    entityId: 8,
-    createdAt: "2026-07-20T12:00:00.000Z",
-  }],
+  timeline: [{ id: "audit-7", type: "audit", title: "Пилот выдан", description: null, occurredAt: "2026-07-20T12:00:00.000Z" }],
 };
 
 const apiError = (status: number) => {
@@ -102,7 +112,27 @@ describe("OwnerTenantDetailView", () => {
     expect(screen.getByText("Активные")).toBeInTheDocument();
     expect(screen.getByText("Завершённые")).toBeInTheDocument();
     expect(screen.getByText("Проблемные")).toBeInTheDocument();
+    expect(screen.getByText("Работает")).toBeInTheDocument();
+    expect(screen.getByText("Требует внимания")).toBeInTheDocument();
+    expect(screen.getByText("Есть проблемные смены")).toBeInTheDocument();
+    expect(screen.getByText(/Администраторы: 1, диспетчеры: 1, водители: 1/)).toBeInTheDocument();
+    expect(screen.getByText("Завершена")).toBeInTheDocument();
+    expect(screen.getByText("Истекает скоро")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "К списку тенантов" })).toHaveAttribute("href", "/owner");
+  });
+
+  it("copies a sanitized tenant summary", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    render(<OwnerTenantDetailView tenantId={42} />);
+    await screen.findByRole("heading", { name: "Безопасный тенант" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Скопировать сводку" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(writeText.mock.calls[0][0]).toContain("Компания: Безопасный тенант");
+    expect(writeText.mock.calls[0][0]).not.toContain("direct");
+    expect(writeText.mock.calls[0][0]).not.toContain("shifts");
+    expect(screen.getByRole("button", { name: "Сводка скопирована" })).toBeInTheDocument();
   });
 
   it("renders paid and Pilot summaries without impersonation", async () => {
@@ -308,6 +338,7 @@ describe("OwnerTenantDetailView", () => {
     render(<OwnerTenantDetailView tenantId={protectedTenantId} />);
 
     await screen.findByRole("heading", { name: "Безопасный тенант" });
+    expect(screen.getByText("Защищённый тенант")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /выдать пилот|продлить|завершить/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/impersonation/i)).not.toBeInTheDocument();
   });

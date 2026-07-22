@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Building2, Loader2, Shield } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Building2, Check, Copy, Loader2, Shield } from "lucide-react";
 import {
   ApiError,
   endOwnerPilot,
@@ -125,6 +125,21 @@ const UsageRow = ({ label, usage }: { label: string; usage: OwnerUsageMetric }) 
       <p className="mt-2 text-xs text-slate-500">В пределах лимита</p>
     )}
   </div>
+);
+
+const attentionClasses = (severity: "info" | "warning" | "critical") => {
+  switch (severity) {
+    case "critical":
+      return "border-red-200 bg-red-50 text-red-900";
+    case "warning":
+      return "border-amber-200 bg-amber-50 text-amber-900";
+    default:
+      return "border-sky-200 bg-sky-50 text-sky-900";
+  }
+};
+
+const BooleanLabel = ({ value, yes, no = "Нет" }: { value: boolean; yes: string; no?: string }) => (
+  <span className={value ? "text-emerald-700" : "text-slate-500"}>{value ? yes : no}</span>
 );
 
 const ErrorState = ({ status }: { status: number | null }) => {
@@ -312,6 +327,7 @@ const OwnerTenantDetailView: React.FC<OwnerTenantDetailViewProps> = ({ tenantId 
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingAttempt, setPendingAttempt] = useState<PendingPilotAttempt | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [copyNotice, setCopyNotice] = useState(false);
   const submissionInFlight = useRef(false);
 
   useEffect(() => {
@@ -347,9 +363,63 @@ const OwnerTenantDetailView: React.FC<OwnerTenantDetailViewProps> = ({ tenantId 
 
   if (!detail || errorStatus) return <ErrorState status={errorStatus} />;
 
-  const { tenant, storedPlan, effectiveEntitlement, usage, shifts, pilot, billing, attribution, recentAudit } = detail;
+  const {
+    tenant,
+    health,
+    attention,
+    storedPlan,
+    effectiveEntitlement,
+    usage,
+    shifts,
+    usersSummary,
+    users,
+    resources,
+    recentTrucks,
+    recentSites,
+    recentShifts,
+    invitesSummary,
+    pilot,
+    billing,
+    attribution,
+    timeline,
+  } = detail;
   const isProtectedTenant = tenant.id === 1 || tenant.id === 999;
   const hasActivePilot = pilot?.status === "active";
+
+  const copySummary = async () => {
+    const summary = [
+      `Компания: ${tenant.name}`,
+      `ID: ${tenant.id}`,
+      `Состояние: ${health.label}`,
+      `Тариф: ${effectiveEntitlement.plan.name}`,
+      `Пользователи: ${usersSummary.admins} администратор, ${usersSummary.foremen} диспетчер, ${usersSummary.drivers} водитель`,
+      `Техника: ${usage.trucks.current}/${formatLimit(usage.trucks.limit)}`,
+      `Объекты: ${usage.sites.current}/${formatLimit(usage.sites.limit)}`,
+      `Смены: ${shifts.active} активных, ${shifts.finished} завершённых, ${shifts.stuck} проблемных`,
+      `Последняя активность: ${formatDateTime(health.lastActivityAt)}`,
+      `Требует внимания: ${attention.length ? attention.map((item) => item.title).join("; ") : "Нет"}`,
+    ].join("\n");
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(summary);
+      } else {
+        const element = document.createElement("textarea");
+        element.value = summary;
+        element.setAttribute("readonly", "");
+        element.style.position = "fixed";
+        element.style.opacity = "0";
+        document.body.appendChild(element);
+        element.select();
+        document.execCommand("copy");
+        element.remove();
+      }
+      setCopyNotice(true);
+      window.setTimeout(() => setCopyNotice(false), 2500);
+    } catch {
+      setCopyNotice(false);
+    }
+  };
 
   const openPilotModal = (action: PilotAction) => {
     setModalAction(action);
@@ -410,7 +480,7 @@ const OwnerTenantDetailView: React.FC<OwnerTenantDetailViewProps> = ({ tenantId 
           <div className="flex items-center gap-3">
             <Building2 className="h-6 w-6 text-slate-700" />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Тенант</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{isProtectedTenant ? "Защищённый тенант" : "Обзор тенанта"}</p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight">{tenant.name}</h1>
             </div>
           </div>
@@ -423,17 +493,39 @@ const OwnerTenantDetailView: React.FC<OwnerTenantDetailViewProps> = ({ tenantId 
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
         <section className="rounded-lg bg-slate-950 p-6 text-white shadow-lg">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Read-only</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Состояние запуска</p>
+              <p className="mt-2 text-2xl font-semibold">{health.label}</p>
+              <p className="mt-1 text-sm text-slate-300">Последняя активность: {formatDateTime(health.lastActivityAt)}</p>
+            </div>
+            <button type="button" onClick={() => { void copySummary(); }} className="inline-flex items-center justify-center gap-2 rounded border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">
+              {copyNotice ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copyNotice ? "Сводка скопирована" : "Скопировать сводку"}
+            </button>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
             <div><p className="text-sm text-slate-300">ID</p><p className="mt-1 font-mono text-xl font-semibold">{tenant.id}</p></div>
             <div><p className="text-sm text-slate-300">Название</p><p className="mt-1 text-xl font-semibold">{tenant.name}</p></div>
-            <div><p className="text-sm text-slate-300">Часовой пояс</p><p className="mt-1 text-xl font-semibold">{tenant.timezone || "Нет данных"}</p></div>
+            <div><p className="text-sm text-slate-300">Внимание</p><p className="mt-1 text-xl font-semibold">{health.attentionCount || "Нет"}</p></div>
           </div>
         </section>
 
+        <Section title="Требует внимания">
+          {attention.length ? (
+            <div className="space-y-3">
+              {attention.map((item) => (
+                <div key={item.code} className={`rounded-lg border p-4 ${attentionClasses(item.severity)}`}>
+                  <div className="flex gap-3"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-sm font-semibold">{item.title}</p><p className="mt-1 text-sm leading-5 opacity-90">{item.description}</p></div></div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-sm text-slate-600">Сейчас нет пунктов, требующих внимания.</p>}
+        </Section>
+
         <div className="grid gap-6 lg:grid-cols-2">
-          <Section title="Сохранённый тариф"><PlanSummary plan={storedPlan} /></Section>
-          <Section title="Действующее право">
+          <Section title="Тариф в настройках"><PlanSummary plan={storedPlan} /></Section>
+          <Section title="Фактически действует">
             <dl>
               <DetailRow label="Источник" value={sourceLabel(effectiveEntitlement.source)} />
               <DetailRow label="Тариф" value={`${effectiveEntitlement.plan.name} (${effectiveEntitlement.plan.code})`} />
@@ -458,6 +550,48 @@ const OwnerTenantDetailView: React.FC<OwnerTenantDetailViewProps> = ({ tenantId 
             <UsageRow label="Проблемные" usage={{ current: shifts.stuck, limit: -1, overLimit: false }} />
           </div>
         </Section>
+
+        <Section title="Пользователи">
+          <p className="text-sm text-slate-600">
+            Всего: {usersSummary.total}. Администраторы: {usersSummary.admins}, диспетчеры: {usersSummary.foremen}, водители: {usersSummary.drivers}{usersSummary.other ? `, другие роли: ${usersSummary.other}` : ""}.
+          </p>
+          {users.length ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead className="text-[10px] font-bold uppercase tracking-widest text-slate-500"><tr><th className="pb-3 pr-4">Пользователь</th><th className="pb-3 pr-4">Роль</th><th className="pb-3 pr-4">Email</th><th className="pb-3 pr-4">Telegram</th><th className="pb-3">Активность</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">
+                  {users.map((user) => <tr key={user.id}><td className="py-3 pr-4 font-medium">{user.name}</td><td className="py-3 pr-4">{user.roleLabel}</td><td className="py-3 pr-4"><BooleanLabel value={user.hasEmail} yes="Есть" /></td><td className="py-3 pr-4"><BooleanLabel value={user.hasTelegram} yes="Подключён" /></td><td className="py-3 text-slate-600">{formatDateTime(user.activityAt)}</td></tr>)}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="mt-3 text-sm text-slate-600">Пользователей пока нет.</p>}
+        </Section>
+
+        <Section title="Последние смены">
+          {recentShifts.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead className="text-[10px] font-bold uppercase tracking-widest text-slate-500"><tr><th className="pb-3 pr-4">Статус</th><th className="pb-3 pr-4">Водитель</th><th className="pb-3 pr-4">Техника</th><th className="pb-3 pr-4">Объект</th><th className="pb-3 pr-4">Время</th><th className="pb-3 pr-4">Фото</th><th className="pb-3 pr-4">Комментарий</th><th className="pb-3">Предупреждение</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">
+                  {recentShifts.map((shift) => <tr key={shift.id}><td className="py-3 pr-4 font-medium">{shift.statusLabel}</td><td className="py-3 pr-4">{shift.driverName}</td><td className="py-3 pr-4">{shift.truckName || "—"}</td><td className="py-3 pr-4">{shift.siteName || "—"}</td><td className="py-3 pr-4 text-xs text-slate-600">{formatDateTime(shift.startedAt || shift.updatedAt)}</td><td className="py-3 pr-4">{[shift.hasStartPhoto, shift.hasEndPhoto, shift.hasInvoicePhoto].filter(Boolean).length || "Нет"}</td><td className="py-3 pr-4"><BooleanLabel value={shift.hasComment} yes="Есть" /></td><td className="py-3">{shift.durationWarning ? <span className="font-semibold text-red-700">Проверить</span> : "—"}</td></tr>)}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="text-sm text-slate-600">Смен пока нет.</p>}
+        </Section>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Section title="Техника и объекты">
+            <dl><DetailRow label="Техника" value={`${resources.trucks.active} активна из ${resources.trucks.total}; занята: ${resources.trucks.busy}`} /><DetailRow label="Объекты" value={`${resources.sites.active} активны из ${resources.sites.total}`} /></dl>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div><h3 className="text-sm font-semibold">Последняя техника</h3>{recentTrucks.length ? <ul className="mt-2 space-y-2 text-sm text-slate-600">{recentTrucks.map((truck) => <li key={truck.id}>{truck.name}{truck.plate ? ` · ${truck.plate}` : ""}{!truck.active ? " · неактивна" : ""}{truck.busy ? " · занята" : ""}</li>)}</ul> : <p className="mt-2 text-sm text-slate-500">Нет данных</p>}</div>
+              <div><h3 className="text-sm font-semibold">Последние объекты</h3>{recentSites.length ? <ul className="mt-2 space-y-2 text-sm text-slate-600">{recentSites.map((site) => <li key={site.id}>{site.name}{!site.active ? " · неактивен" : ""}</li>)}</ul> : <p className="mt-2 text-sm text-slate-500">Нет данных</p>}</div>
+            </div>
+          </Section>
+          <Section title="Приглашения">
+            <dl><DetailRow label="Ожидают" value={invitesSummary.pending} /><DetailRow label="Принято" value={invitesSummary.accepted} /><DetailRow label="Отозвано" value={invitesSummary.revoked} /><DetailRow label="Истекло" value={invitesSummary.expired} /><DetailRow label="Истекает скоро" value={invitesSummary.expiringSoon} /></dl>
+          </Section>
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Section title="Пилот">
@@ -510,17 +644,17 @@ const OwnerTenantDetailView: React.FC<OwnerTenantDetailViewProps> = ({ tenantId 
               <DetailRow label="Термин" value={attribution.utmTerm || "Нет данных"} />
             </dl>
           </Section>
-          <Section title="Последние безопасные события">
-            {recentAudit.length ? (
+          <Section title="Последние события">
+            {timeline.length ? (
               <ul className="divide-y divide-slate-100">
-                {recentAudit.map((event) => (
+                {timeline.map((event) => (
                   <li key={event.id} className="py-3 text-sm">
-                    <p className="font-medium">{event.action}</p>
-                    <p className="mt-1 text-xs text-slate-500">{event.entity}{event.entityId === null ? "" : ` #${event.entityId}`} · {formatDateTime(event.createdAt)}</p>
+                    <p className="font-medium">{event.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{event.description ? `${event.description} · ` : ""}{formatDateTime(event.occurredAt)}</p>
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-sm text-slate-600">Безопасных событий нет.</p>}
+            ) : <p className="text-sm text-slate-600">Событий нет.</p>}
           </Section>
         </div>
       </main>

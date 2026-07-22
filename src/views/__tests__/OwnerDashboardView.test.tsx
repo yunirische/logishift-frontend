@@ -136,6 +136,7 @@ const tenantRow = {
   subscription_expires_at: null,
   subscription_status: "expired" as const,
   counts: { users: 1, trucks: 1, sites: 1, active_shifts: 0, stuck_shifts: 0 },
+  health: { stage: "ready_for_first_shift" as const, label: "Готов к первой смене", lastActivityAt: null, attentionCount: 1 },
 };
 
 describe("OwnerDashboardView internal overview", () => {
@@ -211,5 +212,6 @@ describe("OwnerDashboardView internal overview", () => {
       "/owner/tenants/42"
     );
     expect(screen.getByRole("link", { name: "Открыть тенант Safe tenant" })).toBeInTheDocument();
+    expect(screen.getByText("Готов к первой смене")).toBeInTheDocument();
   });
 });

@@ -59,6 +59,19 @@ const statusClasses = (status?: string) =>
     ? "border-red-200 bg-red-50 text-red-700"
     : "border-emerald-200 bg-emerald-50 text-emerald-700";
 
+const healthClasses = (stage: OwnerTenantRow["health"]["stage"]) => {
+  switch (stage) {
+    case "working":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "inactive":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    case "first_shift_started":
+      return "border-sky-200 bg-sky-50 text-sky-800";
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-700";
+  }
+};
+
 const formatBytes = (value?: number | null) => {
   if (typeof value !== "number" || Number.isNaN(value)) return "No data";
   if (value < 1024) return `${value} B`;
@@ -748,11 +761,14 @@ const OwnerDashboardView: React.FC = () => {
             </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-left text-sm">
+            <table className="w-full min-w-[1120px] text-left text-sm">
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 <tr>
                   <th className="px-5 py-3">ID</th>
                   <th className="px-5 py-3">Тенант</th>
+                  <th className="px-5 py-3">Запуск</th>
+                  <th className="px-5 py-3">Активность</th>
+                  <th className="px-5 py-3">Внимание</th>
                   <th className="px-5 py-3">Тариф</th>
                   <th className="px-5 py-3">Подписка</th>
                   <th className="px-5 py-3">Люди</th>
@@ -783,6 +799,19 @@ const OwnerDashboardView: React.FC = () => {
                       {tenant.id}
                     </td>
                     <td className="px-5 py-4 font-semibold">{tenant.name}</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${healthClasses(tenant.health.stage)}`}>
+                        {tenant.health.label}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-xs text-slate-600">{formatDateTime(tenant.health.lastActivityAt)}</td>
+                    <td className="px-5 py-4">
+                      {tenant.health.attentionCount > 0 ? (
+                        <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                          {tenant.health.attentionCount}
+                        </span>
+                      ) : <span className="text-xs text-slate-500">Нет</span>}
+                    </td>
                     <td className="px-5 py-4">
                       {tenant.plan?.name || "Без тарифа"}
                       {tenant.plan?.code && (
@@ -819,7 +848,7 @@ const OwnerDashboardView: React.FC = () => {
                 ))}
                 {tenants.length === 0 && (
                   <tr>
-                    <td className="px-5 py-8 text-center text-slate-500" colSpan={10}>
+                    <td className="px-5 py-8 text-center text-slate-500" colSpan={13}>
                       Тенанты не найдены
                     </td>
                   </tr>
