@@ -116,6 +116,8 @@ const overview: OwnerInternalOverview = {
   attribution: {
     demoSuccesses: 2,
     registrations: 1,
+    lastDemoAt: "2026-07-07T11:30:00.000Z",
+    lastRegistrationAt: "2026-07-07T10:30:00.000Z",
     rows: [
       {
         eventType: "demo_entry_success",
@@ -123,6 +125,22 @@ const overview: OwnerInternalOverview = {
         utmCampaign: "summer",
         utmTerm: "shift control",
         count: 2,
+      },
+    ],
+    recentAttributionEvents: [
+      {
+        eventType: "demo_entry_success",
+        occurredAt: "2026-07-07T11:30:00.000Z",
+        utmSource: "yandex",
+        utmCampaign: "summer",
+        utmTerm: "очень-длинный-utm-term-который-должен-переноситься-и-не-ломать-страницу",
+      },
+      {
+        eventType: "tenant_registered",
+        occurredAt: "2026-07-07T10:30:00.000Z",
+        utmSource: null,
+        utmCampaign: null,
+        utmTerm: null,
       },
     ],
   },
@@ -162,7 +180,14 @@ describe("OwnerDashboardView internal overview", () => {
     expect(screen.getByText("SHIFT_STARTED")).toBeInTheDocument();
     expect(screen.getByText("Смена начата")).toBeInTheDocument();
     expect(screen.getByText("Рекламная атрибуция")).toBeInTheDocument();
-    expect(screen.getByText("yandex")).toBeInTheDocument();
+    expect(screen.getAllByText("yandex").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Последний вход: 07\.07\.2026, \d{2}:\d{2}/)).toBeInTheDocument();
+    expect(screen.getByText(/Последняя регистрация: 07\.07\.2026, \d{2}:\d{2}/)).toBeInTheDocument();
+    expect(screen.getByText("Последние входы и регистрации")).toBeInTheDocument();
+    expect(screen.getByText("Вход в демо")).toBeInTheDocument();
+    expect(screen.getByText("Регистрация")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+    expect(screen.getByText("очень-длинный-utm-term-который-должен-переноситься-и-не-ломать-страницу")).toBeInTheDocument();
     expect(screen.queryByText(/Метрика/i)).not.toBeInTheDocument();
   });
 
@@ -187,11 +212,20 @@ describe("OwnerDashboardView internal overview", () => {
     vi.mocked(getOwnerInternalOverview).mockResolvedValueOnce({
       ...overview,
       audit: { count: 0, byAction: {}, recent: [] },
+      attribution: {
+        ...overview.attribution,
+        lastDemoAt: null,
+        lastRegistrationAt: null,
+        recentAttributionEvents: [],
+      },
     });
 
     const { rerender } = render(<OwnerDashboardView />);
 
     expect(await screen.findByText("За выбранный период событий нет.")).toBeInTheDocument();
+    expect(screen.getByText("Последний вход: нет")).toBeInTheDocument();
+    expect(screen.getByText("Последняя регистрация: нет")).toBeInTheDocument();
+    expect(screen.getByText("За выбранный период входов и регистраций нет.")).toBeInTheDocument();
 
     vi.mocked(getOwnerInternalOverview).mockRejectedValueOnce(new Error("failed"));
     fireEvent.click(screen.getByRole("button", { name: "1ч" }));

@@ -168,6 +168,12 @@ const sumNullableCounts = (values: Array<number | null | undefined>) => {
   return values.reduce((sum, value) => sum + (value || 0), 0);
 };
 
+const formatAttributionEventType = (eventType: "demo_entry_success" | "tenant_registered") =>
+  eventType === "demo_entry_success" ? "Вход в демо" : "Регистрация";
+
+const formatAttributionTimestamp = (value: string | null) =>
+  value ? formatDateTime(value) : "нет";
+
 const OwnerActivitySection = ({
   overview,
   selectedWindow,
@@ -275,15 +281,15 @@ const OwnerActivitySection = ({
               icon={AlertTriangle}
             />
             <StatCard
-              label="Demo за период"
+              label="Демо за период"
               value={overview.attribution.demoSuccesses}
-              detail="Успешные demo-входы first-party"
+              detail={`Последний вход: ${formatAttributionTimestamp(overview.attribution.lastDemoAt)}`}
               icon={Activity}
             />
             <StatCard
               label="Регистрации за период"
               value={overview.attribution.registrations}
-              detail="Успешно созданные tenants"
+              detail={`Последняя регистрация: ${formatAttributionTimestamp(overview.attribution.lastRegistrationAt)}`}
               icon={Building2}
             />
           </div>
@@ -402,6 +408,46 @@ const OwnerActivitySection = ({
                 </table>
               </div>
             )}
+
+            <div className="border-t border-slate-100">
+              <div className="px-4 py-3">
+                <h4 className="text-sm font-semibold">Последние входы и регистрации</h4>
+              </div>
+              {overview.attribution.recentAttributionEvents.length === 0 ? (
+                <div className="px-4 pb-4 text-sm text-slate-500">
+                  За выбранный период входов и регистраций нет.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[700px] text-left text-sm">
+                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3">Время</th>
+                        <th className="px-4 py-3">Событие</th>
+                        <th className="px-4 py-3">UTM source</th>
+                        <th className="px-4 py-3">UTM campaign</th>
+                        <th className="px-4 py-3">UTM term</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {overview.attribution.recentAttributionEvents.map((event, index) => (
+                        <tr key={`${event.eventType}-${event.occurredAt ?? "none"}-${index}`}>
+                          <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                            {formatDateTime(event.occurredAt)}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-slate-900">
+                            {formatAttributionEventType(event.eventType)}
+                          </td>
+                          <td className="max-w-[18rem] break-words px-4 py-3 text-slate-600">{event.utmSource || "—"}</td>
+                          <td className="max-w-[18rem] break-words px-4 py-3 text-slate-600">{event.utmCampaign || "—"}</td>
+                          <td className="max-w-[18rem] break-words px-4 py-3 text-slate-600">{event.utmTerm || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

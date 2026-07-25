@@ -550,12 +550,21 @@ export interface OwnerInternalOverview {
   attribution: {
     demoSuccesses: number;
     registrations: number;
+    lastDemoAt: string | null;
+    lastRegistrationAt: string | null;
     rows: Array<{
       eventType: "demo_entry_success" | "tenant_registered";
       utmSource: string | null;
       utmCampaign: string | null;
       utmTerm: string | null;
       count: number;
+    }>;
+    recentAttributionEvents: Array<{
+      eventType: "demo_entry_success" | "tenant_registered";
+      occurredAt: string | null;
+      utmSource: string | null;
+      utmCampaign: string | null;
+      utmTerm: string | null;
     }>;
   };
   risks: string[];
