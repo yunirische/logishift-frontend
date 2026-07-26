@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useState, Suspense } from "react";
+import React, { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { API_ENDPOINTS } from "../constants";
 import api, { getCurrentShift, getAnalyticsUsage } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useDemoSession } from "../context/DemoSessionContext";
+import { isDemoTenantId } from "../config/demo";
 import { DriverState, UserRole, AnalyticsUsage } from "../types";
 import {
   Clock,
@@ -17,6 +19,15 @@ import { useTenantBillingSummary } from "../hooks/useTenantBillingSummary";
 
 // Dynamic import for manual shift modal
 const ManualShiftModal = React.lazy(() => import("./ManualShiftModal"));
+
+type DashboardActiveShift = {
+  id?: string | number;
+  driver_name: string;
+  truck_name: string;
+  site_name: string;
+  start_time: string;
+  is_demo_synthetic?: boolean;
+};
 
 // Вспомогательная функция проверки URL фото
 const isValidPhotoUrl = (url: any): boolean => {
@@ -75,6 +86,7 @@ const UsageCard: React.FC<{
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { activeShift: demoActiveShift } = useDemoSession();
   const currentUser = user;
   const {
     billing,
@@ -90,12 +102,7 @@ const Dashboard: React.FC = () => {
     activeDrivers: number;
     totalShifts: number;
     trucksInWork?: number;
-    activeShiftsDetails: Array<{
-      driver_name: string;
-      truck_name: string;
-      site_name: string;
-      start_time: string;
-    }>;
+    activeShiftsDetails: DashboardActiveShift[];
   }>({
     activeShifts: 0,
     activeDrivers: 0,
@@ -109,6 +116,35 @@ const Dashboard: React.FC = () => {
   const isAdminView =
     currentUser?.role === UserRole.ADMIN ||
     currentUser?.role === UserRole.FOREMAN;
+  const isDemoMode = isDemoTenantId(currentUser?.tenant_id);
+  const displayStats = useMemo(() => {
+    if (!isDemoMode || !demoActiveShift) return stats;
+
+    const alreadyProjected = stats.activeShiftsDetails.some(
+      (shift) =>
+        shift.driver_name === demoActiveShift.driverName &&
+        shift.truck_name === demoActiveShift.truckName &&
+        shift.site_name === demoActiveShift.siteName
+    );
+    if (alreadyProjected) return stats;
+
+    return {
+      ...stats,
+      activeShifts: stats.activeShifts + 1,
+      activeDrivers: stats.activeDrivers + 1,
+      activeShiftsDetails: [
+        {
+          id: demoActiveShift.id,
+          driver_name: demoActiveShift.driverName,
+          truck_name: demoActiveShift.truckName,
+          site_name: demoActiveShift.siteName,
+          start_time: demoActiveShift.startedAt,
+          is_demo_synthetic: true,
+        },
+        ...stats.activeShiftsDetails,
+      ],
+    };
+  }, [demoActiveShift, isDemoMode, stats]);
 
   const isLoading = loading || !shiftCheckComplete;
   const onboardingSteps = [
@@ -252,7 +288,7 @@ const Dashboard: React.FC = () => {
               <Clock size={24} />
             </div>
             <p className="text-3xl font-semibold text-[#1B254B]">
-              {stats.activeShifts}
+              {displayStats.activeShifts}
             </p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
               Активные смены
@@ -263,7 +299,7 @@ const Dashboard: React.FC = () => {
               <Truck size={24} />
             </div>
             <p className="text-3xl font-semibold text-[#1B254B]">
-              {stats.activeDrivers}
+              {displayStats.activeDrivers}
             </p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
               Водителей на смене
@@ -370,12 +406,12 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Активные смены */}
-        {stats.activeShiftsDetails && stats.activeShiftsDetails.length > 0 && (
+        {displayStats.activeShiftsDetails.length > 0 && (
           <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm">
             <h3 className="text-lg font-semibold text-[#1B254B] mb-6">Активные смены</h3>
             <div className="space-y-4">
-              {stats.activeShiftsDetails.map((shift, index) => (
-                <div key={index} className="flex items-center justify-between p-4 border border-slate-100 rounded-lg hover:bg-slate-50">
+              {displayStats.activeShiftsDetails.map((shift, index) => (
+                <div key={shift.id ?? index} className="flex items-center justify-between p-4 border border-slate-100 rounded-lg hover:bg-slate-50">
                   <div>
                     <div className="font-bold text-[#1B254B]">
                       {shift.driver_name} — {shift.truck_name} — {shift.site_name}
@@ -383,6 +419,11 @@ const Dashboard: React.FC = () => {
                     <div className="text-xs text-slate-400">
                       Старт: {shift.start_time ? new Date(shift.start_time).toLocaleString() : 'В процессе оформления'}
                     </div>
+                    {shift.is_demo_synthetic && (
+                      <div className="mt-1 text-xs font-semibold text-amber-700">
+                        Демонстрационная смена
+                      </div>
+                    )}
                   </div>
                   <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full">
                     В работе

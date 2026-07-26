@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import Shifts from "../Shifts";
 import { API_ENDPOINTS } from "../../constants";
 
@@ -7,11 +7,13 @@ const {
   mockGetUserInfo,
   mockGetAuthToken,
   mockOpenShiftFilePreview,
+  mockUseDemoSession,
 } = vi.hoisted(() => ({
   mockApiGet: vi.fn(),
   mockGetUserInfo: vi.fn(),
   mockGetAuthToken: vi.fn(),
   mockOpenShiftFilePreview: vi.fn(),
+  mockUseDemoSession: vi.fn(),
 }));
 
 vi.mock("../../config/demo", () => ({
@@ -26,6 +28,17 @@ vi.mock("../../services/api", () => ({
   },
   openShiftFilePreview: mockOpenShiftFilePreview,
 }));
+
+vi.mock("../../context/DemoSessionContext", () => ({
+  useDemoSession: () => mockUseDemoSession(),
+}));
+
+beforeEach(() => {
+  mockUseDemoSession.mockReturnValue({
+    activeShift: null,
+    finishedShifts: [],
+  });
+});
 
 describe("Shifts demo ZIP export", () => {
   const originalFetch = global.fetch;
@@ -203,5 +216,101 @@ describe("Shifts cancelled visibility", () => {
       screen.getByText("Причина: Водитель ошибочно начал вторую смену")
     ).toBeInTheDocument();
     expect(screen.getByText("НЕ УЧИТЫВАТЬ")).toBeInTheDocument();
+  });
+});
+
+describe("Shifts demo session projection", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetUserInfo.mockReturnValue({
+      id: 1,
+      tenant_id: 999,
+      role: "admin",
+      full_name: "Демо Администратор",
+    });
+    mockGetAuthToken.mockReturnValue("demo-token");
+    mockUseDemoSession.mockReturnValue({
+      activeShift: {
+        id: "demo-shift:active",
+        driverId: 77,
+        driverName: "Демо Водитель",
+        truckId: 12,
+        truckName: "КамАЗ",
+        siteId: 31,
+        siteName: "Склад",
+        startedAt: "2026-07-26T10:00:00.000Z",
+        finishedAt: null,
+        status: "active",
+      },
+      finishedShifts: [
+        {
+          id: "demo-shift:finished",
+          driverId: 77,
+          driverName: "Демо Водитель",
+          truckId: 12,
+          truckName: "КамАЗ",
+          siteId: 31,
+          siteName: "Склад",
+          startedAt: "2026-07-26T08:00:00.000Z",
+          finishedAt: "2026-07-26T09:00:00.000Z",
+          status: "finished",
+        },
+      ],
+    });
+    mockApiGet.mockImplementation((endpoint: string) => {
+      if (endpoint === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+      if (
+        endpoint === API_ENDPOINTS.DRIVERS ||
+        endpoint === API_ENDPOINTS.TRUCKS ||
+        endpoint === API_ENDPOINTS.SITES
+      ) {
+        return Promise.resolve([]);
+      }
+      if (endpoint.startsWith(`${API_ENDPOINTS.SHIFTS}?`)) {
+        return Promise.resolve({
+          data: [
+            {
+              id: 42,
+              driver_name: "Seeded Driver",
+              truck_name: "MAN",
+              site_name: "База",
+              status: "finished",
+              start_time: "2026-07-25T08:00:00.000Z",
+              end_time: "2026-07-25T09:00:00.000Z",
+            },
+          ],
+          total: 1,
+        });
+      }
+      return Promise.resolve([]);
+    });
+  });
+
+  it("shows active and finished synthetic rows alongside seeded server rows", async () => {
+    render(<Shifts />);
+
+    expect(await screen.findByText("#demo-shift:active")).toBeInTheDocument();
+    expect(screen.getByText("#demo-shift:finished")).toBeInTheDocument();
+    expect(screen.getByText("#42")).toBeInTheDocument();
+    expect(screen.getAllByText("Демонстрационная смена")).toHaveLength(2);
+    expect(screen.getByText("АКТИВНА")).toBeInTheDocument();
+    expect(screen.getAllByText("ЗАВЕРШЕНА")).toHaveLength(2);
+  });
+
+  it("does not expose edit/write actions for synthetic rows", async () => {
+    render(<Shifts />);
+
+    const syntheticRow = (await screen.findByText("#demo-shift:active")).closest(
+      "tr"
+    );
+    expect(syntheticRow).not.toBeNull();
+    expect(
+      (syntheticRow as HTMLElement).querySelector('button[title="Редактировать"]')
+    ).toBeNull();
+    expect(
+      within(syntheticRow as HTMLElement).getByText("Без действий")
+    ).toBeInTheDocument();
   });
 });

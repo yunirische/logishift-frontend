@@ -7,24 +7,24 @@ const {
   mockGetAnalyticsUsage,
   mockRefreshBillingSummary,
   mockSetUserInfo,
+  mockUseAuth,
+  mockUseDemoSession,
 } = vi.hoisted(() => ({
   mockApiGet: vi.fn(),
   mockGetCurrentShift: vi.fn(),
   mockGetAnalyticsUsage: vi.fn(),
   mockRefreshBillingSummary: vi.fn(),
   mockSetUserInfo: vi.fn(),
+  mockUseAuth: vi.fn(),
+  mockUseDemoSession: vi.fn(),
 }));
 
 vi.mock("../../context/AuthContext", () => ({
-  useAuth: () => ({
-    user: {
-      id: 1,
-      full_name: "Admin",
-      role: "admin",
-      current_state: "idle",
-      tenant_id: 1,
-    },
-  }),
+  useAuth: () => mockUseAuth(),
+}));
+
+vi.mock("../../context/DemoSessionContext", () => ({
+  useDemoSession: () => mockUseDemoSession(),
 }));
 
 vi.mock("../../hooks/useTenantBillingSummary", () => ({
@@ -51,6 +51,19 @@ vi.mock("../ManualShiftModal", () => ({
 describe("Dashboard onboarding", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 1,
+        full_name: "Admin",
+        role: "admin",
+        current_state: "idle",
+        tenant_id: 1,
+      },
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift: null,
+      finishedShifts: [],
+    });
     mockRefreshBillingSummary.mockResolvedValue(null);
     mockGetCurrentShift.mockResolvedValue(null);
     mockGetAnalyticsUsage.mockResolvedValue({
@@ -82,5 +95,93 @@ describe("Dashboard onboarding", () => {
     await waitFor(() => {
       expect(mockApiGet).toHaveBeenCalled();
     });
+  });
+});
+
+describe("Dashboard demo session projection", () => {
+  const activeShift = {
+    id: "demo-shift:test",
+    driverId: 77,
+    driverName: "Демо Водитель",
+    truckId: 12,
+    truckName: "КамАЗ",
+    siteId: 31,
+    siteName: "Склад",
+    startedAt: "2026-07-26T10:00:00.000Z",
+    finishedAt: null,
+    status: "active",
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 1,
+        full_name: "Admin",
+        role: "admin",
+        current_state: "idle",
+        tenant_id: 999,
+      },
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift,
+      finishedShifts: [],
+    });
+    mockRefreshBillingSummary.mockResolvedValue(null);
+    mockGetCurrentShift.mockResolvedValue(null);
+    mockGetAnalyticsUsage.mockResolvedValue({
+      trucks: { current: 1, limit: 5, utilization_percent: 20 },
+      drivers: { current: 1, limit: 5, utilization_percent: 20 },
+      sites: { current: 1, limit: 5, utilization_percent: 20 },
+    });
+  });
+
+  it("adds the visitor synthetic shift without replacing seeded server rows", async () => {
+    mockApiGet.mockResolvedValue({
+      activeShifts: 1,
+      totalShifts: 5,
+      activeDrivers: 1,
+      activeShiftsDetails: [
+        {
+          driver_name: "Seeded Driver",
+          truck_name: "MAN",
+          site_name: "База",
+          start_time: "2026-07-26T09:00:00.000Z",
+        },
+      ],
+    });
+
+    render(<Dashboard />);
+
+    expect(await screen.findByText("Демонстрационная смена")).toBeInTheDocument();
+    expect(screen.getByText(/Демо Водитель — КамАЗ — Склад/)).toBeInTheDocument();
+    expect(screen.getByText(/Seeded Driver — MAN — База/)).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Активные смены")[0].previousElementSibling
+    ).toHaveTextContent("2");
+  });
+
+  it("does not double-count an already matching active detail", async () => {
+    mockApiGet.mockResolvedValue({
+      activeShifts: 1,
+      totalShifts: 5,
+      activeDrivers: 1,
+      activeShiftsDetails: [
+        {
+          driver_name: activeShift.driverName,
+          truck_name: activeShift.truckName,
+          site_name: activeShift.siteName,
+          start_time: activeShift.startedAt,
+        },
+      ],
+    });
+
+    render(<Dashboard />);
+
+    await screen.findByText(/Демо Водитель — КамАЗ — Склад/);
+    expect(
+      screen.getAllByText("Активные смены")[0].previousElementSibling
+    ).toHaveTextContent("1");
+    expect(screen.queryByText("Демонстрационная смена")).not.toBeInTheDocument();
   });
 });

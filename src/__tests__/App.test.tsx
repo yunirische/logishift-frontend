@@ -21,6 +21,12 @@ vi.mock("../context/AuthContext", () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+vi.mock("../context/DemoSessionContext", () => ({
+  DemoSessionProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
 vi.mock("../components/Login", () => ({
   default: () => <div>Login screen</div>,
 }));

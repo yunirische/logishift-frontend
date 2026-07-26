@@ -23,6 +23,7 @@ import {
   isProductionAppHostname,
 } from "./config/demo";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { DemoSessionProvider } from "./context/DemoSessionContext";
 import { replaceLocation } from "./services/navigation";
 
 // Bundle optimization: lazy load heavy components (bundle-dynamic-imports)
@@ -483,7 +484,9 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <AppContent />
+        <DemoSessionProvider>
+          <AppContent />
+        </DemoSessionProvider>
         <AnalyticsConsent />
       </AuthProvider>
     </ErrorBoundary>

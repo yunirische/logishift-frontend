@@ -2,6 +2,8 @@ import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Filter, X, ChevronDown, Download } from "lucide-react";
 import { isDemoTenantId } from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
+import { useDemoSession } from "../context/DemoSessionContext";
+import { DemoScenarioShift } from "../lib/demoSession";
 import api, { openShiftFilePreview, ShiftFileType } from "../services/api";
 import { Shift, UserRole } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
@@ -10,6 +12,30 @@ import { buildShiftQueryString } from "../utils/shiftFilters";
 const PAGE_SIZE = 20;
 
 const EditShiftModal = React.lazy(() => import("./EditShiftModal"));
+
+type DisplayShift = Omit<Shift, "id"> & {
+  id: number | string;
+  driver_id?: number | null;
+  is_demo_synthetic?: boolean;
+};
+
+const projectDemoShiftForRegistry = (
+  shift: DemoScenarioShift
+): DisplayShift => ({
+  id: shift.id,
+  driver_id: shift.driverId,
+  driver_name: shift.driverName,
+  truck_id:
+    typeof shift.truckId === "number" ? shift.truckId : undefined,
+  truck_name: shift.truckName,
+  site_id: typeof shift.siteId === "number" ? shift.siteId : undefined,
+  site_name: shift.siteName,
+  start_time: shift.startedAt,
+  end_time: shift.finishedAt || undefined,
+  created_at: shift.startedAt,
+  status: shift.status,
+  is_demo_synthetic: true,
+});
 
 const PhotoLink = React.memo(
   ({
@@ -137,6 +163,10 @@ const filenameFromDisposition = (
 };
 
 const Shifts: React.FC = () => {
+  const {
+    activeShift: demoActiveShift,
+    finishedShifts: demoFinishedShifts,
+  } = useDemoSession();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -396,9 +426,48 @@ const Shifts: React.FC = () => {
     void fetchTimezone();
   }, []);
 
-  const displayShifts = isAdmin
+  const serverDisplayShifts = isAdmin
     ? shifts
     : shifts.filter((shift) => shift.driver_name === user?.full_name);
+  const syntheticShifts = isDemoMode
+    ? [demoActiveShift, ...demoFinishedShifts]
+        .filter((shift): shift is DemoScenarioShift => Boolean(shift))
+        .filter((shift) => isAdmin || shift.driverId === user?.id)
+        .filter((shift) => {
+          if (filters.driver_id && String(shift.driverId) !== filters.driver_id) {
+            return false;
+          }
+          if (filters.truck_id && String(shift.truckId) !== filters.truck_id) {
+            return false;
+          }
+          if (filters.site_id && String(shift.siteId) !== filters.site_id) {
+            return false;
+          }
+          if (filters.status && shift.status !== filters.status) return false;
+          if (filters.accounting === "excluded") return false;
+
+          const startedAt = Date.parse(shift.startedAt);
+          if (
+            filters.date_from &&
+            startedAt < new Date(`${filters.date_from}T00:00:00`).getTime()
+          ) {
+            return false;
+          }
+          if (
+            filters.date_to &&
+            startedAt > new Date(`${filters.date_to}T23:59:59.999`).getTime()
+          ) {
+            return false;
+          }
+          return true;
+        })
+        .map(projectDemoShiftForRegistry)
+    : [];
+  const displayShifts: DisplayShift[] = [
+    ...syntheticShifts,
+    ...serverDisplayShifts,
+  ];
+  const displayTotalCount = totalCount + syntheticShifts.length;
 
   const resetFilters = () => {
     setFilters({
@@ -456,7 +525,7 @@ const Shifts: React.FC = () => {
     return date instanceof Date && !Number.isNaN(date.getTime());
   };
 
-  const formatShiftTime = (shift: Shift) => {
+  const formatShiftTime = (shift: DisplayShift) => {
     const status = (shift.status || "").toLowerCase();
 
     if (status === "finished" || status === "completed") {
@@ -720,8 +789,8 @@ const Shifts: React.FC = () => {
               {isAdmin ? "Реестр смен" : "Мои записи"}
             </h2>
             <p className="mt-0.5 text-[10px] font-medium text-slate-400">
-              {totalCount > 0
-                ? `Показано: ${displayShifts.length} из ${totalCount}`
+              {displayTotalCount > 0
+                ? `Показано: ${displayShifts.length} из ${displayTotalCount}`
                 : "История и текущий статус смен водителей."}
             </p>
           </div>
@@ -791,6 +860,11 @@ const Shifts: React.FC = () => {
                       <span className="font-mono text-xs font-semibold text-slate-600">
                         #{shift.id}
                       </span>
+                      {shift.is_demo_synthetic && (
+                        <span className="mt-1 block text-[9px] font-semibold uppercase text-amber-700">
+                          Демонстрационная смена
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2">
                       <p className="text-xs font-semibold text-[#1B254B]">
@@ -862,10 +936,15 @@ const Shifts: React.FC = () => {
                           isDemoMode={isDemoMode}
                           onError={setPreviewError}
                         />
-                        {isAdmin && (
+                        {isAdmin && !shift.is_demo_synthetic && (
                           <button
                             onClick={() => {
-                              setEditingShift(shift);
+                              if (
+                                !shift.is_demo_synthetic &&
+                                typeof shift.id === "number"
+                              ) {
+                                setEditingShift(shift as Shift);
+                              }
                               setIsEditModalOpen(true);
                             }}
                             className="flex h-7 w-7 items-center justify-center text-xs text-slate-400 transition-colors hover:text-[#0a192f]"
@@ -873,6 +952,14 @@ const Shifts: React.FC = () => {
                           >
                             Edit
                           </button>
+                        )}
+                        {shift.is_demo_synthetic && (
+                          <span
+                            className="text-[10px] font-semibold text-slate-400"
+                            title="Демонстрационная смена недоступна для редактирования"
+                          >
+                            Без действий
+                          </span>
                         )}
                       </div>
                     </td>
@@ -904,7 +991,8 @@ const Shifts: React.FC = () => {
               className="flex items-center gap-2 rounded-lg bg-indigo-50 px-6 py-2 text-sm font-semibold text-[#0a192f] transition-colors hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loadingMore ? "Загрузка..." : "Загрузить еще"}
-              {totalCount > 0 && ` (${displayShifts.length}/${totalCount})`}
+              {displayTotalCount > 0 &&
+                ` (${displayShifts.length}/${displayTotalCount})`}
             </button>
           </div>
         )}

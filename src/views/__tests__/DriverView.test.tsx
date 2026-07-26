@@ -10,6 +10,9 @@ const {
   mockApiPostFormData,
   mockGetCurrentShift,
   mockOpenShiftFilePreview,
+  mockUseDemoSession,
+  mockStartDemoShift,
+  mockFinishDemoShift,
 } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
   mockApiGet: vi.fn(),
@@ -17,10 +20,17 @@ const {
   mockApiPostFormData: vi.fn(),
   mockGetCurrentShift: vi.fn(),
   mockOpenShiftFilePreview: vi.fn(),
+  mockUseDemoSession: vi.fn(),
+  mockStartDemoShift: vi.fn(),
+  mockFinishDemoShift: vi.fn(),
 }));
 
 vi.mock("../../context/AuthContext", () => ({
   useAuth: () => mockUseAuth(),
+}));
+
+vi.mock("../../context/DemoSessionContext", () => ({
+  useDemoSession: () => mockUseDemoSession(),
 }));
 
 vi.mock("../../services/api", () => ({
@@ -48,6 +58,12 @@ describe("DriverView comments", () => {
       },
       logout: vi.fn(),
       refreshUser: vi.fn(),
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift: null,
+      finishedShifts: [],
+      startDemoShift: mockStartDemoShift,
+      finishDemoShift: mockFinishDemoShift,
     });
     mockApiGet.mockImplementation((url: string) => {
       if (url === API_ENDPOINTS.TENANT_SETTINGS) {
@@ -129,6 +145,48 @@ describe("DriverView comments", () => {
     expect(screen.queryByTestId("driver-shift-message")).not.toBeInTheDocument();
     expect(screen.getByTestId("driver-action-bar-shell")).toBeInTheDocument();
     expect(screen.getByTestId("driver-action-bar-column")).toBeInTheDocument();
+  });
+
+  it("keeps the existing start API flow for a real tenant", async () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 16,
+        full_name: "Тестовый водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockGetCurrentShift.mockResolvedValue(null);
+    mockApiPost.mockResolvedValue({ success: true });
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+      if (url === "/trucks") {
+        return Promise.resolve([{ id: 12, name: "КамАЗ" }]);
+      }
+      if (url === "/sites") {
+        return Promise.resolve([{ id: 31, name: "Склад" }]);
+      }
+      return Promise.resolve([]);
+    });
+
+    render(<DriverView />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /КамАЗ/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Склад" }));
+    fireEvent.click(screen.getByTestId("start-shift-button"));
+
+    await waitFor(() => {
+      expect(mockApiPost).toHaveBeenCalledWith("/shifts/start", {
+        truck_id: "12",
+        site_id: "31",
+      });
+    });
+    expect(mockStartDemoShift).not.toHaveBeenCalled();
   });
 
   it("shows existing finished comments, allows commenting own shift, and hides controls for unrelated shifts", async () => {
@@ -649,5 +707,132 @@ describe("DriverView comments", () => {
       redirectToLogin: true,
       markExplicitDemoLogout: true,
     });
+  });
+
+  it("starts and finishes a demo shift through the shared store and projects finished history", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const activeShift = {
+      id: "demo-shift:driver-test",
+      driverId: 33,
+      driverName: "Демо водитель",
+      truckId: 12,
+      truckName: "КамАЗ",
+      truckPlate: "А123БВ",
+      siteId: 31,
+      siteName: "Склад",
+      siteAddress: "Промышленная, 1",
+      startedAt: "2026-07-26T10:00:00.000Z",
+      finishedAt: null,
+      status: "active",
+    };
+    const finishedShift = {
+      ...activeShift,
+      status: "finished",
+      finishedAt: "2026-07-26T11:00:00.000Z",
+    };
+
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockStartDemoShift.mockReturnValue(activeShift);
+    mockFinishDemoShift.mockReturnValue(finishedShift);
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+      if (url === "/trucks") {
+        return Promise.resolve([
+          { id: 12, name: "КамАЗ", plate: "А123БВ" },
+        ]);
+      }
+      if (url === "/sites") {
+        return Promise.resolve([
+          { id: 31, name: "Склад", address: "Промышленная, 1" },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    const view = render(<DriverView />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /КамАЗ/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Склад" }));
+    fireEvent.click(screen.getByTestId("start-shift-button"));
+
+    expect(mockStartDemoShift).toHaveBeenCalledWith({
+      driverId: 33,
+      driverName: "Демо водитель",
+      truckId: 12,
+      truckName: "КамАЗ",
+      truckPlate: "А123БВ",
+      siteId: 31,
+      siteName: "Склад",
+      siteAddress: "Промышленная, 1",
+    });
+    expect(await screen.findByTestId("end-shift-button")).toBeInTheDocument();
+    expect(mockApiPost).not.toHaveBeenCalledWith("/shifts/start", expect.anything());
+
+    fireEvent.click(screen.getByTestId("end-shift-button"));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(mockFinishDemoShift).toHaveBeenCalledTimes(1);
+
+    mockUseDemoSession.mockReturnValue({
+      activeShift: null,
+      finishedShifts: [finishedShift],
+      startDemoShift: mockStartDemoShift,
+      finishDemoShift: mockFinishDemoShift,
+    });
+    view.rerender(<DriverView focusHistory />);
+
+    expect(
+      await screen.findByTestId("driver-history-card-demo-shift:driver-test")
+    ).toBeInTheDocument();
+    expect(mockApiPost).not.toHaveBeenCalledWith("/shifts/end", {});
+  });
+
+  it("restores the shared active shift across an ordinary rerender", async () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift: {
+        id: "demo-shift:reload",
+        driverId: 33,
+        driverName: "Демо водитель",
+        truckId: 12,
+        truckName: "КамАЗ",
+        siteId: 31,
+        siteName: "Склад",
+        startedAt: "2026-07-26T10:00:00.000Z",
+        finishedAt: null,
+        status: "active",
+      },
+      finishedShifts: [],
+      startDemoShift: mockStartDemoShift,
+      finishDemoShift: mockFinishDemoShift,
+    });
+    mockApiGet.mockResolvedValue([]);
+
+    const view = render(<DriverView />);
+    expect(await screen.findByTestId("end-shift-button")).toBeInTheDocument();
+
+    view.rerender(<DriverView />);
+    expect(screen.getByTestId("end-shift-button")).toBeInTheDocument();
   });
 });

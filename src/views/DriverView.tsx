@@ -19,12 +19,13 @@ import { Button, Card } from "../components/ui";
 import {
   DEMO_FALLBACK_PERSONA,
   DemoDriverPersona,
-  demoActiveShiftKey,
   isDemoTenantId,
   pickDemoDriverPersona,
 } from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
+import { useDemoSession } from "../context/DemoSessionContext";
+import { DemoScenarioShift } from "../lib/demoSession";
 import api, { getCurrentShift, openShiftFilePreview } from "../services/api";
 import { DriverState, Shift } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
@@ -46,10 +47,42 @@ type HistoryPhotoDraft = {
   file: File | null;
 };
 
+const projectDemoShiftForDriver = (shift: DemoScenarioShift) => ({
+  id: shift.id,
+  status: shift.status,
+  start_time: shift.startedAt,
+  end_time: shift.finishedAt || undefined,
+  driver_name: shift.driverName,
+  user_id: shift.driverId ?? undefined,
+  truck_id: shift.truckId,
+  truck_name: shift.truckName,
+  site_id: shift.siteId,
+  site_name: shift.siteName,
+  truck: {
+    id: shift.truckId,
+    name: shift.truckName,
+    plate_number: shift.truckPlate,
+  },
+  site: {
+    id: shift.siteId,
+    name: shift.siteName,
+    address: shift.siteAddress,
+    odometer_required: false,
+    invoice_required: false,
+  },
+  is_demo_synthetic: true,
+});
+
 export const DriverView: React.FC<DriverViewProps> = ({
   focusHistory = false,
 }) => {
   const { user, logout, refreshUser } = useAuth();
+  const {
+    activeShift: demoActiveShift,
+    finishedShifts: demoFinishedShifts,
+    startDemoShift,
+    finishDemoShift,
+  } = useDemoSession();
 
   const [loading, setLoading] = useState(true);
   const [activeShift, setActiveShift] = useState<any>(null);
@@ -93,6 +126,14 @@ export const DriverView: React.FC<DriverViewProps> = ({
   const effectiveDriverName: string = isDemoDriverMode
     ? demoPersona?.full_name || DEMO_FALLBACK_PERSONA.full_name
     : user?.full_name || "";
+  const visibleShiftHistory = isDemoMode
+    ? [
+        ...demoFinishedShifts
+          .filter((shift) => shift.driverId === effectiveDriverId)
+          .map(projectDemoShiftForDriver),
+        ...shiftHistory,
+      ]
+    : shiftHistory;
   const hasActiveShift = Boolean(activeShift);
   const workflowState = String(activeShift?.status || "").toLowerCase();
   const startDisabledReason =
@@ -140,7 +181,9 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
   const renderHistoryList = (limit?: number) => {
     const historyItems =
-      typeof limit === "number" ? shiftHistory.slice(0, limit) : shiftHistory;
+      typeof limit === "number"
+        ? visibleShiftHistory.slice(0, limit)
+        : visibleShiftHistory;
 
     if (historyItems.length === 0) {
       return (
@@ -170,6 +213,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
           const isSubmitting = Boolean(historyCommentSubmitting[shift.id]);
           const isExpanded = Boolean(historyCommentOpen[shift.id]);
           const canCommentShift =
+            !(shift as any).is_demo_synthetic &&
             effectiveDriverId !== null &&
             (shift.user_id === undefined || shift.user_id === effectiveDriverId);
 
@@ -328,24 +372,12 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
       try {
         if (isDemoTenantId(user.tenant_id)) {
-          // Demo: active shift is stored client-side, keyed per persona so
-          // switching demo drivers does not leak state between personas.
-          const storageKey = demoActiveShiftKey(effectiveDriverId);
-          const storedShift = localStorage.getItem(storageKey);
-
-          if (storedShift) {
-            try {
-              const parsedShift = JSON.parse(storedShift);
-              setActiveShift(parsedShift);
-              return parsedShift;
-            } catch (error) {
-              console.error("Failed to parse stored shift:", error);
-              localStorage.removeItem(storageKey);
-            }
-          } else {
-            // No active mock shift for this persona — ensure UI shows picker.
-            setActiveShift(null);
-          }
+          const projectedShift =
+            demoActiveShift &&
+            demoActiveShift.driverId === effectiveDriverId
+              ? projectDemoShiftForDriver(demoActiveShift)
+              : null;
+          setActiveShift(projectedShift);
 
           await loadSelectionData();
 
@@ -353,7 +385,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
           // the admin auth user and clobber any local UI state. Identity in
           // demo-driver mode comes from `demoPersona`, not from AuthContext.
 
-          return null;
+          return projectedShift;
         }
 
         const currentShift = await getCurrentShift();
@@ -385,7 +417,13 @@ export const DriverView: React.FC<DriverViewProps> = ({
         }
       }
     },
-    [effectiveDriverId, loadSelectionData, refreshUser, user]
+    [
+      demoActiveShift,
+      effectiveDriverId,
+      loadSelectionData,
+      refreshUser,
+      user,
+    ]
   );
 
   useEffect(() => {
@@ -688,29 +726,20 @@ export const DriverView: React.FC<DriverViewProps> = ({
           (truck) => String(truck.id) === selectedTruck
         );
 
-        const mockShift = {
-          id: 999,
-          status: selectedSiteData?.odometer_required
-            ? "awaiting_odo_start"
-            : "active",
-          start_time: new Date().toISOString(),
-          truck: selectedTruckData || {
-            id: 1,
-            name: "MAN TGX",
-            plate_number: "А123БВ",
-          },
-          site: selectedSiteData || {
-            id: 1,
-            name: "ЖК Северный",
-            address: "ул. Примерная, 1",
-          },
-        };
+        const shift = startDemoShift({
+          driverId: effectiveDriverId,
+          driverName: effectiveDriverName,
+          truckId: selectedTruckData?.id ?? selectedTruck,
+          truckName: selectedTruckData?.name || "Машина",
+          truckPlate:
+            selectedTruckData?.plate || selectedTruckData?.plate_number || null,
+          siteId: selectedSiteData?.id ?? selectedSite,
+          siteName: selectedSiteData?.name || "Объект",
+          siteAddress: selectedSiteData?.address || null,
+        });
+        if (!shift) return;
 
-        setActiveShift(mockShift);
-        localStorage.setItem(
-          demoActiveShiftKey(effectiveDriverId),
-          JSON.stringify(mockShift)
-        );
+        setActiveShift(projectDemoShiftForDriver(shift));
         // Demo: do not mutate cached user / AuthContext. UI gating is driven
         // by `activeShift.status`, not by `user.current_state`.
 
@@ -767,8 +796,8 @@ export const DriverView: React.FC<DriverViewProps> = ({
     setActionMessage({ show: false, message: "", type: "info" });
     try {
       if (isDemoTenantId(user?.tenant_id)) {
+        finishDemoShift();
         setActiveShift(null);
-        localStorage.removeItem(demoActiveShiftKey(effectiveDriverId));
         // Demo: do not mutate cached user / AuthContext.
         // Refresh selection data + history so the picker re-appears with
         // up-to-date "last shifts" list for the persona.
@@ -893,14 +922,12 @@ export const DriverView: React.FC<DriverViewProps> = ({
             nextStatus = "active";
         }
 
-        const storageKey = demoActiveShiftKey(effectiveDriverId);
         if (nextStatus === "finished") {
+          finishDemoShift();
           setActiveShift(null);
-          localStorage.removeItem(storageKey);
         } else if (activeShift) {
           const advanced = { ...activeShift, status: nextStatus };
           setActiveShift(advanced);
-          localStorage.setItem(storageKey, JSON.stringify(advanced));
         }
       }
 
@@ -1379,8 +1406,8 @@ export const DriverView: React.FC<DriverViewProps> = ({
             ) : (
               <Button
                 onClick={() => {
+                  finishDemoShift();
                   setActiveShift(null);
-                  localStorage.removeItem(demoActiveShiftKey(effectiveDriverId));
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
               >

@@ -17,6 +17,7 @@ import {
   EXPLICIT_DEMO_LOGOUT_KEY,
   redirectToLogin,
 } from '../config/demo';
+import { DEMO_SESSION_STORAGE_KEY } from '../lib/demoSession';
 
 interface LogoutOptions {
   redirectToLogin?: boolean;
@@ -77,6 +78,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       storage,
       DEMO_PERSONA_KEY,
       `removeItem(${DEMO_PERSONA_KEY})`
+    );
+    removeStorageKey(
+      storage,
+      DEMO_SESSION_STORAGE_KEY,
+      `removeItem(${DEMO_SESSION_STORAGE_KEY})`
     );
 
     let storageLength = 0;
