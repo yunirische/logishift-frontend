@@ -1,9 +1,14 @@
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Filter, X, ChevronDown, Download } from "lucide-react";
+import { DemoPhotoPreviewDialog } from "./DemoPhotoPreviewDialog";
 import { isDemoTenantId } from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
 import { useDemoSession } from "../context/DemoSessionContext";
-import { DemoScenarioShift } from "../lib/demoSession";
+import {
+  DemoPhotoMetadata,
+  DemoPhotoType,
+  DemoScenarioShift,
+} from "../lib/demoSession";
 import api, { openShiftFilePreview, ShiftFileType } from "../services/api";
 import { Shift, UserRole } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
@@ -17,6 +22,7 @@ type DisplayShift = Omit<Shift, "id"> & {
   id: number | string;
   driver_id?: number | null;
   is_demo_synthetic?: boolean;
+  demo_photo_metadata?: Partial<Record<DemoPhotoType, DemoPhotoMetadata>>;
 };
 
 const projectDemoShiftForRegistry = (
@@ -34,6 +40,16 @@ const projectDemoShiftForRegistry = (
   end_time: shift.finishedAt || undefined,
   created_at: shift.startedAt,
   status: shift.status,
+  comment: shift.comment || undefined,
+  photos: {
+    start: Boolean(shift.photos.start),
+    end: Boolean(shift.photos.end),
+    invoice: Boolean(shift.photos.invoice),
+  },
+  requires_odo_start: shift.odometerRequired,
+  requires_odo_end: shift.odometerRequired,
+  requires_invoice: shift.invoiceRequired,
+  demo_photo_metadata: shift.photos,
   is_demo_synthetic: true,
 });
 
@@ -166,6 +182,7 @@ const Shifts: React.FC = () => {
   const {
     activeShift: demoActiveShift,
     finishedShifts: demoFinishedShifts,
+    getDemoPhotoPreview,
   } = useDemoSession();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,6 +210,10 @@ const Shifts: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [exportingZip, setExportingZip] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [demoPreview, setDemoPreview] = useState<{
+    url: string;
+    fileName: string;
+  } | null>(null);
 
   const user = api.getUserInfo();
   const isAdmin =
@@ -909,33 +930,72 @@ const Shifts: React.FC = () => {
                     </td>
                     <td className="px-4 py-2 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <PhotoLink
-                          shiftId={shift.id}
-                          type="start"
-                          hasPhoto={Boolean((shift as any).photo_start_url)}
-                          icon="S"
-                          title="Одометр (старт)"
-                          isDemoMode={isDemoMode}
-                          onError={setPreviewError}
-                        />
-                        <PhotoLink
-                          shiftId={shift.id}
-                          type="end"
-                          hasPhoto={Boolean((shift as any).photo_end_url)}
-                          icon="F"
-                          title="Одометр (финиш)"
-                          isDemoMode={isDemoMode}
-                          onError={setPreviewError}
-                        />
-                        <PhotoLink
-                          shiftId={shift.id}
-                          type="invoice"
-                          hasPhoto={Boolean((shift as any).photo_invoice_url)}
-                          icon="I"
-                          title="Накладная"
-                          isDemoMode={isDemoMode}
-                          onError={setPreviewError}
-                        />
+                        {shift.is_demo_synthetic
+                          ? (
+                              Object.entries(
+                                shift.demo_photo_metadata || {}
+                              ) as Array<[DemoPhotoType, DemoPhotoMetadata]>
+                            ).map(([type, metadata]) => {
+                              const preview = getDemoPhotoPreview(
+                                String(shift.id),
+                                type
+                              );
+                              return (
+                                <button
+                                  key={type}
+                                  type="button"
+                                  onClick={() => {
+                                    if (preview) {
+                                      setDemoPreview(preview);
+                                    } else {
+                                      setPreviewError(
+                                        "Демонстрационное фото добавлено, локальный предпросмотр завершён после перезагрузки."
+                                      );
+                                    }
+                                  }}
+                                  aria-label={`Проверить демонстрационное фото: ${metadata.fileName}`}
+                                  className="flex h-8 min-w-8 items-center justify-center rounded-full bg-amber-50 px-2 text-[10px] font-semibold text-amber-700"
+                                  title={metadata.fileName}
+                                >
+                                  {type === "start"
+                                    ? "S"
+                                    : type === "end"
+                                    ? "F"
+                                    : "I"}
+                                </button>
+                              );
+                            })
+                          : (
+                            <>
+                              <PhotoLink
+                                shiftId={shift.id}
+                                type="start"
+                                hasPhoto={Boolean((shift as any).photo_start_url)}
+                                icon="S"
+                                title="Одометр (старт)"
+                                isDemoMode={isDemoMode}
+                                onError={setPreviewError}
+                              />
+                              <PhotoLink
+                                shiftId={shift.id}
+                                type="end"
+                                hasPhoto={Boolean((shift as any).photo_end_url)}
+                                icon="F"
+                                title="Одометр (финиш)"
+                                isDemoMode={isDemoMode}
+                                onError={setPreviewError}
+                              />
+                              <PhotoLink
+                                shiftId={shift.id}
+                                type="invoice"
+                                hasPhoto={Boolean((shift as any).photo_invoice_url)}
+                                icon="I"
+                                title="Накладная"
+                                isDemoMode={isDemoMode}
+                                onError={setPreviewError}
+                              />
+                            </>
+                          )}
                         {isAdmin && !shift.is_demo_synthetic && (
                           <button
                             onClick={() => {
@@ -1040,6 +1100,10 @@ const Shifts: React.FC = () => {
           />
         </Suspense>
       )}
+      <DemoPhotoPreviewDialog
+        preview={demoPreview}
+        onClose={() => setDemoPreview(null)}
+      />
     </div>
   );
 };

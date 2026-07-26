@@ -161,7 +161,7 @@ describe("Dashboard demo session projection", () => {
     ).toHaveTextContent("2");
   });
 
-  it("does not double-count an already matching active detail", async () => {
+  it("keeps an identical seeded row and projects the synthetic identity exactly once", async () => {
     mockApiGet.mockResolvedValue({
       activeShifts: 1,
       totalShifts: 5,
@@ -176,12 +176,22 @@ describe("Dashboard demo session projection", () => {
       ],
     });
 
-    render(<Dashboard />);
+    const view = render(<Dashboard />);
 
-    await screen.findByText(/Демо Водитель — КамАЗ — Склад/);
+    expect(
+      await screen.findAllByText(/Демо Водитель — КамАЗ — Склад/)
+    ).toHaveLength(2);
     expect(
       screen.getAllByText("Активные смены")[0].previousElementSibling
-    ).toHaveTextContent("1");
-    expect(screen.queryByText("Демонстрационная смена")).not.toBeInTheDocument();
+    ).toHaveTextContent("2");
+    expect(screen.getByText("Демонстрационная смена")).toBeInTheDocument();
+
+    view.rerender(<Dashboard />);
+    expect(
+      screen.getAllByText(/Демо Водитель — КамАЗ — Склад/)
+    ).toHaveLength(2);
+    expect(
+      screen.getAllByText("Активные смены")[0].previousElementSibling
+    ).toHaveTextContent("2");
   });
 });

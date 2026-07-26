@@ -120,14 +120,6 @@ const Dashboard: React.FC = () => {
   const displayStats = useMemo(() => {
     if (!isDemoMode || !demoActiveShift) return stats;
 
-    const alreadyProjected = stats.activeShiftsDetails.some(
-      (shift) =>
-        shift.driver_name === demoActiveShift.driverName &&
-        shift.truck_name === demoActiveShift.truckName &&
-        shift.site_name === demoActiveShift.siteName
-    );
-    if (alreadyProjected) return stats;
-
     return {
       ...stats,
       activeShifts: stats.activeShifts + 1,

@@ -8,12 +8,14 @@ const {
   mockGetAuthToken,
   mockOpenShiftFilePreview,
   mockUseDemoSession,
+  mockGetDemoPhotoPreview,
 } = vi.hoisted(() => ({
   mockApiGet: vi.fn(),
   mockGetUserInfo: vi.fn(),
   mockGetAuthToken: vi.fn(),
   mockOpenShiftFilePreview: vi.fn(),
   mockUseDemoSession: vi.fn(),
+  mockGetDemoPhotoPreview: vi.fn(),
 }));
 
 vi.mock("../../config/demo", () => ({
@@ -37,6 +39,7 @@ beforeEach(() => {
   mockUseDemoSession.mockReturnValue({
     activeShift: null,
     finishedShifts: [],
+    getDemoPhotoPreview: mockGetDemoPhotoPreview,
   });
 });
 
@@ -241,6 +244,18 @@ describe("Shifts demo session projection", () => {
         startedAt: "2026-07-26T10:00:00.000Z",
         finishedAt: null,
         status: "active",
+        odometerRequired: false,
+        invoiceRequired: false,
+        comment: null,
+        photos: {
+          start: {
+            type: "start",
+            fileName: "active-meter.jpg",
+            mimeType: "image/jpeg",
+            size: 123,
+            addedAt: "2026-07-26T10:01:00.000Z",
+          },
+        },
       },
       finishedShifts: [
         {
@@ -254,8 +269,21 @@ describe("Shifts demo session projection", () => {
           startedAt: "2026-07-26T08:00:00.000Z",
           finishedAt: "2026-07-26T09:00:00.000Z",
           status: "finished",
+          odometerRequired: false,
+          invoiceRequired: false,
+          comment: null,
+          photos: {
+            invoice: {
+              type: "invoice",
+              fileName: "finished-invoice.jpg",
+              mimeType: "image/jpeg",
+              size: 456,
+              addedAt: "2026-07-26T08:30:00.000Z",
+            },
+          },
         },
       ],
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
     });
     mockApiGet.mockImplementation((endpoint: string) => {
       if (endpoint === API_ENDPOINTS.TENANT_SETTINGS) {
@@ -312,5 +340,50 @@ describe("Shifts demo session projection", () => {
     expect(
       within(syntheticRow as HTMLElement).getByText("Без действий")
     ).toBeInTheDocument();
+  });
+
+  it("opens only the memory-local synthetic preview and never the server preview", async () => {
+    mockGetDemoPhotoPreview.mockImplementation(
+      (shiftId: string, type: string) =>
+        shiftId === "demo-shift:active" && type === "start"
+          ? { url: "blob:active", fileName: "active-meter.jpg" }
+          : null
+    );
+    render(<Shifts />);
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Проверить демонстрационное фото: active-meter.jpg",
+      })
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Локальное демонстрационное фото" })
+    ).toBeInTheDocument();
+    expect(mockOpenShiftFilePreview).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Закрыть предпросмотр фотографии",
+      })
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows a metadata-only placeholder after simulated reload", async () => {
+    mockGetDemoPhotoPreview.mockReturnValue(null);
+    render(<Shifts />);
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Проверить демонстрационное фото: finished-invoice.jpg",
+      })
+    );
+
+    expect(
+      screen.getByText(
+        "Демонстрационное фото добавлено, локальный предпросмотр завершён после перезагрузки."
+      )
+    ).toBeInTheDocument();
+    expect(mockOpenShiftFilePreview).not.toHaveBeenCalled();
   });
 });

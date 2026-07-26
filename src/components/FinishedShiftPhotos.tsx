@@ -15,13 +15,18 @@ import {
   getFinishedShiftPhotoSlots,
 } from "../utils/finishedShiftPhotos";
 
+export type DemoAwareShift = Omit<Shift, "id"> & {
+  id: number | string;
+  is_demo_synthetic?: boolean;
+};
+
 type PhotoDraft = {
   reason: string;
   file: File | null;
 };
 
 interface FinishedShiftPhotosProps {
-  shift: Shift;
+  shift: DemoAwareShift;
   className?: string;
   isDemoMode?: boolean;
   openFormKey: string | null;
@@ -35,10 +40,13 @@ interface FinishedShiftPhotosProps {
   onReasonChange: (formKey: string, value: string) => void;
   onFileChange: (formKey: string, file: File | null) => void;
   onSubmit: (params: {
-    shiftId: number;
+    shiftId: number | string;
     type: FinishedShiftPhotoType;
   }) => void;
-  onPreview: (shiftId: number, type: FinishedShiftPhotoType) => void;
+  onPreview: (
+    shiftId: number | string,
+    type: FinishedShiftPhotoType
+  ) => void;
 }
 
 const FinishedShiftPhotosDemoModeContext = React.createContext(false);
@@ -80,11 +88,16 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
 }) => {
   const inheritedDemoMode = useContext(FinishedShiftPhotosDemoModeContext);
   const isDemoPhotoMode = isDemoMode ?? inheritedDemoMode;
-  const slots = useMemo(() => getFinishedShiftPhotoSlots(shift), [shift]);
-  const { requiredCount, uploadedCount, hasRequiredPhotos } = useMemo(
-    () => getFinishedShiftPhotoProgress(shift),
+  const slots = useMemo(
+    () => getFinishedShiftPhotoSlots(shift as Shift),
     [shift]
   );
+  const { requiredCount, uploadedCount, hasRequiredPhotos } = useMemo(
+    () => getFinishedShiftPhotoProgress(shift as Shift),
+    [shift]
+  );
+  const isSyntheticDemoShift =
+    isDemoPhotoMode && shift.is_demo_synthetic === true;
   const reasonRef = useRef<HTMLTextAreaElement | null>(null);
   const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -154,7 +167,20 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
-                    {slot.hasPhoto && isDemoPhotoMode ? (
+                    {slot.hasPhoto && isSyntheticDemoShift ? (
+                      <Button
+                        ref={(element: HTMLButtonElement | null) => {
+                          triggerRefs.current[formKey] = element;
+                        }}
+                        type="button"
+                        onClick={() => onPreview(shift.id, slot.type)}
+                        isLoading={isPreviewing}
+                        aria-label={`Открыть локальное демонстрационное фото: ${slot.label}`}
+                        className="min-h-[40px] rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700"
+                      >
+                        Проверить
+                      </Button>
+                    ) : slot.hasPhoto && isDemoPhotoMode ? (
                       <button
                         type="button"
                         disabled
@@ -177,6 +203,13 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
                       >
                         Открыть
                       </Button>
+                    ) : slot.canBackfill && isDemoPhotoMode && !isSyntheticDemoShift ? (
+                      <span
+                        className="max-w-52 text-right text-xs text-amber-700"
+                        title="Изменение тестовых данных недоступно"
+                      >
+                        Изменение тестовых данных недоступно
+                      </span>
                     ) : slot.canBackfill ? (
                       <Button
                         ref={(element: HTMLButtonElement | null) => {
@@ -195,7 +228,9 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
                 </div>
               </div>
 
-              {slot.canBackfill && isOpen && (
+              {slot.canBackfill &&
+                (!isDemoPhotoMode || isSyntheticDemoShift) &&
+                isOpen && (
                 <div
                   id={formId}
                   className="mt-3 border-t border-slate-200 pt-3"

@@ -1,16 +1,27 @@
 import {
+  DEMO_COMMENT_MAX_LENGTH,
   DEMO_SESSION_STORAGE_KEY,
   DEMO_SESSION_TTL_MS,
   DEMO_SESSION_VERSION,
   EMPTY_DEMO_SESSION,
+  LEGACY_DEMO_SESSION_STORAGE_KEY,
+  addDemoPhotoMetadata,
+  addDemoShiftComment,
   clearObsoleteDemoActiveShiftKeys,
   createDemoScenarioShift,
-  finishDemoScenarioShift,
   readDemoSession,
+  requestDemoShiftFinish,
   writeDemoSession,
 } from "../demoSession";
 
-const makeShift = () =>
+const now = new Date("2026-07-26T10:00:00.000Z");
+
+const makeShift = (
+  requirements: {
+    odometerRequired?: boolean;
+    invoiceRequired?: boolean;
+  } = {}
+) =>
   createDemoScenarioShift(
     {
       driverId: 77,
@@ -21,103 +32,194 @@ const makeShift = () =>
       siteId: 31,
       siteName: "Склад",
       siteAddress: "Промышленная, 1",
+      odometerRequired: requirements.odometerRequired ?? false,
+      invoiceRequired: requirements.invoiceRequired ?? false,
     },
-    new Date("2026-07-26T10:00:00.000Z")
+    now
   );
 
-describe("demoSession storage", () => {
+const photo = (
+  type: "start" | "end" | "invoice",
+  fileName = `${type}.jpg`
+) => ({
+  type,
+  fileName,
+  mimeType: "image/jpeg",
+  size: 1234,
+  addedAt: "2026-07-26T10:05:00.000Z",
+});
+
+describe("demoSession v2 storage and workflow", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("starts empty and persists start, finish, reset, and reload state", () => {
-    expect(readDemoSession(localStorage)).toEqual(EMPTY_DEMO_SESSION);
+  it("starts with site requirements and follows the odometer plus invoice workflow", () => {
+    const started = makeShift({
+      odometerRequired: true,
+      invoiceRequired: true,
+    });
+    expect(started.status).toBe("awaiting_odo_start");
+    expect(started.photos).toEqual({});
 
-    const activeShift = makeShift();
-    writeDemoSession(
-      localStorage,
-      { activeShift, finishedShifts: [] },
-      Date.parse("2026-07-26T10:00:00.000Z")
+    expect(addDemoPhotoMetadata(started, photo("invoice"))).toBeNull();
+    const active = addDemoPhotoMetadata(started, photo("start"));
+    expect(active?.status).toBe("active");
+
+    const awaitingEnd = requestDemoShiftFinish(active!);
+    expect(awaitingEnd?.status).toBe("awaiting_odo_end");
+    expect(addDemoPhotoMetadata(awaitingEnd!, photo("invoice"))).toBeNull();
+
+    const awaitingInvoice = addDemoPhotoMetadata(
+      awaitingEnd!,
+      photo("end")
     );
+    expect(awaitingInvoice?.status).toBe("awaiting_invoice");
 
-    expect(
-      readDemoSession(
-        localStorage,
-        Date.parse("2026-07-26T10:30:00.000Z")
-      ).activeShift
-    ).toEqual(activeShift);
-
-    const finishedShift = finishDemoScenarioShift(
-      activeShift,
+    const finished = addDemoPhotoMetadata(
+      awaitingInvoice!,
+      photo("invoice"),
       new Date("2026-07-26T11:00:00.000Z")
     );
+    expect(finished?.status).toBe("finished");
+    expect(finished?.finishedAt).toBe("2026-07-26T11:00:00.000Z");
+  });
+
+  it("handles no-requirement and single-requirement finish transitions", () => {
+    expect(requestDemoShiftFinish(makeShift())?.status).toBe("finished");
+
+    const invoice = requestDemoShiftFinish(
+      makeShift({ invoiceRequired: true })
+    );
+    expect(invoice?.status).toBe("awaiting_invoice");
+    expect(addDemoPhotoMetadata(invoice!, photo("invoice"))?.status).toBe(
+      "finished"
+    );
+
+    const odoStarted = addDemoPhotoMetadata(
+      makeShift({ odometerRequired: true }),
+      photo("start")
+    );
+    const odoEnding = requestDemoShiftFinish(odoStarted!);
+    expect(odoEnding?.status).toBe("awaiting_odo_end");
+    expect(addDemoPhotoMetadata(odoEnding!, photo("end"))?.status).toBe(
+      "finished"
+    );
+    expect(requestDemoShiftFinish(odoEnding!)).toBeNull();
+  });
+
+  it("stores trimmed comments and rejects invalid comment mutations", () => {
+    const shift = makeShift();
+    expect(addDemoShiftComment(shift, "  Локальный комментарий  ")?.comment).toBe(
+      "Локальный комментарий"
+    );
+    expect(addDemoShiftComment(shift, "   ")).toBeNull();
+    expect(
+      addDemoShiftComment(shift, "x".repeat(DEMO_COMMENT_MAX_LENGTH + 1))
+    ).toBeNull();
+  });
+
+  it("persists metadata and comments without file bytes or preview URLs", () => {
+    const active = addDemoPhotoMetadata(
+      makeShift({ odometerRequired: true }),
+      photo("start", "meter.jpg")
+    )!;
+    const commented = addDemoShiftComment(active, "Проверено локально")!;
     writeDemoSession(
       localStorage,
-      { activeShift: null, finishedShifts: [finishedShift] },
-      Date.parse("2026-07-26T11:00:00.000Z")
+      { activeShift: commented, finishedShifts: [] },
+      now.getTime()
     );
 
-    expect(
-      readDemoSession(
-        localStorage,
-        Date.parse("2026-07-26T11:30:00.000Z")
-      ).finishedShifts
-    ).toEqual([finishedShift]);
+    const raw = localStorage.getItem(DEMO_SESSION_STORAGE_KEY)!;
+    expect(raw).toContain("meter.jpg");
+    expect(raw).toContain("Проверено локально");
+    expect(raw).not.toContain("blob:");
+    expect(raw).not.toContain("base64");
+    expect(raw).not.toContain("data:image");
 
-    writeDemoSession(localStorage, EMPTY_DEMO_SESSION);
-    expect(localStorage.getItem(DEMO_SESSION_STORAGE_KEY)).toBeNull();
+    const restored = readDemoSession(
+      localStorage,
+      now.getTime() + 60_000
+    );
+    expect(restored.activeShift?.photos.start?.fileName).toBe("meter.jpg");
+    expect(restored.activeShift?.comment).toBe("Проверено локально");
   });
 
-  it("resets expired, malformed, and version-mismatched payloads", () => {
+  it("resets malformed photo/comment data, v1 payloads, and expired state", () => {
     const activeShift = makeShift();
-    const expiresAt = Date.parse("2026-07-26T10:00:00.000Z") + DEMO_SESSION_TTL_MS;
+    const basePayload = {
+      version: DEMO_SESSION_VERSION,
+      expiresAt: now.getTime() + DEMO_SESSION_TTL_MS,
+      activeShift,
+      finishedShifts: [],
+    };
 
     localStorage.setItem(
       DEMO_SESSION_STORAGE_KEY,
       JSON.stringify({
-        version: DEMO_SESSION_VERSION,
-        expiresAt,
-        activeShift,
-        finishedShifts: [],
+        ...basePayload,
+        activeShift: {
+          ...activeShift,
+          photos: {
+            start: {
+              ...photo("start"),
+              bytes: "data:image/jpeg;base64,unsafe",
+              size: "bad",
+            },
+          },
+        },
       })
     );
-    expect(
-      readDemoSession(localStorage, expiresAt + 1)
-    ).toEqual(EMPTY_DEMO_SESSION);
-    expect(localStorage.getItem(DEMO_SESSION_STORAGE_KEY)).toBeNull();
-
-    localStorage.setItem(DEMO_SESSION_STORAGE_KEY, "{broken");
-    expect(readDemoSession(localStorage)).toEqual(EMPTY_DEMO_SESSION);
+    expect(readDemoSession(localStorage, now.getTime())).toEqual(
+      EMPTY_DEMO_SESSION
+    );
 
     localStorage.setItem(
       DEMO_SESSION_STORAGE_KEY,
       JSON.stringify({
-        version: DEMO_SESSION_VERSION + 1,
-        expiresAt: Date.now() + DEMO_SESSION_TTL_MS,
-        activeShift,
-        finishedShifts: [],
+        ...basePayload,
+        activeShift: {
+          ...activeShift,
+          comment: "x".repeat(DEMO_COMMENT_MAX_LENGTH + 1),
+        },
       })
     );
-    expect(readDemoSession(localStorage)).toEqual(EMPTY_DEMO_SESSION);
+    expect(readDemoSession(localStorage, now.getTime())).toEqual(
+      EMPTY_DEMO_SESSION
+    );
+
+    localStorage.setItem(
+      DEMO_SESSION_STORAGE_KEY,
+      JSON.stringify({ ...basePayload, version: 1 })
+    );
+    expect(readDemoSession(localStorage, now.getTime())).toEqual(
+      EMPTY_DEMO_SESSION
+    );
+
+    localStorage.setItem(
+      DEMO_SESSION_STORAGE_KEY,
+      JSON.stringify({ ...basePayload, expiresAt: now.getTime() })
+    );
+    expect(readDemoSession(localStorage, now.getTime() + 1)).toEqual(
+      EMPTY_DEMO_SESSION
+    );
   });
 
-  it("keeps unrelated and persona storage while removing obsolete active-shift keys", () => {
+  it("resets cleanly and removes only obsolete demo keys", () => {
     localStorage.setItem("unrelated", "keep");
-    localStorage.setItem("demoPersona", "driver");
     localStorage.setItem("logishift_demo_persona_driver_id", "77");
-    localStorage.setItem("logishift_active_shift_demo", "{}");
     localStorage.setItem("logishift_active_shift_demo_77", "{}");
+    localStorage.setItem(LEGACY_DEMO_SESSION_STORAGE_KEY, "{}");
 
     clearObsoleteDemoActiveShiftKeys(localStorage);
 
     expect(localStorage.getItem("unrelated")).toBe("keep");
-    expect(localStorage.getItem("demoPersona")).toBe("driver");
     expect(localStorage.getItem("logishift_demo_persona_driver_id")).toBe("77");
-    expect(localStorage.getItem("logishift_active_shift_demo")).toBeNull();
     expect(localStorage.getItem("logishift_active_shift_demo_77")).toBeNull();
-  });
+    expect(localStorage.getItem(LEGACY_DEMO_SESSION_STORAGE_KEY)).toBeNull();
 
-  it("creates a string synthetic ID that cannot be confused with a server numeric ID", () => {
-    expect(makeShift().id).toMatch(/^demo-shift:/);
+    writeDemoSession(localStorage, EMPTY_DEMO_SESSION);
+    expect(localStorage.getItem(DEMO_SESSION_STORAGE_KEY)).toBeNull();
   });
 });

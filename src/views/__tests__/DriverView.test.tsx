@@ -13,6 +13,9 @@ const {
   mockUseDemoSession,
   mockStartDemoShift,
   mockFinishDemoShift,
+  mockAddDemoShiftComment,
+  mockAddDemoShiftPhoto,
+  mockGetDemoPhotoPreview,
 } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
   mockApiGet: vi.fn(),
@@ -23,6 +26,9 @@ const {
   mockUseDemoSession: vi.fn(),
   mockStartDemoShift: vi.fn(),
   mockFinishDemoShift: vi.fn(),
+  mockAddDemoShiftComment: vi.fn(),
+  mockAddDemoShiftPhoto: vi.fn(),
+  mockGetDemoPhotoPreview: vi.fn(),
 }));
 
 vi.mock("../../context/AuthContext", () => ({
@@ -38,6 +44,7 @@ vi.mock("../../services/api", () => ({
     get: mockApiGet,
     post: mockApiPost,
     postFormData: mockApiPostFormData,
+    getAuthToken: vi.fn(() => "test-token"),
   },
   getCurrentShift: mockGetCurrentShift,
   openShiftFilePreview: mockOpenShiftFilePreview,
@@ -63,7 +70,11 @@ describe("DriverView comments", () => {
       activeShift: null,
       finishedShifts: [],
       startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
       finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
     });
     mockApiGet.mockImplementation((url: string) => {
       if (url === API_ENDPOINTS.TENANT_SETTINGS) {
@@ -724,6 +735,10 @@ describe("DriverView comments", () => {
       startedAt: "2026-07-26T10:00:00.000Z",
       finishedAt: null,
       status: "active",
+      odometerRequired: false,
+      invoiceRequired: false,
+      comment: null,
+      photos: {},
     };
     const finishedShift = {
       ...activeShift,
@@ -776,6 +791,8 @@ describe("DriverView comments", () => {
       siteId: 31,
       siteName: "Склад",
       siteAddress: "Промышленная, 1",
+      odometerRequired: false,
+      invoiceRequired: false,
     });
     expect(await screen.findByTestId("end-shift-button")).toBeInTheDocument();
     expect(mockApiPost).not.toHaveBeenCalledWith("/shifts/start", expect.anything());
@@ -788,7 +805,11 @@ describe("DriverView comments", () => {
       activeShift: null,
       finishedShifts: [finishedShift],
       startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
       finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
     });
     view.rerender(<DriverView focusHistory />);
 
@@ -822,10 +843,18 @@ describe("DriverView comments", () => {
         startedAt: "2026-07-26T10:00:00.000Z",
         finishedAt: null,
         status: "active",
+        odometerRequired: false,
+        invoiceRequired: false,
+        comment: null,
+        photos: {},
       },
       finishedShifts: [],
       startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
       finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
     });
     mockApiGet.mockResolvedValue([]);
 
@@ -834,5 +863,423 @@ describe("DriverView comments", () => {
 
     view.rerender(<DriverView />);
     expect(screen.getByTestId("end-shift-button")).toBeInTheDocument();
+  });
+
+  it("stores an active synthetic comment locally without calling the comment API", async () => {
+    const activeShift = {
+      id: "demo-shift:comment",
+      driverId: 33,
+      driverName: "Демо водитель",
+      truckId: 12,
+      truckName: "КамАЗ",
+      siteId: 31,
+      siteName: "Склад",
+      startedAt: "2026-07-26T10:00:00.000Z",
+      finishedAt: null,
+      status: "active",
+      odometerRequired: false,
+      invoiceRequired: false,
+      comment: null,
+      photos: {},
+    };
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "active",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockAddDemoShiftComment.mockReturnValue({
+      ...activeShift,
+      comment: "Локальный комментарий",
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift,
+      finishedShifts: [],
+      startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
+      finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
+    });
+    mockApiGet.mockResolvedValue([]);
+
+    render(<DriverView />);
+    const textarea = await screen.findByPlaceholderText(
+      "Добавьте комментарий к текущей смене"
+    );
+    fireEvent.change(textarea, {
+      target: { value: " Локальный комментарий " },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Добавить комментарий" })
+    );
+
+    expect(mockAddDemoShiftComment).toHaveBeenCalledWith(
+      "demo-shift:comment",
+      "Локальный комментарий"
+    );
+    expect(mockApiPost).not.toHaveBeenCalledWith(
+      API_ENDPOINTS.ADD_SHIFT_COMMENT("demo-shift:comment"),
+      expect.anything()
+    );
+    expect(
+      await screen.findByText("Локальный комментарий")
+    ).toBeInTheDocument();
+  });
+
+  it("stores a finished synthetic comment locally without a numeric API path", async () => {
+    const finishedShift = {
+      id: "demo-shift:finished-comment",
+      driverId: 33,
+      driverName: "Демо водитель",
+      truckId: 12,
+      truckName: "КамАЗ",
+      siteId: 31,
+      siteName: "Склад",
+      startedAt: "2026-07-26T10:00:00.000Z",
+      finishedAt: "2026-07-26T11:00:00.000Z",
+      status: "finished",
+      odometerRequired: false,
+      invoiceRequired: false,
+      comment: null,
+      photos: {},
+    };
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockAddDemoShiftComment.mockReturnValue({
+      ...finishedShift,
+      comment: "Комментарий после смены",
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift: null,
+      finishedShifts: [finishedShift],
+      startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
+      finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
+    });
+    mockApiGet.mockResolvedValue([]);
+
+    render(<DriverView focusHistory />);
+    const card = await screen.findByTestId(
+      "driver-history-card-demo-shift:finished-comment"
+    );
+    fireEvent.click(within(card).getByRole("button", { name: "Подробнее" }));
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Добавить комментарий" })
+    );
+    fireEvent.change(
+      within(card).getByPlaceholderText("Добавьте пояснение к смене"),
+      { target: { value: "Комментарий после смены" } }
+    );
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Добавить комментарий" })
+    );
+
+    expect(mockAddDemoShiftComment).toHaveBeenCalledWith(
+      "demo-shift:finished-comment",
+      "Комментарий после смены"
+    );
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it("simulates finished synthetic photo backfill without FormData or an endpoint call", async () => {
+    const finishedShift = {
+      id: "demo-shift:backfill",
+      driverId: 33,
+      driverName: "Демо водитель",
+      truckId: 12,
+      truckName: "КамАЗ",
+      siteId: 31,
+      siteName: "Склад",
+      startedAt: "2026-07-26T10:00:00.000Z",
+      finishedAt: "2026-07-26T11:00:00.000Z",
+      status: "finished",
+      odometerRequired: true,
+      invoiceRequired: false,
+      comment: null,
+      photos: {},
+    };
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockAddDemoShiftPhoto.mockReturnValue({
+      ...finishedShift,
+      photos: {
+        start: {
+          type: "start",
+          fileName: "backfill.jpg",
+          mimeType: "image/jpeg",
+          size: 5,
+          addedAt: "2026-07-26T11:05:00.000Z",
+        },
+      },
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift: null,
+      finishedShifts: [finishedShift],
+      startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
+      finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
+    });
+    mockApiGet.mockResolvedValue([]);
+
+    render(<DriverView focusHistory />);
+    const card = await screen.findByTestId(
+      "driver-history-card-demo-shift:backfill"
+    );
+    fireEvent.click(within(card).getByRole("button", { name: "Подробнее" }));
+    fireEvent.click(within(card).getAllByRole("button", { name: "Добавить" })[0]);
+    fireEvent.change(
+      document.getElementById(
+        "finished-shift-photo-reason-demo-shift:backfill:start"
+      ) as HTMLTextAreaElement,
+      { target: { value: "Локальная проверка" } }
+    );
+    fireEvent.change(
+      document.getElementById(
+        "finished-shift-photo-file-demo-shift:backfill:start"
+      ) as HTMLInputElement,
+      {
+        target: {
+          files: [
+            new File(["photo"], "backfill.jpg", { type: "image/jpeg" }),
+          ],
+        },
+      }
+    );
+    fireEvent.click(within(card).getByRole("button", { name: "Загрузить" }));
+
+    await waitFor(() =>
+      expect(mockAddDemoShiftPhoto).toHaveBeenCalledWith(
+        "demo-shift:backfill",
+        "start",
+        expect.any(File)
+      )
+    );
+    expect(mockApiPostFormData).not.toHaveBeenCalled();
+    expect(mockOpenShiftFilePreview).not.toHaveBeenCalled();
+  });
+
+  it("validates and stores a synthetic workflow photo before any network construction", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch");
+    const activeShift = {
+      id: "demo-shift:photo",
+      driverId: 33,
+      driverName: "Демо водитель",
+      truckId: 12,
+      truckName: "КамАЗ",
+      siteId: 31,
+      siteName: "Склад",
+      startedAt: "2026-07-26T10:00:00.000Z",
+      finishedAt: null,
+      status: "awaiting_odo_start",
+      odometerRequired: true,
+      invoiceRequired: true,
+      comment: null,
+      photos: {},
+    };
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "awaiting_odo_start",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockAddDemoShiftPhoto.mockReturnValue({
+      ...activeShift,
+      status: "active",
+      photos: {
+        start: {
+          type: "start",
+          fileName: "meter.jpg",
+          mimeType: "image/jpeg",
+          size: 5,
+          addedAt: "2026-07-26T10:01:00.000Z",
+        },
+      },
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift,
+      finishedShifts: [],
+      startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
+      finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
+    });
+    mockApiGet.mockResolvedValue([]);
+
+    const { container } = render(<DriverView />);
+    await waitFor(() =>
+      expect(
+        container.querySelector('input[type="file"][capture="environment"]')
+      ).not.toBeNull()
+    );
+    const input = container.querySelector(
+      'input[type="file"][capture="environment"]'
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["photo"], "meter.jpg", { type: "image/jpeg" })],
+      },
+    });
+
+    await waitFor(() =>
+      expect(mockAddDemoShiftPhoto).toHaveBeenCalledWith(
+        "demo-shift:photo",
+        "start",
+        expect.any(File)
+      )
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(mockApiPostFormData).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        "Демонстрационное фото добавлено. Файл не отправлялся на сервер."
+      )
+    ).toBeInTheDocument();
+    fetchSpy.mockRestore();
+  });
+
+  it("preserves the real-tenant photo upload endpoint", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: vi.fn(),
+    } as unknown as Response);
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 16,
+        full_name: "Тестовый водитель",
+        role: UserRole.DRIVER,
+        current_state: "awaiting_odo_start",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockGetCurrentShift.mockResolvedValue({
+      id: 113,
+      status: "awaiting_odo_start",
+      start_time: "2026-07-26T10:00:00.000Z",
+      truck: { name: "КамАЗ" },
+      site: {
+        name: "Склад",
+        odometer_required: true,
+        invoice_required: false,
+      },
+    });
+
+    const { container } = render(<DriverView />);
+    await waitFor(() =>
+      expect(
+        container.querySelector('input[type="file"][capture="environment"]')
+      ).not.toBeNull()
+    );
+    const input = container.querySelector(
+      'input[type="file"][capture="environment"]'
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["photo"], "meter.jpg", { type: "image/jpeg" })],
+      },
+    });
+
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        API_ENDPOINTS.UPLOAD_PHOTO,
+        expect.objectContaining({ method: "POST" })
+      )
+    );
+    expect(mockAddDemoShiftPhoto).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it("moves a required synthetic finish into the photo workflow without an end API call", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const activeShift = {
+      id: "demo-shift:end-workflow",
+      driverId: 33,
+      driverName: "Демо водитель",
+      truckId: 12,
+      truckName: "КамАЗ",
+      siteId: 31,
+      siteName: "Склад",
+      startedAt: "2026-07-26T10:00:00.000Z",
+      finishedAt: null,
+      status: "active",
+      odometerRequired: true,
+      invoiceRequired: true,
+      comment: null,
+      photos: {},
+    };
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "active",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockFinishDemoShift.mockReturnValue({
+      ...activeShift,
+      status: "awaiting_odo_end",
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift,
+      finishedShifts: [],
+      startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
+      finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
+    });
+    mockApiGet.mockResolvedValue([]);
+
+    render(<DriverView />);
+    fireEvent.click(await screen.findByTestId("end-shift-button"));
+
+    expect(mockFinishDemoShift).toHaveBeenCalledTimes(1);
+    expect(mockApiPost).not.toHaveBeenCalledWith("/shifts/end", {});
+    expect(
+      await screen.findByText(/Сфотографируйте одометр ПОСЛЕ работы/)
+    ).toBeInTheDocument();
   });
 });

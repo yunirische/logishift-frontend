@@ -8,8 +8,10 @@ import {
   Truck,
 } from "lucide-react";
 import { Button, Card } from "./ui";
-import { Shift } from "../types";
-import { FinishedShiftPhotos } from "./FinishedShiftPhotos";
+import {
+  DemoAwareShift,
+  FinishedShiftPhotos,
+} from "./FinishedShiftPhotos";
 import { FinishedShiftPhotoType } from "../utils/finishedShiftPhotos";
 
 type HistoryPhotoDraft = {
@@ -18,7 +20,7 @@ type HistoryPhotoDraft = {
 };
 
 interface DriverShiftHistoryCardProps {
-  shift: Shift;
+  shift: DemoAwareShift;
   dateLabel: string;
   timeRangeLabel: string | null;
   durationLabel: string | null;
@@ -34,19 +36,22 @@ interface DriverShiftHistoryCardProps {
   historyPhotoPreviewing: Record<string, boolean>;
   maxShiftCommentLength: number;
   maxBackfillReasonLength: number;
-  onToggleDetails: (shiftId: number) => void;
-  onToggleComment: (shiftId: number, nextOpen: boolean) => void;
-  onCommentDraftChange: (shiftId: number, value: string) => void;
-  onSubmitComment: (shiftId: number) => void;
+  onToggleDetails: (shiftId: number | string) => void;
+  onToggleComment: (shiftId: number | string, nextOpen: boolean) => void;
+  onCommentDraftChange: (shiftId: number | string, value: string) => void;
+  onSubmitComment: (shiftId: number | string) => void;
   onTogglePhotoForm: (formKey: string) => void;
   onCancelPhotoForm: (formKey: string) => void;
   onPhotoReasonChange: (formKey: string, value: string) => void;
   onPhotoFileChange: (formKey: string, file: File | null) => void;
   onSubmitPhoto: (params: {
-    shiftId: number;
+    shiftId: number | string;
     type: FinishedShiftPhotoType;
   }) => void;
-  onPreviewPhoto: (shiftId: number, type: FinishedShiftPhotoType) => void;
+  onPreviewPhoto: (
+    shiftId: number | string,
+    type: FinishedShiftPhotoType
+  ) => void;
 }
 
 export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({

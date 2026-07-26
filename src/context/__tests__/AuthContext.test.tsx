@@ -8,7 +8,10 @@ import {
   demoActiveShiftKey,
 } from "../../config/demo";
 import { TOKEN_KEY, USER_KEY } from "../../services/api";
-import { DEMO_SESSION_STORAGE_KEY } from "../../lib/demoSession";
+import {
+  DEMO_SESSION_STORAGE_KEY,
+  LEGACY_DEMO_SESSION_STORAGE_KEY,
+} from "../../lib/demoSession";
 
 const {
   mockClearAuth,
@@ -96,6 +99,10 @@ describe("AuthContext logout flow", () => {
     localStorage.setItem(demoActiveShiftKey(null), JSON.stringify({ id: 1 }));
     localStorage.setItem(demoActiveShiftKey(77), JSON.stringify({ id: 500 }));
     localStorage.setItem(DEMO_SESSION_STORAGE_KEY, JSON.stringify({ version: 1 }));
+    localStorage.setItem(
+      LEGACY_DEMO_SESSION_STORAGE_KEY,
+      JSON.stringify({ version: 1 })
+    );
     localStorage.setItem("keep_me", "1");
 
     render(
@@ -117,6 +124,7 @@ describe("AuthContext logout flow", () => {
     expect(localStorage.getItem(demoActiveShiftKey(null))).toBeNull();
     expect(localStorage.getItem(demoActiveShiftKey(77))).toBeNull();
     expect(localStorage.getItem(DEMO_SESSION_STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(LEGACY_DEMO_SESSION_STORAGE_KEY)).toBeNull();
     expect(localStorage.getItem("keep_me")).toBe("1");
     expect(sessionStorage.getItem(EXPLICIT_DEMO_LOGOUT_KEY)).toBe("1");
     expect(screen.getByTestId("auth-state")).toHaveTextContent("guest");

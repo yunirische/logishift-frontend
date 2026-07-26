@@ -13,6 +13,7 @@ import {
   Truck,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { DemoPhotoPreviewDialog } from "../components/DemoPhotoPreviewDialog";
 import { DriverShiftHistoryCard } from "../components/DriverShiftHistoryCard";
 import { FinishedShiftPhotosDemoModeProvider } from "../components/FinishedShiftPhotos";
 import { Button, Card } from "../components/ui";
@@ -25,7 +26,11 @@ import {
 import { API_ENDPOINTS } from "../constants";
 import { useAuth } from "../context/AuthContext";
 import { useDemoSession } from "../context/DemoSessionContext";
-import { DemoScenarioShift } from "../lib/demoSession";
+import {
+  DEMO_COMMENT_MAX_LENGTH,
+  DemoPhotoType,
+  DemoScenarioShift,
+} from "../lib/demoSession";
 import api, { getCurrentShift, openShiftFilePreview } from "../services/api";
 import { DriverState, Shift } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
@@ -39,7 +44,7 @@ interface DriverViewProps {
   focusHistory?: boolean;
 }
 
-const MAX_SHIFT_COMMENT_LENGTH = 1000;
+const MAX_SHIFT_COMMENT_LENGTH = DEMO_COMMENT_MAX_LENGTH;
 const MAX_BACKFILL_REASON_LENGTH = 500;
 
 type HistoryPhotoDraft = {
@@ -67,9 +72,16 @@ const projectDemoShiftForDriver = (shift: DemoScenarioShift) => ({
     id: shift.siteId,
     name: shift.siteName,
     address: shift.siteAddress,
-    odometer_required: false,
-    invoice_required: false,
+    odometer_required: shift.odometerRequired,
+    invoice_required: shift.invoiceRequired,
   },
+  comment: shift.comment || undefined,
+  photos: {
+    start: Boolean(shift.photos.start),
+    end: Boolean(shift.photos.end),
+    invoice: Boolean(shift.photos.invoice),
+  },
+  demo_photo_metadata: shift.photos,
   is_demo_synthetic: true,
 });
 
@@ -81,7 +93,10 @@ export const DriverView: React.FC<DriverViewProps> = ({
     activeShift: demoActiveShift,
     finishedShifts: demoFinishedShifts,
     startDemoShift,
-    finishDemoShift,
+    requestDemoShiftFinish,
+    addDemoShiftComment,
+    addDemoShiftPhoto,
+    getDemoPhotoPreview,
   } = useDemoSession();
 
   const [loading, setLoading] = useState(true);
@@ -104,15 +119,19 @@ export const DriverView: React.FC<DriverViewProps> = ({
   const [tenantTimezone, setTenantTimezone] = useState("Europe/Moscow");
   const [activeCommentDraft, setActiveCommentDraft] = useState("");
   const [activeCommentSubmitting, setActiveCommentSubmitting] = useState(false);
-  const [historyCommentDrafts, setHistoryCommentDrafts] = useState<Record<number, string>>({});
-  const [historyCommentOpen, setHistoryCommentOpen] = useState<Record<number, boolean>>({});
-  const [historyCommentSubmitting, setHistoryCommentSubmitting] = useState<Record<number, boolean>>({});
-  const [expandedHistoryShiftId, setExpandedHistoryShiftId] = useState<number | null>(null);
+  const [historyCommentDrafts, setHistoryCommentDrafts] = useState<Record<string, string>>({});
+  const [historyCommentOpen, setHistoryCommentOpen] = useState<Record<string, boolean>>({});
+  const [historyCommentSubmitting, setHistoryCommentSubmitting] = useState<Record<string, boolean>>({});
+  const [expandedHistoryShiftId, setExpandedHistoryShiftId] = useState<number | string | null>(null);
   const [historyPhotoOpenFormKey, setHistoryPhotoOpenFormKey] = useState<string | null>(null);
   const [historyPhotoFocusReturnKey, setHistoryPhotoFocusReturnKey] = useState<string | null>(null);
   const [historyPhotoDrafts, setHistoryPhotoDrafts] = useState<Record<string, HistoryPhotoDraft>>({});
   const [historyPhotoSubmitting, setHistoryPhotoSubmitting] = useState<Record<string, boolean>>({});
   const [historyPhotoPreviewing, setHistoryPhotoPreviewing] = useState<Record<string, boolean>>({});
+  const [demoPreview, setDemoPreview] = useState<{
+    url: string;
+    fileName: string;
+  } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isDemoMode = isDemoTenantId(user?.tenant_id);
@@ -213,7 +232,6 @@ export const DriverView: React.FC<DriverViewProps> = ({
           const isSubmitting = Boolean(historyCommentSubmitting[shift.id]);
           const isExpanded = Boolean(historyCommentOpen[shift.id]);
           const canCommentShift =
-            !(shift as any).is_demo_synthetic &&
             effectiveDriverId !== null &&
             (shift.user_id === undefined || shift.user_id === effectiveDriverId);
 
@@ -467,11 +485,12 @@ export const DriverView: React.FC<DriverViewProps> = ({
       text,
       target,
     }: {
-      shiftId: number;
+      shiftId: number | string;
       text: string;
       target: "active" | "history";
     }) => {
       const normalizedText = text.trim();
+      const stateKey = String(shiftId);
 
       if (!normalizedText) {
         return;
@@ -491,11 +510,51 @@ export const DriverView: React.FC<DriverViewProps> = ({
       } else {
         setHistoryCommentSubmitting((current) => ({
           ...current,
-          [shiftId]: true,
+          [stateKey]: true,
         }));
       }
 
       try {
+        if (isDemoMode) {
+          if (
+            typeof shiftId !== "string" ||
+            !shiftId.startsWith("demo-shift:")
+          ) {
+            throw new Error(
+              "Изменение тестовых данных недоступно. Созданную вами демо-смену можно проверить полностью."
+            );
+          }
+          const updated = addDemoShiftComment(shiftId, normalizedText);
+          if (!updated) throw new Error("Не удалось сохранить комментарий");
+
+          if (target === "active") {
+            setActiveCommentDraft("");
+            setActiveShift(projectDemoShiftForDriver(updated));
+          } else {
+            setHistoryCommentDrafts((current) => ({
+              ...current,
+              [stateKey]: "",
+            }));
+            setHistoryCommentOpen((current) => ({
+              ...current,
+              [stateKey]: false,
+            }));
+          }
+          setActionMessage({
+            show: true,
+            message:
+              "Демонстрационный комментарий сохранен локально. Данные не отправлялись на сервер.",
+            type: "success",
+          });
+          setToast({
+            show: true,
+            message: "Демонстрационный комментарий сохранен",
+            type: "success",
+          });
+          return;
+        }
+
+        if (typeof shiftId !== "number") return;
         await api.post(API_ENDPOINTS.ADD_SHIFT_COMMENT(shiftId), {
           text: normalizedText,
         });
@@ -506,11 +565,11 @@ export const DriverView: React.FC<DriverViewProps> = ({
         } else {
           setHistoryCommentDrafts((current) => ({
             ...current,
-            [shiftId]: "",
+            [stateKey]: "",
           }));
           setHistoryCommentOpen((current) => ({
             ...current,
-            [shiftId]: false,
+            [stateKey]: false,
           }));
           await loadShiftHistory();
         }
@@ -548,12 +607,17 @@ export const DriverView: React.FC<DriverViewProps> = ({
         } else {
           setHistoryCommentSubmitting((current) => ({
             ...current,
-            [shiftId]: false,
+            [stateKey]: false,
           }));
         }
       }
     },
-    [loadShiftHistory, refreshCurrentShift]
+    [
+      addDemoShiftComment,
+      isDemoMode,
+      loadShiftHistory,
+      refreshCurrentShift,
+    ]
   );
 
   const handleHistoryPhotoFileChange = useCallback(
@@ -604,9 +668,23 @@ export const DriverView: React.FC<DriverViewProps> = ({
     []
   );
 
-  const previewHistoryShiftPhoto = useCallback(async (shiftId: number, type: FinishedShiftPhotoType) => {
+  const previewHistoryShiftPhoto = useCallback(async (
+    shiftId: number | string,
+    type: FinishedShiftPhotoType
+  ) => {
     if (isDemoMode) {
-      const message = "Фото в демо недоступны.";
+      const preview =
+        typeof shiftId === "string"
+          ? getDemoPhotoPreview(shiftId, type)
+          : null;
+      if (preview) {
+        setDemoPreview(preview);
+        return;
+      }
+      const message =
+        typeof shiftId === "string"
+          ? "Демонстрационное фото добавлено, локальный предпросмотр завершён после перезагрузки."
+          : "Изменение тестовых данных недоступно. Созданную вами демо-смену можно проверить полностью.";
       setActionMessage({
         show: true,
         message,
@@ -619,6 +697,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
       );
       return;
     }
+    if (typeof shiftId !== "number") return;
 
     const formKey = `${shiftId}:${type}`;
     setHistoryPhotoPreviewing((current) => ({
@@ -642,14 +721,14 @@ export const DriverView: React.FC<DriverViewProps> = ({
         [formKey]: false,
       }));
     }
-  }, [isDemoMode]);
+  }, [getDemoPhotoPreview, isDemoMode]);
 
   const submitHistoryPhotoBackfill = useCallback(
     async ({
       shiftId,
       type,
     }: {
-      shiftId: number;
+      shiftId: number | string;
       type: FinishedShiftPhotoType;
     }) => {
       const formKey = `${shiftId}:${type}`;
@@ -670,6 +749,40 @@ export const DriverView: React.FC<DriverViewProps> = ({
       }));
 
       try {
+        if (isDemoMode) {
+          if (
+            typeof shiftId !== "string" ||
+            !shiftId.startsWith("demo-shift:")
+          ) {
+            throw new Error(
+              "Изменение тестовых данных недоступно. Созданную вами демо-смену можно проверить полностью."
+            );
+          }
+          const updated = addDemoShiftPhoto(shiftId, type, draft.file);
+          if (!updated) {
+            throw new Error("Это фото нельзя добавить на текущем этапе");
+          }
+          setHistoryPhotoDrafts((current) => ({
+            ...current,
+            [formKey]: { reason: "", file: null },
+          }));
+          setHistoryPhotoOpenFormKey(null);
+          setHistoryPhotoFocusReturnKey(formKey);
+          setActionMessage({
+            show: true,
+            message:
+              "Демонстрационное фото добавлено. Файл не отправлялся на сервер.",
+            type: "success",
+          });
+          setToast({
+            show: true,
+            message: "Демонстрационное фото добавлено",
+            type: "success",
+          });
+          return;
+        }
+
+        if (typeof shiftId !== "number") return;
         const formData = new FormData();
         formData.append("type", type);
         formData.append("reason", normalizedReason);
@@ -709,7 +822,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
         }));
       }
     },
-    [historyPhotoDrafts, loadShiftHistory]
+    [addDemoShiftPhoto, historyPhotoDrafts, isDemoMode, loadShiftHistory]
   );
 
   const handleStart = async () => {
@@ -736,6 +849,8 @@ export const DriverView: React.FC<DriverViewProps> = ({
           siteId: selectedSiteData?.id ?? selectedSite,
           siteName: selectedSiteData?.name || "Объект",
           siteAddress: selectedSiteData?.address || null,
+          odometerRequired: Boolean(selectedSiteData?.odometer_required),
+          invoiceRequired: Boolean(selectedSiteData?.invoice_required),
         });
         if (!shift) return;
 
@@ -796,22 +911,34 @@ export const DriverView: React.FC<DriverViewProps> = ({
     setActionMessage({ show: false, message: "", type: "info" });
     try {
       if (isDemoTenantId(user?.tenant_id)) {
-        finishDemoShift();
-        setActiveShift(null);
-        // Demo: do not mutate cached user / AuthContext.
-        // Refresh selection data + history so the picker re-appears with
-        // up-to-date "last shifts" list for the persona.
-        await loadSelectionData();
+        const updated = requestDemoShiftFinish();
+        if (!updated) {
+          throw new Error(
+            "Сначала добавьте обязательное демонстрационное фото."
+          );
+        }
+        setActiveShift(
+          updated.status === "finished"
+            ? null
+            : projectDemoShiftForDriver(updated)
+        );
+        if (updated.status === "finished") await loadSelectionData();
 
         setToast({
           show: true,
-          message: "Смена завершена",
+          message:
+            updated.status === "finished"
+              ? "Смена завершена"
+              : "Добавьте обязательное демонстрационное фото",
           type: "success",
         });
         setActionMessage({
           show: true,
-          message: "Смена завершена.",
-          type: "success",
+          message:
+            updated.status === "finished"
+              ? "Смена завершена."
+              : "Для завершения смены добавьте обязательное демонстрационное фото.",
+          type: updated.status === "finished" ? "success" : "info",
         });
         setTimeout(
           () => setToast({ show: false, message: "", type: "success" }),
@@ -876,6 +1003,65 @@ export const DriverView: React.FC<DriverViewProps> = ({
       });
     }
 
+    if (isDemoMode) {
+      const shiftId =
+        typeof activeShift?.id === "string" ? activeShift.id : null;
+      const photoType: DemoPhotoType | null =
+        workflowState === "awaiting_odo_start"
+          ? "start"
+          : workflowState === "awaiting_odo_end"
+          ? "end"
+          : workflowState === "awaiting_invoice"
+          ? "invoice"
+          : null;
+      if (!shiftId || !photoType) {
+        setActionMessage({
+          show: true,
+          message: "Фото не требуется на текущем этапе.",
+          type: "error",
+        });
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const updated = addDemoShiftPhoto(shiftId, photoType, file);
+        if (!updated) {
+          throw new Error("Это фото нельзя добавить на текущем этапе");
+        }
+        setActiveShift(
+          updated.status === "finished"
+            ? null
+            : projectDemoShiftForDriver(updated)
+        );
+        setToast({
+          show: true,
+          message: "Демонстрационное фото добавлено",
+          type: "success",
+        });
+        setActionMessage({
+          show: true,
+          message:
+            "Демонстрационное фото добавлено. Файл не отправлялся на сервер.",
+          type: "success",
+        });
+        window.setTimeout(
+          () => setToast({ show: false, message: "", type: "success" }),
+          2000
+        );
+      } catch (error) {
+        const errorMsg =
+          error instanceof Error
+            ? error.message
+            : "Не удалось добавить демонстрационное фото";
+        setToast({ show: true, message: errorMsg, type: "error" });
+        setActionMessage({ show: true, message: errorMsg, type: "error" });
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const formData = new FormData();
     formData.append("photo", file);
     setLoading(true);
@@ -900,35 +1086,6 @@ export const DriverView: React.FC<DriverViewProps> = ({
           3000
         );
         return;
-      }
-
-      if (isDemoTenantId(user?.tenant_id)) {
-        // Demo: advance the mock shift status locally based on its current
-        // status, mirroring the backend state machine (driven by activeShift,
-        // not by AuthContext.user).
-        const currentStatus = String(activeShift?.status || "").toLowerCase();
-        let nextStatus: string;
-        switch (currentStatus) {
-          case "awaiting_odo_start":
-            nextStatus = "active";
-            break;
-          case "awaiting_odo_end":
-            nextStatus = "awaiting_invoice";
-            break;
-          case "awaiting_invoice":
-            nextStatus = "finished";
-            break;
-          default:
-            nextStatus = "active";
-        }
-
-        if (nextStatus === "finished") {
-          finishDemoShift();
-          setActiveShift(null);
-        } else if (activeShift) {
-          const advanced = { ...activeShift, status: nextStatus };
-          setActiveShift(advanced);
-        }
       }
 
       setToast({
@@ -1245,6 +1402,72 @@ export const DriverView: React.FC<DriverViewProps> = ({
             </Card>
           </div>
 
+          {isDemoMode &&
+            activeShift.is_demo_synthetic &&
+            activeShift.demo_photo_metadata &&
+            Object.keys(activeShift.demo_photo_metadata).length > 0 && (
+              <Card className="border border-amber-200 bg-amber-50/60 p-4 shadow-sm">
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-900">
+                  <Camera size={16} />
+                  Демонстрационные фотографии
+                </div>
+                <div className="space-y-2">
+                  {(
+                    Object.entries(activeShift.demo_photo_metadata) as Array<
+                      [
+                        DemoPhotoType,
+                        {
+                          fileName: string;
+                        }
+                      ]
+                    >
+                  ).map(([type, metadata]) => {
+                    const preview = getDemoPhotoPreview(activeShift.id, type);
+                    return (
+                      <div
+                        key={type}
+                        className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-amber-100 bg-white px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-amber-800">
+                            {type === "start"
+                              ? "Одометр перед началом"
+                              : type === "end"
+                              ? "Одометр после работы"
+                              : "Накладная"}
+                          </div>
+                          <div className="truncate text-xs text-slate-500">
+                            {metadata.fileName}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (preview) {
+                              setDemoPreview(preview);
+                            } else {
+                              setActionMessage({
+                                show: true,
+                                message:
+                                  "Демонстрационное фото добавлено, локальный предпросмотр завершён после перезагрузки.",
+                                type: "info",
+                              });
+                            }
+                          }}
+                          className="min-h-10 shrink-0 rounded-lg border border-amber-200 px-3 text-xs font-semibold text-amber-700"
+                        >
+                          {preview ? "Открыть" : "Фото добавлено"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 text-xs leading-5 text-amber-700">
+                  Файлы не отправляются на сервер.
+                </p>
+              </Card>
+            )}
+
           {workflowState === "active" ? (
             <div className="space-y-4">
               <div
@@ -1406,7 +1629,6 @@ export const DriverView: React.FC<DriverViewProps> = ({
             ) : (
               <Button
                 onClick={() => {
-                  finishDemoShift();
                   setActiveShift(null);
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
@@ -1454,6 +1676,10 @@ export const DriverView: React.FC<DriverViewProps> = ({
           </div>
         </div>
       )}
+      <DemoPhotoPreviewDialog
+        preview={demoPreview}
+        onClose={() => setDemoPreview(null)}
+      />
     </div>
   );
 };
