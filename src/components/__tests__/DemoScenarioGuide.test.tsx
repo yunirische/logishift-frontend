@@ -4,6 +4,7 @@ import DemoScenarioGuide, {
   selectLatestSyntheticFinishedShift,
 } from "../DemoScenarioGuide";
 import { DemoScenarioShift, DemoSessionState } from "../../lib/demoSession";
+import { captureDemoRegistrationHandoff } from "../../lib/demoRegistrationHandoff";
 
 const { mockUseDemoSession } = vi.hoisted(() => ({
   mockUseDemoSession: vi.fn(),
@@ -71,6 +72,7 @@ const renderGuide = ({
 describe("DemoScenarioGuide", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     setSession();
   });
 
@@ -228,6 +230,11 @@ describe("DemoScenarioGuide", () => {
   it("offers the admin result to a driver and completes only for synthetic history", async () => {
     const user = userEvent.setup();
     const setDemoPersona = vi.fn();
+    const setActiveTab = vi.fn();
+    captureDemoRegistrationHandoff({
+      explicitEntry: true,
+      search: "?utm_source=yandex&yclid=click",
+    });
     const finished = createShift({
       status: "finished",
       finishedAt: "2026-07-27T11:00:00.000Z",
@@ -251,7 +258,7 @@ describe("DemoScenarioGuide", () => {
         demoPersona="admin"
         activeTab="dashboard"
         setDemoPersona={setDemoPersona}
-        setActiveTab={vi.fn()}
+        setActiveTab={setActiveTab}
       />
     );
     expect(
@@ -260,6 +267,33 @@ describe("DemoScenarioGuide", () => {
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
       "Шаг 5 из 5"
     );
+    expect(
+      screen.getByText("Перейдите к работе со своими данными.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "На бесплатном тарифе доступны 2 машины, 2 объекта и 2 водителя."
+      )
+    ).toBeInTheDocument();
+    const registrationLink = screen.getByRole("link", {
+      name: "Создать свою компанию",
+    });
+    const registrationUrl = new URL(
+      registrationLink.getAttribute("href") as string
+    );
+    expect(`${registrationUrl.origin}${registrationUrl.pathname}`).toBe(
+      "https://app.kontrolsmen.ru/register"
+    );
+    expect(registrationUrl.searchParams.get("registration_source")).toBe(
+      "demo"
+    );
+    expect(registrationUrl.searchParams.get("utm_source")).toBe("yandex");
+    expect(registrationUrl.searchParams.get("yclid")).toBe("click");
+
+    await user.click(
+      screen.getByRole("button", { name: "Посмотреть завершённую смену" })
+    );
+    expect(setActiveTab).toHaveBeenCalledWith("shifts");
 
     setSession({
       finishedShifts: [finished, createShift({ id: "42", status: "finished" })],
@@ -269,12 +303,36 @@ describe("DemoScenarioGuide", () => {
         demoPersona="admin"
         activeTab="dashboard"
         setDemoPersona={setDemoPersona}
-        setActiveTab={vi.fn()}
+        setActiveTab={setActiveTab}
       />
     );
     expect(screen.getByTestId("demo-scenario-guide")).toHaveAttribute(
       "data-synthetic-shift-id",
       finished.id
+    );
+  });
+
+  it("keeps the conversion action visible when a completed guide is collapsed", async () => {
+    const user = userEvent.setup();
+    setSession({
+      finishedShifts: [
+        createShift({
+          status: "finished",
+          finishedAt: "2026-07-27T12:00:00.000Z",
+        }),
+      ],
+    });
+    renderGuide();
+
+    const collapse = screen.getByRole("button", { name: "Свернуть" });
+    collapse.focus();
+    await user.keyboard("{Enter}");
+
+    expect(
+      screen.getByTestId("demo-guide-collapsed-registration-action")
+    ).toHaveAccessibleName("Создать свою компанию");
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Развернуть" })
     );
   });
 

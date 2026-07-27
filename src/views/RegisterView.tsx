@@ -28,11 +28,17 @@ interface PasswordChecks {
 }
 
 const RegisterView: React.FC = () => {
+  const [registerContext] = useState(() =>
+    getRegisterContextFromSearch(window.location.search)
+  );
+  const [registrationAttribution] = useState(() =>
+    readAttribution(window.location.search)
+  );
   const [mode, setMode] = useState<RegisterMode>(() =>
-    getRegisterContextFromSearch(window.location.search).initialMode
+    registerContext.initialMode
   );
   const [formData, setFormData] = useState<RegisterFormData>(() => ({
-    code: getRegisterContextFromSearch(window.location.search).inviteCode,
+    code: registerContext.inviteCode,
     full_name: '',
     email: '',
     password: '',
@@ -144,7 +150,7 @@ const RegisterView: React.FC = () => {
           password: formData.password,
           websiteUrl: formData.websiteUrl,
           consents: consentPayload,
-          attribution: readAttribution(window.location.search),
+          attribution: registrationAttribution,
         });
       } else {
         // Driver registration - accept invite
@@ -226,6 +232,22 @@ const RegisterView: React.FC = () => {
           <p className="text-slate-500 text-sm mt-3 leading-relaxed">
             Компания или администратор создаёт аккаунт компании. Водитель подключается по приглашению или ссылке-приглашению.
           </p>
+          {registerContext.isDemoSource && mode === 'admin' && (
+            <div
+              className="mt-5 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-left"
+              data-testid="demo-registration-context"
+            >
+              <p className="text-sm font-bold text-[#1B254B]">
+                Продолжите со своими данными
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                Вы посмотрели демо. Создайте компанию, затем добавьте свою технику, объекты и водителей.
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                На бесплатном тарифе доступны 2 машины, 2 объекта и 2 водителя.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Mode Toggle */}

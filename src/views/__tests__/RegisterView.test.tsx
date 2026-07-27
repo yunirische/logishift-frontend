@@ -56,6 +56,34 @@ describe("RegisterView", () => {
     expect(screen.getByText("LegalLinks")).toBeInTheDocument();
   });
 
+  it("shows concise company context only for a demo-source registration", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/register?registration_source=demo&utm_source=yandex"
+    );
+
+    render(<RegisterView />);
+
+    expect(screen.getByTestId("demo-registration-context")).toHaveTextContent(
+      "Продолжите со своими данными"
+    );
+    expect(screen.getByTestId("demo-registration-context")).toHaveTextContent(
+      "На бесплатном тарифе доступны 2 машины, 2 объекта и 2 водителя."
+    );
+    expect(screen.getByLabelText(/название компании/i)).toBeInTheDocument();
+  });
+
+  it("does not show demo context on ordinary registration", () => {
+    window.history.replaceState({}, "", "/register");
+
+    render(<RegisterView />);
+
+    expect(
+      screen.queryByTestId("demo-registration-context")
+    ).not.toBeInTheDocument();
+  });
+
   it("opens driver mode immediately when invite code is present", () => {
     window.history.replaceState({}, "", "/register?code=ABC123");
 
@@ -64,6 +92,22 @@ describe("RegisterView", () => {
     expect(screen.getByLabelText(/код приглашения/i)).toHaveValue("ABC123");
     expect(screen.queryByLabelText(/название компании/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /вступить в компанию/i })).toBeInTheDocument();
+  });
+
+  it("keeps an invite authoritative when an unrelated demo marker is present", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/register?registration_source=demo&code=ABC123&utm_source=yandex"
+    );
+
+    render(<RegisterView />);
+
+    expect(screen.getByLabelText(/код приглашения/i)).toHaveValue("ABC123");
+    expect(
+      screen.queryByTestId("demo-registration-context")
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/название компании/i)).not.toBeInTheDocument();
   });
 
   it("keeps manual mode switching working after invite prefill", async () => {
@@ -133,6 +177,47 @@ describe("RegisterView", () => {
       })
     );
     expect(screen.getByRole("button", { name: /регистрация/i })).toBeDisabled();
+  });
+
+  it("captures the initial allowlisted attribution and excludes demo context from the admin payload", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(
+      {},
+      "",
+      "/register?registration_source=demo&yclid=click&utm_source=yandex&utm_medium=cpc&utm_campaign=demo&utm_content=guide&utm_term=shift&arbitrary=value&demo_shift=demo-shift%3A1"
+    );
+    vi.mocked(api.post).mockImplementationOnce(() => new Promise(() => undefined));
+
+    render(<RegisterView />);
+    window.history.replaceState(
+      {},
+      "",
+      "/register?registration_source=changed&utm_source=changed"
+    );
+    await fillAdminRegistrationForm(user);
+    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+    const payload = vi.mocked(api.post).mock.calls[0][1] as Record<
+      string,
+      any
+    >;
+    expect(payload.attribution).toEqual({
+      yclid: "click",
+      utm_source: "yandex",
+      utm_medium: "cpc",
+      utm_campaign: "demo",
+      utm_content: "guide",
+      utm_term: "shift",
+    });
+    expect(payload.attribution).not.toHaveProperty("registration_source");
+    expect(payload.attribution).not.toHaveProperty("arbitrary");
+    expect(payload).not.toHaveProperty("demo_shift");
+    expect(payload).not.toHaveProperty("demoPersona");
+    expect(payload).not.toHaveProperty("truck");
+    expect(payload).not.toHaveProperty("site");
+    expect(payload).not.toHaveProperty("driver");
+    expect(payload).not.toHaveProperty("token");
   });
 
   it("blocks repeated submit while registration is loading", async () => {

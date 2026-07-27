@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import Login from "../Login";
+import { DEMO_REGISTRATION_HANDOFF_STORAGE_KEY } from "../../lib/demoRegistrationHandoff";
 
 const {
   mockHistoryReplaceState,
@@ -146,6 +147,15 @@ describe("Login single-window demo contract", () => {
       token: "demo.token.value",
       user: { id: 999, full_name: "Demo User" },
     });
+    mockRecordDemoAttributionSuccess.mockImplementationOnce(async () => {
+      const handoff = JSON.parse(
+        localStorage.getItem(DEMO_REGISTRATION_HANDOFF_STORAGE_KEY) || "null"
+      );
+      expect(handoff?.attribution).toEqual({
+        yclid: "demo-click",
+        utm_source: "yandex",
+      });
+    });
 
     render(<Login />);
 
@@ -158,6 +168,7 @@ describe("Login single-window demo contract", () => {
       yclid: "demo-click",
       utm_source: "yandex",
     });
+    expect(mockRecordDemoAttributionSuccess).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/перенаправляем на единый экран входа/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/загрузка демо/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/открываем рабочий вход/i)).not.toBeInTheDocument();
@@ -165,6 +176,31 @@ describe("Login single-window demo contract", () => {
     expect(screen.queryByLabelText(/логин/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/пароль/i)).not.toBeInTheDocument();
     expect(screen.getByTestId("demo-host-handoff-shell")).toBeInTheDocument();
+  });
+
+  it("clears stale registration attribution on an explicit unattributed demo entry", async () => {
+    localStorage.setItem(
+      DEMO_REGISTRATION_HANDOFF_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        expiresAt: Date.now() + 60_000,
+        attribution: { utm_source: "stale" },
+      })
+    );
+    window.history.pushState({}, "", "/?enterDemo=1");
+    mockIsDemoHostname.mockReturnValue(true);
+    mockLoginUser.mockResolvedValue({
+      token: "demo.token.value",
+      user: { id: 999, full_name: "Demo User" },
+    });
+
+    render(<Login />);
+
+    await waitFor(() => expect(mockLoginUser).toHaveBeenCalledTimes(1));
+    expect(
+      localStorage.getItem(DEMO_REGISTRATION_HANDOFF_STORAGE_KEY)
+    ).toBeNull();
+    expect(mockRecordDemoAttributionSuccess).toHaveBeenCalledWith({});
   });
 
   it("renders demo recovery UI when demo auto-login fails and retries safely", async () => {
@@ -195,6 +231,26 @@ describe("Login single-window demo contract", () => {
       id: 999,
       full_name: "Demo User",
     });
+  });
+
+  it("retains an explicit handoff for retry when demo login fails without exposing it", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/?enterDemo=1&utm_campaign=retry-campaign"
+    );
+    mockIsDemoHostname.mockReturnValue(true);
+    mockLoginUser.mockRejectedValueOnce(new Error("network error"));
+
+    render(<Login />);
+
+    expect(await screen.findByText(/демо не открылось/i)).toBeInTheDocument();
+    const handoff = JSON.parse(
+      localStorage.getItem(DEMO_REGISTRATION_HANDOFF_STORAGE_KEY) || "null"
+    );
+    expect(handoff?.attribution).toEqual({ utm_campaign: "retry-campaign" });
+    expect(screen.queryByText("retry-campaign")).not.toBeInTheDocument();
+    expect(mockRecordDemoAttributionSuccess).not.toHaveBeenCalled();
   });
 
   it("renders demo recovery UI after the timeout delay", async () => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Truck, UserCog } from 'lucide-react';
+import { getDemoRegistrationUrl } from '../lib/demoRegistrationHandoff';
 
 type DemoPersona = 'admin' | 'driver';
 
@@ -9,6 +10,8 @@ interface DemoBannerProps {
 }
 
 const DemoBanner: React.FC<DemoBannerProps> = ({ demoPersona, setDemoPersona }) => {
+  const registrationUrl = getDemoRegistrationUrl();
+
   return (
     <div className="mb-6 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center gap-3">
       <div className="flex-1 min-w-0">
@@ -18,8 +21,8 @@ const DemoBanner: React.FC<DemoBannerProps> = ({ demoPersona, setDemoPersona }) 
         <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
           Данные тестовые, изменения симулируются и не сохраняются.{' '}
           Для реальной работы{' '}
-          <a href="/register" className="underline hover:text-amber-900 transition-colors">
-            зарегистрируйте компанию
+          <a href={registrationUrl} className="underline hover:text-amber-900 transition-colors">
+            создайте свою компанию
           </a>.
         </p>
         <p className="text-xs text-amber-700 mt-2 leading-relaxed">

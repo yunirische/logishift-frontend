@@ -12,6 +12,7 @@ import {
   getAttributionNavigationUrl,
   readAttribution,
 } from '../lib/attribution';
+import { captureDemoRegistrationHandoff } from '../lib/demoRegistrationHandoff';
 import { recordDemoAttributionSuccess } from '../services/api';
 import { loginUser } from '../services/api';
 import BrandLogo from './BrandLogo';
@@ -110,6 +111,10 @@ const Login: React.FC = () => {
   const handleDemoLogin = async () => {
     const attemptId = demoLoginAttemptRef.current + 1;
     demoLoginAttemptRef.current = attemptId;
+    captureDemoRegistrationHandoff({
+      search: window.location.search,
+      explicitEntry: hasExplicitDemoEntry === true,
+    });
     setIsDemoLoading(true);
     setShowDemoRecovery(false);
     sessionStorage.removeItem(EXPLICIT_DEMO_LOGOUT_KEY);

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { useDemoSession } from "../context/DemoSessionContext";
 import { DemoScenarioShift, DemoWorkflowStatus } from "../lib/demoSession";
+import { getDemoRegistrationUrl } from "../lib/demoRegistrationHandoff";
 
 type DemoPersona = "admin" | "driver";
 
@@ -16,9 +17,13 @@ interface GuideState {
   step: 1 | 2 | 3 | 4 | 5;
   title: string;
   text: string;
+  detail?: string;
   actionLabel?: string;
   actionTarget?: string;
+  actionHref?: string;
   action?: () => void;
+  secondaryActionLabel?: string;
+  secondaryAction?: () => void;
   shift?: DemoScenarioShift;
   completed?: boolean;
 }
@@ -116,9 +121,13 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
       return {
         step: 5,
         title: "Сценарий завершён",
-        text: "Администратор видит завершённую смену, комментарий и фотографии.",
-        actionLabel: "Открыть реестр смен",
-        action: () => setActiveTab("shifts"),
+        text: "Перейдите к работе со своими данными.",
+        detail:
+          "На бесплатном тарифе доступны 2 машины, 2 объекта и 2 водителя.",
+        actionLabel: "Создать свою компанию",
+        actionHref: getDemoRegistrationUrl(),
+        secondaryActionLabel: "Посмотреть завершённую смену",
+        secondaryAction: () => setActiveTab("shifts"),
         shift: latestFinishedShift,
         completed: true,
       };
@@ -262,6 +271,16 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
         )}
       </div>
 
+      {collapsed && guideState.completed && guideState.actionHref && (
+        <a
+          href={guideState.actionHref}
+          className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 sm:w-auto"
+          data-testid="demo-guide-collapsed-registration-action"
+        >
+          {guideState.actionLabel}
+        </a>
+      )}
+
       {!collapsed && (
         <div id="demo-scenario-guide-content" className="mt-3">
           <div
@@ -272,6 +291,11 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
           >
             <p className="font-semibold text-slate-900">{guideState.title}</p>
             <p className="mt-1 leading-5 text-slate-700">{guideState.text}</p>
+            {guideState.detail && (
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                {guideState.detail}
+              </p>
+            )}
           </div>
 
           {guideState.step === 4 && guideState.shift && (
@@ -307,7 +331,15 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
           )}
 
           {guideState.actionLabel &&
-            (guideState.actionTarget ? (
+            (guideState.actionHref ? (
+              <a
+                href={guideState.actionHref}
+                className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 sm:w-auto"
+                data-testid="demo-guide-primary-action"
+              >
+                {guideState.actionLabel}
+              </a>
+            ) : guideState.actionTarget ? (
               <a
                 href={guideState.actionTarget}
                 onClick={handleAnchorAction}
@@ -326,6 +358,16 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
                 {guideState.actionLabel}
               </button>
             ))}
+          {guideState.secondaryActionLabel && guideState.secondaryAction && (
+            <button
+              type="button"
+              onClick={guideState.secondaryAction}
+              className="mt-2 inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-blue-300 bg-white px-4 text-sm font-semibold text-blue-800 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 sm:ml-2 sm:mt-3 sm:w-auto"
+              data-testid="demo-guide-secondary-action"
+            >
+              {guideState.secondaryActionLabel}
+            </button>
+          )}
         </div>
       )}
     </section>
