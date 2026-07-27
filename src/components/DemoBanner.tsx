@@ -26,8 +26,8 @@ const DemoBanner: React.FC<DemoBannerProps> = ({ demoPersona, setDemoPersona }) 
           </a>.
         </p>
         <p className="text-xs text-amber-700 mt-2 leading-relaxed">
-          Водитель сам начинает и завершает смену в своём режиме.
-          Администратор может оформить смену за сотрудника через реестр.
+          В разделе «Мой рабочий день» сотрудник ведёт собственную смену. В
+          реестре администратор может создать смену за другого водителя.
         </p>
       </div>
       <div className="shrink-0">

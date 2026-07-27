@@ -41,15 +41,15 @@ describe("DemoBanner registration handoff", () => {
     expect(setDemoPersona).toHaveBeenCalledWith("driver");
   });
 
-  it("explains the difference between driver and admin shift actions", () => {
+  it("distinguishes an employee's own shift from an admin-created shift", () => {
     render(<DemoBanner demoPersona="admin" setDemoPersona={vi.fn()} />);
 
     expect(
       screen.getByText(
-        /Водитель сам начинает и завершает смену в своём режиме\./
+        /В разделе «Мой рабочий день» сотрудник ведёт собственную смену\./
       )
     ).toHaveTextContent(
-      "Администратор может оформить смену за сотрудника через реестр."
+      "В реестре администратор может создать смену за другого водителя."
     );
   });
 });

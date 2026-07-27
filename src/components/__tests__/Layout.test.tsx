@@ -152,7 +152,7 @@ describe("Authenticated legal navigation", () => {
     );
   });
 
-  it("hides the driver workday entry from the demo admin menu", () => {
+  it("shows the workday entry in the demo admin menu", () => {
     mockIsDemoHostname.mockReturnValue(true);
     mockIsDemoTenantId.mockReturnValue(true);
     mockUseAuth.mockReturnValue({
@@ -178,8 +178,8 @@ describe("Authenticated legal navigation", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: "Мой рабочий день" })
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "Мой рабочий день" })
+    ).toBeInTheDocument();
   });
 
   it("shows the driver workday entry in demo driver mode", () => {
