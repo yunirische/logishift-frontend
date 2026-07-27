@@ -997,6 +997,164 @@ describe("DriverView comments", () => {
       "demo-shift:finished-comment",
       "Комментарий после смены"
     );
+    expect(await screen.findByTestId("driver-history-message")).toHaveTextContent(
+      "Демонстрационный комментарий сохранен локально. Данные не отправлялись на сервер."
+    );
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it("opens and closes a current-page synthetic history preview without a server request", async () => {
+    const finishedShift = {
+      id: "demo-shift:history-preview",
+      driverId: 33,
+      driverName: "Демо водитель",
+      truckId: 12,
+      truckName: "КамАЗ",
+      siteId: 31,
+      siteName: "Склад",
+      startedAt: "2026-07-26T10:00:00.000Z",
+      finishedAt: "2026-07-26T11:00:00.000Z",
+      status: "finished",
+      odometerRequired: true,
+      invoiceRequired: false,
+      comment: "Комментарий истории",
+      photos: {
+        start: {
+          type: "start",
+          fileName: "history-current.jpg",
+          mimeType: "image/jpeg",
+          size: 12,
+          addedAt: "2026-07-26T11:00:00.000Z",
+        },
+      },
+    };
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift: null,
+      finishedShifts: [finishedShift],
+      startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
+      finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview.mockReturnValue({
+        url: "blob:history-current-preview",
+        fileName: "history-current.jpg",
+      }),
+    });
+    mockApiGet.mockResolvedValue([]);
+
+    render(<DriverView focusHistory />);
+    const card = await screen.findByTestId(
+      "driver-history-card-demo-shift:history-preview"
+    );
+    fireEvent.click(within(card).getByRole("button", { name: "Подробнее" }));
+    fireEvent.click(
+      within(card).getByRole("button", {
+        name: "Открыть локальное демонстрационное фото: Одометр перед началом",
+      })
+    );
+
+    expect(
+      await screen.findByRole("dialog", { name: "Локальное демонстрационное фото" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("history-current.jpg")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Файл используется только для предпросмотра/i)
+    ).toBeInTheDocument();
+    expect(mockOpenShiftFilePreview).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Закрыть предпросмотр фотографии" })
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(card).getByRole("button", {
+        name: "Открыть локальное демонстрационное фото: Одометр перед началом",
+      })
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows metadata-only history feedback after reload without a dialog or API call", async () => {
+    const finishedShift = {
+      id: "demo-shift:history-metadata",
+      driverId: 33,
+      driverName: "Демо водитель",
+      truckId: 12,
+      truckName: "КамАЗ",
+      siteId: 31,
+      siteName: "Склад",
+      startedAt: "2026-07-26T10:00:00.000Z",
+      finishedAt: "2026-07-26T11:00:00.000Z",
+      status: "finished",
+      odometerRequired: true,
+      invoiceRequired: false,
+      comment: "Комментарий истории",
+      photos: {
+        start: {
+          type: "start",
+          fileName: "history-metadata.jpg",
+          mimeType: "image/jpeg",
+          size: 12,
+          addedAt: "2026-07-26T11:00:00.000Z",
+        },
+      },
+    };
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockUseDemoSession.mockReturnValue({
+      activeShift: null,
+      finishedShifts: [finishedShift],
+      startDemoShift: mockStartDemoShift,
+      requestDemoShiftFinish: mockFinishDemoShift,
+      finishDemoShift: mockFinishDemoShift,
+      addDemoShiftComment: mockAddDemoShiftComment,
+      addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview.mockReturnValue(null),
+    });
+    mockApiGet.mockResolvedValue([]);
+
+    render(<DriverView focusHistory />);
+    const card = await screen.findByTestId(
+      "driver-history-card-demo-shift:history-metadata"
+    );
+    fireEvent.click(within(card).getByRole("button", { name: "Подробнее" }));
+    fireEvent.click(
+      within(card).getByRole("button", {
+        name: "Открыть локальное демонстрационное фото: Одометр перед началом",
+      })
+    );
+
+    const message = await screen.findByTestId("driver-history-message");
+    expect(message).toHaveTextContent(
+      "Демонстрационное фото добавлено, локальный предпросмотр завершён после перезагрузки."
+    );
+    expect(message).toHaveAttribute("role", "status");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(card.querySelector("img")).toBeNull();
+    expect(mockOpenShiftFilePreview).not.toHaveBeenCalled();
     expect(mockApiPost).not.toHaveBeenCalled();
   });
 

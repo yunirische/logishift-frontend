@@ -1115,6 +1115,51 @@ export const DriverView: React.FC<DriverViewProps> = ({
     }
   };
 
+  const renderActionMessage = (testId: string) =>
+    actionMessage.show ? (
+      <div
+        className={`mt-3 rounded-lg border px-4 py-3 text-sm shadow-sm ${
+          actionMessage.type === "error"
+            ? "border-red-200 bg-red-50 text-red-700"
+            : actionMessage.type === "success"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+            : "border-slate-200 bg-white text-slate-700"
+        }`}
+        data-testid={testId}
+        role={actionMessage.type === "error" ? "alert" : "status"}
+        aria-live={actionMessage.type === "error" ? "assertive" : "polite"}
+      >
+        {actionMessage.message}
+      </div>
+    ) : null;
+
+  const renderToast = () =>
+    toast.show ? (
+      <div className="animate-in fade-in slide-in-from-top-2 fixed left-1/2 top-4 z-50 -translate-x-1/2 transform">
+        <div
+          className={`flex items-center gap-2 rounded-lg px-6 py-3 shadow-lg ${
+            toast.type === "error"
+              ? "bg-red-600 text-white"
+              : "bg-[#0a192f] text-white"
+          }`}
+        >
+          {toast.type === "error" ? (
+            <AlertCircle size={18} className="text-white" />
+          ) : (
+            <CheckCircle2 size={18} className="text-green-400" />
+          )}
+          <span className="text-sm font-medium">{toast.message}</span>
+        </div>
+      </div>
+    ) : null;
+
+  const renderDemoPreviewDialog = () => (
+    <DemoPhotoPreviewDialog
+      preview={demoPreview}
+      onClose={() => setDemoPreview(null)}
+    />
+  );
+
   if (loading && !activeShift && !trucks.length) {
     return (
       <div className="p-10 text-center text-slate-400 animate-pulse">
@@ -1148,7 +1193,10 @@ export const DriverView: React.FC<DriverViewProps> = ({
           )}
         </div>
 
+        {renderActionMessage("driver-history-message")}
         {renderHistoryList()}
+        {renderToast()}
+        {renderDemoPreviewDialog()}
       </div>
     );
   }
@@ -1638,48 +1686,13 @@ export const DriverView: React.FC<DriverViewProps> = ({
               </Button>
             )}
 
-            {actionMessage.show && (
-              <div
-                className={`mt-3 rounded-lg border px-4 py-3 text-sm shadow-sm ${
-                  actionMessage.type === "error"
-                    ? "border-red-200 bg-red-50 text-red-700"
-                    : actionMessage.type === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : "border-slate-200 bg-white text-slate-700"
-                }`}
-                data-testid="driver-shift-message"
-                role={actionMessage.type === "error" ? "alert" : "status"}
-                aria-live={actionMessage.type === "error" ? "assertive" : "polite"}
-              >
-                {actionMessage.message}
-              </div>
-            )}
+            {renderActionMessage("driver-shift-message")}
           </div>
         </div>
       </div>
 
-      {toast.show && (
-        <div className="animate-in fade-in slide-in-from-top-2 fixed left-1/2 top-4 z-50 -translate-x-1/2 transform">
-          <div
-            className={`flex items-center gap-2 rounded-lg px-6 py-3 shadow-lg ${
-              toast.type === "error"
-                ? "bg-red-600 text-white"
-                : "bg-[#0a192f] text-white"
-            }`}
-          >
-            {toast.type === "error" ? (
-              <AlertCircle size={18} className="text-white" />
-            ) : (
-              <CheckCircle2 size={18} className="text-green-400" />
-            )}
-            <span className="text-sm font-medium">{toast.message}</span>
-          </div>
-        </div>
-      )}
-      <DemoPhotoPreviewDialog
-        preview={demoPreview}
-        onClose={() => setDemoPreview(null)}
-      />
+      {renderToast()}
+      {renderDemoPreviewDialog()}
     </div>
   );
 };
