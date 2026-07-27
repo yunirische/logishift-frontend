@@ -176,6 +176,32 @@ Manual checklist required for owner review:
 7. Verify the same actions for a real tenant still use the existing API only
    in an isolated non-production environment.
 
+## Corrective role-switch smoke — 2026-07-27
+
+- The initial automated Package A smoke reproduced `FAIL_ROLE_SWITCH` on
+  `1743a18d7c743c69b644f9ff7f9120a1a7945e30`: `DemoBanner` changed only the
+  demo persona, leaving `activeTab` as `my-shifts`. That tab is valid for an
+  admin, so the allowed-tab guard deliberately did not redirect it and
+  `DriverView` remained rendered.
+- Corrective commit `50dd51a2842c2601b4503bec79d54ed0189f2cd3`
+  (`fix(demo): restore admin dashboard after role switch`) routes a genuine
+  demo persona transition explicitly: admin → driver opens `my-shifts`, and
+  driver → admin opens `dashboard`. Re-clicking the current persona is a
+  no-op, so an admin on another admin tab is not redirected. The handler does
+  not reset DemoSessionStore.
+- App-level regression tests cover both directions, a repeated active-persona
+  click, preservation of the persisted demo session value, and a persisted
+  driver persona returning to Dashboard through the UI. The focused Package A
+  tests, full frontend suite, TypeScript check, and production build passed.
+- Repeated automated smoke evidence:
+  `C:\logishift\smoke-tools\demo-package-a\artifacts\20260727-134804`.
+  Stage 1 passed: initial admin Dashboard, admin → driver, and driver → admin
+  all rendered correctly. Stage 2 reached the finished workflow but stopped
+  when DriverView did not visibly render the persisted synthetic comment after
+  finish. No forbidden write attempt or relay-blocked call was observed. This
+  is recorded as `FAIL_SHIFT_WORKFLOW`; it was not changed by this narrowly
+  scoped role-switch correction.
+
 ## Limitations and Phase 3 boundary
 
 - Browser state has no cross-device continuity.
