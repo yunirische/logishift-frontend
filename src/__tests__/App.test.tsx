@@ -34,14 +34,30 @@ vi.mock("../components/Login", () => ({
 vi.mock("../components/Layout", () => ({
   default: ({
     children,
+    activeTab,
+    setActiveTab,
+    demoPersona,
     setDemoPersona,
   }: {
     children: React.ReactNode;
+    activeTab: string;
+    setActiveTab: (tab: string) => void;
+    demoPersona?: "admin" | "driver";
     setDemoPersona?: (persona: "admin" | "driver") => void;
   }) => (
     <div>
+      <div data-testid="active-tab">{activeTab}</div>
+      {demoPersona !== "driver" && (
+        <div data-testid="admin-sidebar">Admin sidebar</div>
+      )}
+      <button type="button" onClick={() => setDemoPersona?.("admin")}>
+        Switch demo persona to admin
+      </button>
       <button type="button" onClick={() => setDemoPersona?.("driver")}>
-        Switch demo persona
+        Switch demo persona to driver
+      </button>
+      <button type="button" onClick={() => setActiveTab("shifts")}>
+        Open shifts
       </button>
       {children}
     </div>
@@ -252,7 +268,9 @@ describe("App protected routes", () => {
       expect(localStorage.getItem("demoPersona")).toBe("admin");
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Switch demo persona" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Switch demo persona to driver" })
+    );
 
     await waitFor(() => {
       expect(localStorage.getItem("demoPersona")).toBe("driver");
@@ -290,6 +308,97 @@ describe("App protected routes", () => {
     await waitFor(() => {
       expect(screen.getByText("Driver view")).toBeInTheDocument();
       expect(localStorage.getItem("demoPersona")).toBe("driver");
+    });
+  });
+
+  it("opens the driver scenario from dashboard and restores dashboard on return to admin", async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError: vi.fn(),
+      user: createDemoAdminUser(),
+    });
+
+    render(<App />);
+
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByTestId("active-tab")).toHaveTextContent("dashboard");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Switch demo persona to driver" })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Driver view")).toBeInTheDocument();
+      expect(screen.getByTestId("active-tab")).toHaveTextContent("my-shifts");
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Switch demo persona to admin" })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Dashboard")).toBeInTheDocument();
+      expect(screen.queryByText("Driver view")).not.toBeInTheDocument();
+      expect(screen.getByTestId("active-tab")).toHaveTextContent("dashboard");
+      expect(screen.getByTestId("admin-sidebar")).toBeInTheDocument();
+    });
+  });
+
+  it("does not reset an admin tab or demo session when the active persona is clicked", async () => {
+    const demoSession = JSON.stringify({
+      version: 2,
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      activeShift: { id: "demo-shift:preserved" },
+      finishedShifts: [],
+    });
+    localStorage.setItem("logishift_demo_session_v2", demoSession);
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError: vi.fn(),
+      user: createDemoAdminUser(),
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Open shifts" }));
+
+    expect(screen.getByTestId("active-tab")).toHaveTextContent("shifts");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Switch demo persona to admin" })
+    );
+
+    expect(screen.getByTestId("active-tab")).toHaveTextContent("shifts");
+    expect(localStorage.getItem("logishift_demo_session_v2")).toBe(demoSession);
+  });
+
+  it("restores dashboard from a persisted driver persona after reload through the demo UI", async () => {
+    localStorage.setItem("demoPersona", "driver");
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError: vi.fn(),
+      user: createDemoAdminUser(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Driver view")).toBeInTheDocument();
+      expect(screen.getByTestId("active-tab")).toHaveTextContent("my-shifts");
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Switch demo persona to admin" })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Dashboard")).toBeInTheDocument();
+      expect(screen.getByTestId("active-tab")).toHaveTextContent("dashboard");
     });
   });
 

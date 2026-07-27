@@ -172,6 +172,15 @@ const AppContent: React.FC = () => {
     setActiveTab(nextTab);
   };
 
+  const handleSetDemoPersona = (nextPersona: DemoPersona) => {
+    if (nextPersona === demoPersona) {
+      return;
+    }
+
+    setDemoPersona(nextPersona);
+    setActiveTab(nextPersona === "driver" ? "my-shifts" : "dashboard");
+  };
+
   const isDemoMode = isDemoTenantId(user?.tenant_id);
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
 
@@ -284,7 +293,7 @@ const AppContent: React.FC = () => {
     return (
       <ErrorBoundary>
         <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
-          <Layout activeTab="billing" setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
+          <Layout activeTab="billing" setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={handleSetDemoPersona}>
             <ErrorBoundary>
               <BillingView returnMode="success" />
             </ErrorBoundary>
@@ -298,7 +307,7 @@ const AppContent: React.FC = () => {
     return (
       <ErrorBoundary>
         <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
-          <Layout activeTab="billing" setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
+          <Layout activeTab="billing" setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={handleSetDemoPersona}>
             <ErrorBoundary>
               <BillingView returnMode="cancel" />
             </ErrorBoundary>
@@ -455,7 +464,7 @@ const AppContent: React.FC = () => {
             activeTab={activeTab}
             setActiveTab={handleSetActiveTab}
             demoPersona={demoPersona}
-            setDemoPersona={setDemoPersona}
+            setDemoPersona={handleSetDemoPersona}
           >
             <ErrorBoundary>
               <DriverView focusHistory={activeTab === "driver-history"} />
@@ -469,7 +478,7 @@ const AppContent: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
-        <Layout activeTab={activeTab} setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={setDemoPersona}>
+        <Layout activeTab={activeTab} setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={handleSetDemoPersona}>
           <ErrorBoundary>
             {renderContent()}
           </ErrorBoundary>
