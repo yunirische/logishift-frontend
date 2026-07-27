@@ -149,9 +149,10 @@ existing endpoints.
 - Final secret, forbidden-scope, write-call, and combined-gap scans are
   required immediately before commit.
 
-## Local smoke
+## Initial local smoke attempt
 
-Status: **NOT PERFORMED**.
+Historical status: **NOT PERFORMED**. Superseded by the automated smoke
+record below.
 
 The local Vite server was configured with an unreachable localhost API origin,
 so no production endpoint could be reached. The available in-app browser
@@ -201,6 +202,37 @@ Manual checklist required for owner review:
   finish. No forbidden write attempt or relay-blocked call was observed. This
   is recorded as `FAIL_SHIFT_WORKFLOW`; it was not changed by this narrowly
   scoped role-switch correction.
+
+## Automated Package A smoke pass — 2026-07-27
+
+- The earlier `FAIL_SHIFT_WORKFLOW` was a harness false negative. The
+  synthetic comment remained in DemoSessionStore through the end-photo,
+  invoice-photo/finish, and reload transitions. Driver history intentionally
+  renders the comment only after expanding the matching synthetic card with
+  `Подробнее`; the previous harness stopped before doing that.
+- The subsequent `FAIL_RELOAD` exposed a product defect in the
+  `focusHistory` branch: preview actions updated the shared `actionMessage`,
+  toast, and `demoPreview` states, but the history-only early return rendered
+  none of their UI hosts. Corrective commit
+  `a66d00fb4e6ea8eb274f4ea380d5839da92aa11b`
+  (`fix(demo): show photo feedback in driver history`) renders the existing
+  feedback region, toast, and `DemoPhotoPreviewDialog` in that branch without
+  changing the store, workflow, API paths, or normal DriverView layout.
+- Focused DriverView tests passed (21 tests), focused Package A tests passed
+  (6 files, 55 tests), and the full frontend suite passed (27 files,
+  157 tests). TypeScript, production build, diff check, secret scan,
+  forbidden-scope scan, and write-call scan passed.
+- The full automated smoke passed at
+  `C:\logishift\smoke-tools\demo-package-a\artifacts\20260727-190833`.
+  Stage 1 restored Dashboard and the admin sidebar after both role
+  transitions. Stage 2 completed start proof, comment, active Dashboard and
+  registry projections, end and invoice proofs, finished history, and reload.
+  The finished-history in-memory preview opened and closed by both its button
+  and Escape before reload. After reload, the persisted comment and all three
+  photo metadata entries remained, while the photo control showed the honest
+  metadata-only message without a stale or broken image.
+- Network evidence recorded 132 GET responses, one standard demo-auth POST,
+  zero forbidden frontend write attempts, and zero relay-blocked calls.
 
 ## Limitations and Phase 3 boundary
 
