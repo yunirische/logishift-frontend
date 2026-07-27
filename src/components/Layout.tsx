@@ -16,6 +16,7 @@ import {
   LucideIcon,
 } from "lucide-react";
 import DemoBanner from './DemoBanner';
+import DemoScenarioGuide from "./DemoScenarioGuide";
 import { isDemoHostname, isDemoTenantId } from "../config/demo";
 import BrandLogo from "./BrandLogo";
 import AuthenticatedLegalMenu from "./AuthenticatedLegalMenu";
@@ -366,6 +367,14 @@ const Layout: React.FC<LayoutProps> = ({
         <div className="flex-1 p-6 lg:p-10 overflow-x-hidden">
           {shouldShowDemoBanner && setDemoPersona && (
             <DemoBanner demoPersona={demoPersona} setDemoPersona={setDemoPersona} />
+          )}
+          {isDemoMode && setDemoPersona && (
+            <DemoScenarioGuide
+              demoPersona={demoPersona}
+              activeTab={activeTab}
+              setDemoPersona={setDemoPersona}
+              setActiveTab={setActiveTab}
+            />
           )}
           {shouldShowDemoBanner && (
             <button

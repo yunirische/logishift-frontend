@@ -1246,7 +1246,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
       </div>
 
       {!activeShift ? (
-        <div className="space-y-5">
+        <div className="space-y-5" id="demo-driver-selection">
           <Card className="border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <Truck size={16} />
@@ -1398,7 +1398,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-5" id="demo-driver-workflow">
           <div data-testid="current-shift-status">
             <Card className="border border-slate-200 bg-white p-6 shadow-md">
             <div className="mb-5 flex items-center justify-between">
@@ -1625,7 +1625,10 @@ export const DriverView: React.FC<DriverViewProps> = ({
       )}
 
       {/* Sticky primary action bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm lg:left-72 lg:px-6">
+      <div
+        id="demo-driver-action"
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm lg:left-72 lg:px-6"
+      >
         <div
           className="mx-auto w-full max-w-6xl"
           data-testid="driver-action-bar-shell"

@@ -116,6 +116,40 @@ describe("Authenticated legal navigation", () => {
       screen.getByRole("button", { name: /Документы и поддержка/i })
     ).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText(SUPPORT_EMAIL)).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("demo-scenario-guide")
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the guide only for the authenticated demo tenant", () => {
+    mockIsDemoHostname.mockReturnValue(true);
+    mockIsDemoTenantId.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({
+      logout: vi.fn(),
+      user: {
+        id: 1,
+        tenant_id: 999,
+        full_name: "Админ Тест",
+        role: UserRole.ADMIN,
+        current_state: "idle",
+      },
+    });
+
+    render(
+      <Layout
+        activeTab="dashboard"
+        setActiveTab={vi.fn()}
+        demoPersona="admin"
+        setDemoPersona={vi.fn()}
+      >
+        <div>Page content</div>
+      </Layout>
+    );
+
+    expect(screen.getByTestId("demo-scenario-guide")).toBeInTheDocument();
+    expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
+      "Шаг 1 из 5"
+    );
   });
 
   it("uses the unified logout flow for demo logout", async () => {

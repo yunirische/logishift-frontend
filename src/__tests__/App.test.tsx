@@ -56,6 +56,9 @@ vi.mock("../components/Layout", () => ({
       <button type="button" onClick={() => setDemoPersona?.("driver")}>
         Switch demo persona to driver
       </button>
+      <button type="button" onClick={() => setDemoPersona?.("driver")}>
+        Guide open driver
+      </button>
       <button type="button" onClick={() => setActiveTab("shifts")}>
         Open shifts
       </button>
@@ -343,6 +346,27 @@ describe("App protected routes", () => {
       expect(screen.queryByText("Driver view")).not.toBeInTheDocument();
       expect(screen.getByTestId("active-tab")).toHaveTextContent("dashboard");
       expect(screen.getByTestId("admin-sidebar")).toBeInTheDocument();
+    });
+  });
+
+  it("routes the initial guide action through the persona transition contract", async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError: vi.fn(),
+      user: createDemoAdminUser(),
+    });
+
+    render(<App />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Guide open driver" })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Driver view")).toBeInTheDocument();
+      expect(screen.getByTestId("active-tab")).toHaveTextContent("my-shifts");
     });
   });
 
