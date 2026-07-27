@@ -40,4 +40,16 @@ describe("DemoBanner registration handoff", () => {
 
     expect(setDemoPersona).toHaveBeenCalledWith("driver");
   });
+
+  it("explains the difference between driver and admin shift actions", () => {
+    render(<DemoBanner demoPersona="admin" setDemoPersona={vi.fn()} />);
+
+    expect(
+      screen.getByText(
+        /Водитель сам начинает и завершает смену в своём режиме\./
+      )
+    ).toHaveTextContent(
+      "Администратор может оформить смену за сотрудника через реестр."
+    );
+  });
 });

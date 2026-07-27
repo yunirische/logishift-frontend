@@ -152,6 +152,74 @@ describe("Authenticated legal navigation", () => {
     );
   });
 
+  it("hides the driver workday entry from the demo admin menu", () => {
+    mockIsDemoHostname.mockReturnValue(true);
+    mockIsDemoTenantId.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({
+      logout: vi.fn(),
+      user: {
+        id: 1,
+        tenant_id: 999,
+        full_name: "Админ Тест",
+        role: UserRole.ADMIN,
+        current_state: "idle",
+      },
+    });
+
+    render(
+      <Layout
+        activeTab="dashboard"
+        setActiveTab={vi.fn()}
+        demoPersona="admin"
+        setDemoPersona={vi.fn()}
+      >
+        <div>Page content</div>
+      </Layout>
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Мой рабочий день" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the driver workday entry in demo driver mode", () => {
+    mockIsDemoHostname.mockReturnValue(true);
+    mockIsDemoTenantId.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({
+      logout: vi.fn(),
+      user: {
+        id: 1,
+        tenant_id: 999,
+        full_name: "Админ Тест",
+        role: UserRole.ADMIN,
+        current_state: "idle",
+      },
+    });
+
+    render(
+      <Layout
+        activeTab="my-shifts"
+        setActiveTab={vi.fn()}
+        demoPersona="driver"
+        setDemoPersona={vi.fn()}
+      >
+        <div>Page content</div>
+      </Layout>
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Мой рабочий день" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the real admin workday menu entry unchanged", () => {
+    renderLayout(UserRole.ADMIN);
+
+    expect(
+      screen.getByRole("button", { name: "Мой рабочий день" })
+    ).toBeInTheDocument();
+  });
+
   it("uses the unified logout flow for demo logout", async () => {
     const user = userEvent.setup();
     const logout = vi.fn();

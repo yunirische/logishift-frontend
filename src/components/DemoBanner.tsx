@@ -26,7 +26,8 @@ const DemoBanner: React.FC<DemoBannerProps> = ({ demoPersona, setDemoPersona }) 
           </a>.
         </p>
         <p className="text-xs text-amber-700 mt-2 leading-relaxed">
-          Попробуйте сценарий: водитель начинает смену, а диспетчер видит ее в реестре.
+          Водитель сам начинает и завершает смену в своём режиме.
+          Администратор может оформить смену за сотрудника через реестр.
         </p>
       </div>
       <div className="shrink-0">

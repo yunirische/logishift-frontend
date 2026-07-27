@@ -18,6 +18,7 @@ interface TrendsChartProps {
   isLoading?: boolean;
   error?: string | null;
   onRetry?: () => void;
+  showLowDataState?: boolean;
 }
 
 // Metric configuration with labels and units
@@ -100,8 +101,27 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading = false, error, onRetry }) => {
+export const TrendsChart: React.FC<TrendsChartProps> = ({
+  data,
+  days,
+  isLoading = false,
+  error,
+  onRetry,
+  showLowDataState = false,
+}) => {
   const [selectedMetric, setSelectedMetric] = useState<TrendMetric>("shifts");
+  const distinctValidDates = useMemo(
+    () =>
+      new Set(
+        data
+          .map((item) => item.date)
+          .filter(
+            (date) =>
+              Boolean(date) && !Number.isNaN(new Date(date).getTime())
+          )
+      ).size,
+    [data]
+  );
 
   // Transform data for selected metric
   const chartData = useMemo(() => {
@@ -154,6 +174,30 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
     );
   }
 
+  if (showLowDataState && distinctValidDates < 2) {
+    return (
+      <div
+        className="bg-white rounded-lg shadow-sm p-4"
+        data-testid="analytics-trends-low-data"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#0a192f]/10 rounded-lg">
+            <TrendingUp className="w-5 h-5 text-[#0a192f]" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-slate-800">
+              Недостаточно данных для динамики
+            </h3>
+            <p className="mt-1 text-sm leading-5 text-slate-500">
+              В демо пока мало завершённых смен. Графики заполняются по мере
+              накопления данных.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!data.length) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-4">
@@ -200,7 +244,7 @@ export const TrendsChart: React.FC<TrendsChartProps> = ({ data, days, isLoading 
       </div>
 
       {/* Chart container */}
-      <div className="h-64">
+      <div className="h-64" data-testid="analytics-trends-chart">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}

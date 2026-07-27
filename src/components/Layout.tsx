@@ -263,12 +263,16 @@ const Layout: React.FC<LayoutProps> = ({
             </p>
             <div className="space-y-1">
               {mainItems
-                .filter(
-                  (item) =>
-                    !isDemoDriverMode ||
-                    item.id === "my-shifts" ||
-                    item.id === "driver-history"
-                )
+                .filter((item) => {
+                  if (isDemoDriverMode) {
+                    return (
+                      item.id === "my-shifts" ||
+                      item.id === "driver-history"
+                    );
+                  }
+
+                  return !(isDemoMode && item.id === "my-shifts");
+                })
                 .map(renderButton)}
             </div>
           </div>

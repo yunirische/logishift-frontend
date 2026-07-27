@@ -8,10 +8,14 @@ import { TrendsChart } from "./analytics/TrendsChart";
 import { DriverRankings } from "./analytics/DriverRankings";
 import { InsightsPanel } from "./analytics/InsightsPanel";
 import { ErrorBoundary } from "./analytics/ErrorBoundary";
+import { useAuth } from "../context/AuthContext";
+import { isDemoTenantId } from "../config/demo";
 
 type TimeRangePreset = 7 | 30 | 90;
 
 const Analytics: React.FC = () => {
+  const { user } = useAuth();
+  const isDemoMode = isDemoTenantId(user?.tenant_id);
   const [selectedDays, setSelectedDays] = useState<TimeRangePreset>(30);
   const [isLoading, setIsLoading] = useState(false);
   const [isRangeLoading, setIsRangeLoading] = useState(false);
@@ -396,6 +400,7 @@ const Analytics: React.FC = () => {
               isLoading={trendsLoading}
               error={trendsError}
               onRetry={fetchTrends}
+              showLowDataState={isDemoMode}
             />
           </div>
 
