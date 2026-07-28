@@ -38,12 +38,14 @@ vi.mock("../components/Layout", () => ({
     setActiveTab,
     demoPersona,
     setDemoPersona,
+    showDemoShiftInRegistry,
   }: {
     children: React.ReactNode;
     activeTab: string;
     setActiveTab: (tab: string) => void;
     demoPersona?: "admin" | "driver";
     setDemoPersona?: (persona: "admin" | "driver") => void;
+    showDemoShiftInRegistry?: (shiftId: string) => void;
   }) => (
     <div>
       <div data-testid="active-tab">{activeTab}</div>
@@ -62,6 +64,14 @@ vi.mock("../components/Layout", () => ({
       <button type="button" onClick={() => setActiveTab("shifts")}>
         Open shifts
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          showDemoShiftInRegistry?.("demo-shift:from-guide")
+        }
+      >
+        Guide show synthetic shift
+      </button>
       {children}
     </div>
   ),
@@ -69,6 +79,12 @@ vi.mock("../components/Layout", () => ({
 
 vi.mock("../components/Dashboard", () => ({
   default: () => <div>Dashboard</div>,
+}));
+
+vi.mock("../components/Shifts", () => ({
+  default: ({ focusDemoShiftId }: { focusDemoShiftId?: string | null }) => (
+    <div data-testid="shifts-focus-id">{focusDemoShiftId || "none"}</div>
+  ),
 }));
 
 vi.mock("../views/LandingView", () => ({
@@ -397,6 +413,26 @@ describe("App protected routes", () => {
 
     expect(screen.getByTestId("active-tab")).toHaveTextContent("shifts");
     expect(localStorage.getItem("logishift_demo_session_v2")).toBe(demoSession);
+  });
+
+  it("opens the registry with the exact synthetic shift requested by the guide", async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+      clearError: vi.fn(),
+      user: createDemoAdminUser(),
+    });
+
+    render(<App />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Guide show synthetic shift" })
+    );
+
+    expect(screen.getByTestId("active-tab")).toHaveTextContent("shifts");
+    expect(await screen.findByTestId("shifts-focus-id")).toHaveTextContent(
+      "demo-shift:from-guide"
+    );
   });
 
   it("restores dashboard from a persisted driver persona after reload through the demo UI", async () => {

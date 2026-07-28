@@ -41,15 +41,15 @@ describe("DemoBanner registration handoff", () => {
     expect(setDemoPersona).toHaveBeenCalledWith("driver");
   });
 
-  it("distinguishes an employee's own shift from an admin-created shift", () => {
+  it("distinguishes the demo admin's own shift from a shift created for another driver", () => {
     render(<DemoBanner demoPersona="admin" setDemoPersona={vi.fn()} />);
 
     expect(
       screen.getByText(
-        /В разделе «Мой рабочий день» сотрудник ведёт собственную смену\./
+        /В разделе «Мой рабочий день» администратор ведёт собственную смену\./
       )
     ).toHaveTextContent(
-      "В реестре администратор может создать смену за другого водителя."
+      "В реестре он может создать смену за другого водителя."
     );
   });
 

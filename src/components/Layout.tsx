@@ -44,6 +44,7 @@ interface LayoutProps {
   setActiveTab: (tab: string) => void;
   demoPersona?: DemoPersona;
   setDemoPersona?: (persona: DemoPersona) => void;
+  showDemoShiftInRegistry?: (shiftId: string) => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -52,6 +53,7 @@ const Layout: React.FC<LayoutProps> = ({
   setActiveTab,
   demoPersona = 'admin',
   setDemoPersona,
+  showDemoShiftInRegistry,
 }) => {
   const { user, logout } = useAuth();
   const isAdmin =
@@ -364,7 +366,7 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </header>
 
-        <div className="flex-1 p-6 lg:p-10 overflow-x-hidden">
+        <div className="flex-1 p-6 lg:p-10 overflow-x-clip">
           {shouldShowDemoBanner && setDemoPersona && (
             <DemoBanner demoPersona={demoPersona} setDemoPersona={setDemoPersona} />
           )}
@@ -374,6 +376,7 @@ const Layout: React.FC<LayoutProps> = ({
               activeTab={activeTab}
               setDemoPersona={setDemoPersona}
               setActiveTab={setActiveTab}
+              showDemoShiftInRegistry={showDemoShiftInRegistry}
             />
           )}
           {shouldShowDemoBanner && (

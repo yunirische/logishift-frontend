@@ -11,6 +11,7 @@ interface DemoScenarioGuideProps {
   activeTab: string;
   setDemoPersona: (persona: DemoPersona) => void;
   setActiveTab: (tab: string) => void;
+  showDemoShiftInRegistry?: (shiftId: string) => void;
 }
 
 interface GuideState {
@@ -67,6 +68,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
   activeTab,
   setDemoPersona,
   setActiveTab,
+  showDemoShiftInRegistry,
 }) => {
   const { activeShift, finishedShifts } = useDemoSession();
   const [collapsed, setCollapsed] = useState(false);
@@ -134,10 +136,21 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
     }
 
     if (activeShift && demoPersona === "admin") {
+      if (activeTab !== "shifts") {
+        return {
+          step: 4,
+          title: "Проверьте смену у администратора",
+          text: "Смена появилась в реестре. Откройте её, чтобы посмотреть данные и фотографии.",
+          actionLabel: "Показать в реестре",
+          action: () => showDemoShiftInRegistry?.(activeShift.id),
+          shift: activeShift,
+        };
+      }
+
       return {
         step: 4,
         title: "Проверьте смену у администратора",
-        text: "Смена водителя уже появилась у администратора.",
+        text: "Откройте «Подробнее» у демонстрационной смены, затем вернитесь к водителю для завершения.",
         actionLabel: "Вернуться к водителю и завершить",
         action: () => {
           setReviewedActiveShiftId(activeShift.id);
@@ -213,6 +226,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
     reviewedActiveShiftId,
     setActiveTab,
     setDemoPersona,
+    showDemoShiftInRegistry,
   ]);
 
   const handleAnchorAction = () => {
@@ -223,7 +237,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
 
   return (
     <section
-      className="mb-4 rounded-xl border border-blue-200 bg-blue-50/90 px-3 py-2.5 shadow-sm sm:mb-5 sm:px-4 sm:py-3"
+      className="sticky top-[5.25rem] z-20 mb-4 max-h-[calc(100vh-5.75rem)] overflow-y-auto rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 shadow-md sm:mb-5 sm:px-4 sm:py-3"
       data-testid="demo-scenario-guide"
       data-synthetic-shift-id={guideState.shift?.id}
       aria-labelledby="demo-scenario-guide-title"

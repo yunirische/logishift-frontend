@@ -1,4 +1,4 @@
-import React, { useEffect, useState, lazy, Suspense } from "react";
+import React, { useCallback, useEffect, useState, lazy, Suspense } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
@@ -148,6 +148,9 @@ const AppContent: React.FC = () => {
     }
     return "dashboard";
   });
+  const [demoRegistryFocusShiftId, setDemoRegistryFocusShiftId] = useState<
+    string | null
+  >(null);
   // Initialize from localStorage or default to 'admin'
   const [demoPersona, setDemoPersona] = useState<DemoPersona>(() => {
     const saved = localStorage.getItem(APP_DEMO_PERSONA_KEY);
@@ -180,6 +183,14 @@ const AppContent: React.FC = () => {
     setDemoPersona(nextPersona);
     setActiveTab(nextPersona === "driver" ? "my-shifts" : "dashboard");
   };
+
+  const handleShowDemoShiftInRegistry = (shiftId: string) => {
+    setDemoRegistryFocusShiftId(shiftId);
+    setActiveTab("shifts");
+  };
+  const handleDemoRegistryFocusHandled = useCallback(() => {
+    setDemoRegistryFocusShiftId(null);
+  }, []);
 
   const isDemoMode = isDemoTenantId(user?.tenant_id);
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
@@ -382,7 +393,10 @@ const AppContent: React.FC = () => {
       case "shifts":
         return (
           <Suspense fallback={loadingFallback}>
-            <Shifts />
+            <Shifts
+              focusDemoShiftId={demoRegistryFocusShiftId}
+              onFocusDemoShiftHandled={handleDemoRegistryFocusHandled}
+            />
           </Suspense>
         );
       case "drivers":
@@ -465,6 +479,7 @@ const AppContent: React.FC = () => {
             setActiveTab={handleSetActiveTab}
             demoPersona={demoPersona}
             setDemoPersona={handleSetDemoPersona}
+            showDemoShiftInRegistry={handleShowDemoShiftInRegistry}
           >
             <ErrorBoundary>
               <DriverView focusHistory={activeTab === "driver-history"} />
@@ -478,7 +493,13 @@ const AppContent: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="antialiased selection:bg-[#0a192f]/10 selection:text-[#0a192f]">
-        <Layout activeTab={activeTab} setActiveTab={handleSetActiveTab} demoPersona={demoPersona} setDemoPersona={handleSetDemoPersona}>
+        <Layout
+          activeTab={activeTab}
+          setActiveTab={handleSetActiveTab}
+          demoPersona={demoPersona}
+          setDemoPersona={handleSetDemoPersona}
+          showDemoShiftInRegistry={handleShowDemoShiftInRegistry}
+        >
           <ErrorBoundary>
             {renderContent()}
           </ErrorBoundary>

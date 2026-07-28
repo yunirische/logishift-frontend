@@ -148,6 +148,11 @@ type ShiftListResponse = {
   total: number;
 };
 
+interface ShiftsProps {
+  focusDemoShiftId?: string | null;
+  onFocusDemoShiftHandled?: () => void;
+}
+
 const normalizeShiftResponse = (response: any): ShiftListResponse => {
   if (response && typeof response === "object") {
     if (Array.isArray(response.data)) {
@@ -189,7 +194,10 @@ const filenameFromDisposition = (
   return match?.[1]?.replace(/['"]/g, "") || fallback;
 };
 
-const Shifts: React.FC = () => {
+const Shifts: React.FC<ShiftsProps> = ({
+  focusDemoShiftId = null,
+  onFocusDemoShiftHandled,
+}) => {
   const {
     activeShift: demoActiveShift,
     finishedShifts: demoFinishedShifts,
@@ -225,6 +233,13 @@ const Shifts: React.FC = () => {
     url: string;
     fileName: string;
   } | null>(null);
+  const [expandedDemoShiftId, setExpandedDemoShiftId] = useState<string | null>(
+    null
+  );
+  const [highlightedDemoShiftId, setHighlightedDemoShiftId] = useState<
+    string | null
+  >(null);
+  const focusedDemoRowRef = React.useRef<HTMLTableRowElement | null>(null);
 
   const user = api.getUserInfo();
   const isAdmin =
@@ -500,6 +515,41 @@ const Shifts: React.FC = () => {
     ...serverDisplayShifts,
   ];
   const displayTotalCount = totalCount + syntheticShifts.length;
+  const focusedDemoShiftIsVisible = displayShifts.some(
+    (shift) =>
+      shift.is_demo_synthetic && String(shift.id) === focusDemoShiftId
+  );
+
+  useEffect(() => {
+    if (
+      !focusDemoShiftId ||
+      loading ||
+      !focusedDemoShiftIsVisible ||
+      !focusedDemoRowRef.current
+    ) {
+      return;
+    }
+
+    focusedDemoRowRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    setHighlightedDemoShiftId(focusDemoShiftId);
+    onFocusDemoShiftHandled?.();
+
+    const timeoutId = window.setTimeout(() => {
+      setHighlightedDemoShiftId((current) =>
+        current === focusDemoShiftId ? null : current
+      );
+    }, 2400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    focusDemoShiftId,
+    focusedDemoShiftIsVisible,
+    loading,
+    onFocusDemoShiftHandled,
+  ]);
 
   const resetFilters = () => {
     setFilters({
@@ -891,10 +941,25 @@ const Shifts: React.FC = () => {
             <tbody className="divide-y divide-slate-50 text-xs">
               {displayShifts.length > 0 ? (
                 displayShifts.map((shift) => (
+                  <React.Fragment key={shift.id}>
                   <tr
-                    key={shift.id}
+                    ref={
+                      shift.is_demo_synthetic &&
+                      String(shift.id) === focusDemoShiftId
+                        ? focusedDemoRowRef
+                        : undefined
+                    }
+                    data-testid={
+                      shift.is_demo_synthetic
+                        ? `demo-registry-row-${shift.id}`
+                        : undefined
+                    }
                     className={`transition-colors hover:bg-indigo-50/10 ${
                       shift.is_excluded ? "bg-slate-50/60 text-slate-500 opacity-75" : ""
+                    } ${
+                      highlightedDemoShiftId === String(shift.id)
+                        ? "bg-amber-100 ring-2 ring-inset ring-amber-400"
+                        : ""
                     }`}
                   >
                     <td className="px-4 py-2">
@@ -1030,16 +1095,137 @@ const Shifts: React.FC = () => {
                           </button>
                         )}
                         {shift.is_demo_synthetic && (
-                          <span
-                            className="text-[10px] font-semibold text-slate-400"
-                            title="Демонстрационная смена недоступна для редактирования"
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedDemoShiftId((current) =>
+                                current === String(shift.id)
+                                  ? null
+                                  : String(shift.id)
+                              )
+                            }
+                            className="inline-flex min-h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
+                            aria-expanded={
+                              expandedDemoShiftId === String(shift.id)
+                            }
+                            aria-controls={`demo-shift-details-${shift.id}`}
                           >
-                            Без действий
-                          </span>
+                            Подробнее
+                          </button>
                         )}
                       </div>
                     </td>
                   </tr>
+                  {shift.is_demo_synthetic &&
+                    expandedDemoShiftId === String(shift.id) && (
+                      <tr
+                        id={`demo-shift-details-${shift.id}`}
+                        data-testid={`demo-shift-details-${shift.id}`}
+                        className="bg-amber-50/60"
+                      >
+                        <td colSpan={7} className="px-4 py-4">
+                          <div className="rounded-xl border border-amber-200 bg-white p-4 text-left shadow-sm">
+                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-sm font-bold text-slate-900">
+                                  Данные демонстрационной смены
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  Хранится только в этом браузере
+                                </p>
+                              </div>
+                              <span className="mt-2 inline-flex self-start rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-700 sm:mt-0">
+                                {getStatusLabel(shift.status)}
+                              </span>
+                            </div>
+
+                            <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
+                              <div>
+                                <dt className="text-slate-500">Водитель</dt>
+                                <dd className="font-semibold text-slate-900">
+                                  {shift.driver_name || "—"}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Машина</dt>
+                                <dd className="font-semibold text-slate-900">
+                                  {shift.truck_name || "—"}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Объект</dt>
+                                <dd className="font-semibold text-slate-900">
+                                  {shift.site_name || "—"}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-slate-500">Начало</dt>
+                                <dd className="font-semibold text-slate-900">
+                                  {isValidDate(shift.start_time)
+                                    ? formatForDisplay(
+                                        shift.start_time!,
+                                        timezone,
+                                        "DD.MM.YYYY HH:mm"
+                                      )
+                                    : "—"}
+                                </dd>
+                              </div>
+                              <div className="sm:col-span-2">
+                                <dt className="text-slate-500">Комментарий</dt>
+                                <dd className="whitespace-pre-wrap font-semibold text-slate-900">
+                                  {shift.comment?.trim() ||
+                                    "Комментарий пока не добавлен"}
+                                </dd>
+                              </div>
+                            </dl>
+
+                            <div className="mt-4">
+                              <p className="text-xs font-semibold text-slate-700">
+                                Фотографии
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {(
+                                  Object.entries(
+                                    shift.demo_photo_metadata || {}
+                                  ) as Array<
+                                    [DemoPhotoType, DemoPhotoMetadata]
+                                  >
+                                ).length > 0 ? (
+                                  (
+                                    Object.entries(
+                                      shift.demo_photo_metadata || {}
+                                    ) as Array<
+                                      [DemoPhotoType, DemoPhotoMetadata]
+                                    >
+                                  ).map(([type, metadata]) => (
+                                    <span
+                                      key={type}
+                                      className="inline-flex max-w-full items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-800"
+                                      title={metadata.fileName}
+                                    >
+                                      {getDemoPhotoLabel(type)}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-slate-500">
+                                    Фотографии пока не добавлены
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
+                              В рабочем аккаунте администратор может
+                              редактировать время смены, завершать её, добавлять
+                              комментарии и фотографии, отменять или исключать
+                              её из учёта. Эту демонстрационную смену завершите
+                              в режиме водителя.
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))
               ) : (
                 <tr>

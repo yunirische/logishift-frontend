@@ -219,12 +219,28 @@ describe("Shifts cancelled visibility", () => {
       screen.getByText("Причина: Водитель ошибочно начал вторую смену")
     ).toBeInTheDocument();
     expect(screen.getByText("НЕ УЧИТЫВАТЬ")).toBeInTheDocument();
+    const realRow = screen.getByText("#42").closest("tr");
+    expect(realRow).not.toBeNull();
+    expect(
+      within(realRow as HTMLElement).getByTitle("Редактировать")
+    ).toBeInTheDocument();
+    expect(
+      within(realRow as HTMLElement).queryByRole("button", {
+        name: "Подробнее",
+      })
+    ).not.toBeInTheDocument();
   });
 });
 
 describe("Shifts demo session projection", () => {
+  const scrollIntoView = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
     mockGetUserInfo.mockReturnValue({
       id: 1,
       tenant_id: 999,
@@ -246,7 +262,7 @@ describe("Shifts demo session projection", () => {
         status: "active",
         odometerRequired: false,
         invoiceRequired: false,
-        comment: null,
+        comment: "Комментарий из браузера",
         photos: {
           start: {
             type: "start",
@@ -352,7 +368,7 @@ describe("Shifts demo session projection", () => {
     ).toHaveTextContent("Накладная");
   });
 
-  it("does not expose edit/write actions for synthetic rows", async () => {
+  it("opens read-only details without exposing edit/write actions for synthetic rows", async () => {
     render(<Shifts />);
 
     const syntheticRow = (await screen.findByText("#demo-shift:active")).closest(
@@ -362,9 +378,51 @@ describe("Shifts demo session projection", () => {
     expect(
       (syntheticRow as HTMLElement).querySelector('button[title="Редактировать"]')
     ).toBeNull();
-    expect(
-      within(syntheticRow as HTMLElement).getByText("Без действий")
-    ).toBeInTheDocument();
+    fireEvent.click(
+      within(syntheticRow as HTMLElement).getByRole("button", {
+        name: "Подробнее",
+      })
+    );
+
+    const details = screen.getByTestId(
+      "demo-shift-details-demo-shift:active"
+    );
+    expect(details).toHaveTextContent("Демо Водитель");
+    expect(details).toHaveTextContent("КамАЗ");
+    expect(details).toHaveTextContent("Склад");
+    expect(details).toHaveTextContent("Комментарий из браузера");
+    expect(details).toHaveTextContent("Одометр до смены");
+    expect(details).toHaveTextContent(
+      "Эту демонстрационную смену завершите в режиме водителя."
+    );
+    expect(mockOpenShiftFilePreview).not.toHaveBeenCalled();
+  });
+
+  it("scrolls to and briefly highlights the exact requested synthetic row", async () => {
+    const onFocusDemoShiftHandled = vi.fn();
+    render(
+      <Shifts
+        focusDemoShiftId="demo-shift:active"
+        onFocusDemoShiftHandled={onFocusDemoShiftHandled}
+      />
+    );
+
+    const row = await screen.findByTestId(
+      "demo-registry-row-demo-shift:active"
+    );
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "center",
+      });
+      expect(onFocusDemoShiftHandled).toHaveBeenCalledTimes(1);
+    });
+    expect(row).toHaveClass(
+      "bg-amber-100",
+      "ring-2",
+      "ring-inset",
+      "ring-amber-400"
+    );
   });
 
   it("opens only the memory-local synthetic preview and never the server preview", async () => {

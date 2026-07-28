@@ -51,20 +51,24 @@ const renderGuide = ({
   activeTab = persona === "driver" ? "my-shifts" : "dashboard",
   setDemoPersona = vi.fn(),
   setActiveTab = vi.fn(),
+  showDemoShiftInRegistry = vi.fn(),
 }: {
   persona?: "admin" | "driver";
   activeTab?: string;
   setDemoPersona?: ReturnType<typeof vi.fn>;
   setActiveTab?: ReturnType<typeof vi.fn>;
+  showDemoShiftInRegistry?: ReturnType<typeof vi.fn>;
 } = {}) => ({
   setDemoPersona,
   setActiveTab,
+  showDemoShiftInRegistry,
   ...render(
     <DemoScenarioGuide
       demoPersona={persona}
       activeTab={activeTab}
       setDemoPersona={setDemoPersona}
       setActiveTab={setActiveTab}
+      showDemoShiftInRegistry={showDemoShiftInRegistry}
     />
   ),
 });
@@ -183,14 +187,16 @@ describe("DemoScenarioGuide", () => {
     expect(setDemoPersona).toHaveBeenCalledWith("admin");
   });
 
-  it("shows an active shift summary to admin and continues to driver step 5", async () => {
+  it("guides an admin to the exact registry row before returning to the driver", async () => {
     const user = userEvent.setup();
     const setDemoPersona = vi.fn();
+    const showDemoShiftInRegistry = vi.fn();
     const shift = createShift({ comment: "Комментарий водителя" });
     setSession({ activeShift: shift });
     const { rerender } = renderGuide({
       persona: "admin",
       setDemoPersona,
+      showDemoShiftInRegistry,
     });
 
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
@@ -202,6 +208,31 @@ describe("DemoScenarioGuide", () => {
     expect(summary).toHaveTextContent("ЖК Северный");
     expect(summary).toHaveTextContent("Активна");
 
+    expect(
+      screen.getByText(
+        "Смена появилась в реестре. Откройте её, чтобы посмотреть данные и фотографии."
+      )
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Показать в реестре" })
+    );
+    expect(showDemoShiftInRegistry).toHaveBeenCalledWith(shift.id);
+    expect(setDemoPersona).not.toHaveBeenCalled();
+
+    rerender(
+      <DemoScenarioGuide
+        demoPersona="admin"
+        activeTab="shifts"
+        setDemoPersona={setDemoPersona}
+        setActiveTab={vi.fn()}
+        showDemoShiftInRegistry={showDemoShiftInRegistry}
+      />
+    );
+    expect(
+      screen.getByText(
+        "Откройте «Подробнее» у демонстрационной смены, затем вернитесь к водителю для завершения."
+      )
+    ).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", {
         name: "Вернуться к водителю и завершить",
@@ -215,6 +246,7 @@ describe("DemoScenarioGuide", () => {
         activeTab="my-shifts"
         setDemoPersona={setDemoPersona}
         setActiveTab={vi.fn()}
+        showDemoShiftInRegistry={showDemoShiftInRegistry}
       />
     );
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
@@ -457,5 +489,19 @@ describe("DemoScenarioGuide", () => {
       "sm:px-4",
       "sm:py-3"
     );
+  });
+
+  it("stays sticky below the app header without becoming modal", () => {
+    renderGuide();
+
+    const guide = screen.getByTestId("demo-scenario-guide");
+    expect(guide).toHaveClass(
+      "sticky",
+      "top-[5.25rem]",
+      "z-20",
+      "max-h-[calc(100vh-5.75rem)]",
+      "overflow-y-auto"
+    );
+    expect(guide).not.toHaveAttribute("aria-modal");
   });
 });
