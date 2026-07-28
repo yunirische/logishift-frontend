@@ -223,7 +223,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
 
   return (
     <section
-      className="mb-5 rounded-xl border border-blue-200 bg-blue-50/90 px-4 py-3 shadow-sm"
+      className="mb-4 rounded-xl border border-blue-200 bg-blue-50/90 px-3 py-2.5 shadow-sm sm:mb-5 sm:px-4 sm:py-3"
       data-testid="demo-scenario-guide"
       data-synthetic-shift-id={guideState.shift?.id}
       aria-labelledby="demo-scenario-guide-title"

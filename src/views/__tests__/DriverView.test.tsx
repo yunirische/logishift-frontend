@@ -158,6 +158,30 @@ describe("DriverView comments", () => {
     expect(screen.getByTestId("driver-action-bar-column")).toBeInTheDocument();
   });
 
+  it("explains the demo driver example without changing the demo user", async () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Тестовый водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockGetCurrentShift.mockResolvedValue(null);
+
+    render(<DriverView />);
+
+    expect(
+      await screen.findByText(
+        "В демо этот экран показан на примере водителя Алексея Смирнова."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("Привет, Тестовый водитель")).toBeInTheDocument();
+  });
+
   it("keeps the existing start API flow for a real tenant", async () => {
     mockUseAuth.mockReturnValue({
       user: {

@@ -116,7 +116,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-[#1B254B]">
-            ✋ Создать смену вручную
+            ✋ Создать смену за водителя
           </h3>
           <button
             onClick={handleClose}
@@ -127,7 +127,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
         </div>
 
         <p className="text-sm text-slate-400 mb-6">
-          Выберите водителя, машину и объект
+          Назначьте свободному водителю машину и объект.
         </p>
 
         {/* Form */}
@@ -135,7 +135,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
           {/* Driver Selection */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-              Водитель (idle)
+              Свободный водитель
             </label>
 
             {isLoadingData ? (
@@ -158,7 +158,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
                 </option>
                 {driversList.map((driver) => (
                   <option key={driver.id} value={driver.id}>
-                    {driver.full_name} (ID: {driver.id})
+                    {driver.full_name}
                   </option>
                 ))}
               </select>

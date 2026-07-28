@@ -445,4 +445,17 @@ describe("DemoScenarioGuide", () => {
     await user.keyboard("{Enter}");
     expect(screen.getByTestId("demo-guide-current-step")).toBeInTheDocument();
   });
+
+  it("uses compact spacing before the small-screen breakpoint", () => {
+    renderGuide();
+
+    expect(screen.getByTestId("demo-scenario-guide")).toHaveClass(
+      "mb-4",
+      "px-3",
+      "py-2.5",
+      "sm:mb-5",
+      "sm:px-4",
+      "sm:py-3"
+    );
+  });
 });

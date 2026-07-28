@@ -16,6 +16,17 @@ import { buildShiftQueryString } from "../utils/shiftFilters";
 
 const PAGE_SIZE = 20;
 
+const getDemoPhotoLabel = (type: DemoPhotoType): string => {
+  switch (type) {
+    case "start":
+      return "Одометр до смены";
+    case "end":
+      return "Одометр после смены";
+    case "invoice":
+      return "Накладная";
+  }
+};
+
 const EditShiftModal = React.lazy(() => import("./EditShiftModal"));
 
 type DisplayShift = Omit<Shift, "id"> & {
@@ -810,45 +821,54 @@ const Shifts: React.FC = () => {
               {isAdmin ? "Реестр смен" : "Мои записи"}
             </h2>
             <p className="mt-0.5 text-[10px] font-medium text-slate-400">
-              {displayTotalCount > 0
-                ? `Показано: ${displayShifts.length} из ${displayTotalCount}`
-                : "История и текущий статус смен водителей."}
+              {isAdmin
+                ? "Все смены компании: активные, завершённые и созданные администратором."
+                : displayTotalCount > 0
+                  ? `Показано: ${displayShifts.length} из ${displayTotalCount}`
+                  : "История и текущий статус смен водителей."}
             </p>
           </div>
 
           {isAdmin && (
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={() =>
-                  updateFilters({
-                    accounting: showCancelled ? "included" : "all",
-                  })
-                }
-                className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-                  showCancelled
-                    ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {showCancelled ? "Скрыть отмененные" : "Показать отмененные"}
-              </button>
-              <button
-                onClick={handleExcelExport}
-                disabled={exporting || exportingZip}
-                className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Download size={15} />
-                {exporting ? "Загрузка..." : "Выгрузить в Excel"}
-              </button>
-              <button
-                onClick={handleZipExport}
-                disabled={exportingZip || exporting}
-                className="flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Download size={15} />
-                {exportingZip ? "Загрузка..." : "Выгрузить фото ZIP"}
-              </button>
+            <div className="flex flex-col gap-2 sm:items-end">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateFilters({
+                      accounting: showCancelled ? "included" : "all",
+                    })
+                  }
+                  className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                    showCancelled
+                      ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {showCancelled ? "Скрыть отмененные" : "Показать отмененные"}
+                </button>
+                <button
+                  onClick={handleExcelExport}
+                  disabled={exporting || exportingZip}
+                  className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Download size={15} />
+                  {exporting ? "Загрузка..." : "Выгрузить в Excel"}
+                </button>
+                <button
+                  onClick={handleZipExport}
+                  disabled={exportingZip || exporting}
+                  className="flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Download size={15} />
+                  {exportingZip ? "Загрузка..." : "Выгрузить фото ZIP"}
+                </button>
+              </div>
+              {isDemoMode && (
+                <p className="text-xs leading-5 text-amber-700">
+                  Созданная в демо смена хранится только в браузере и не входит в экспорт.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -953,15 +973,11 @@ const Shifts: React.FC = () => {
                                       );
                                     }
                                   }}
-                                  aria-label={`Проверить демонстрационное фото: ${metadata.fileName}`}
-                                  className="flex h-8 min-w-8 items-center justify-center rounded-full bg-amber-50 px-2 text-[10px] font-semibold text-amber-700"
-                                  title={metadata.fileName}
+                                  aria-label={`Проверить демонстрационное фото: ${getDemoPhotoLabel(type)} — ${metadata.fileName}`}
+                                  className="inline-flex min-h-8 items-center justify-center rounded-full bg-amber-50 px-2 text-[10px] font-semibold text-amber-700"
+                                  title={`${getDemoPhotoLabel(type)}: ${metadata.fileName}`}
                                 >
-                                  {type === "start"
-                                    ? "S"
-                                    : type === "end"
-                                    ? "F"
-                                    : "I"}
+                                  {getDemoPhotoLabel(type)}
                                 </button>
                               );
                             })

@@ -161,6 +161,24 @@ describe("Dashboard demo session projection", () => {
     ).toHaveTextContent("2");
   });
 
+  it("uses the clarified manual-shift action without changing its availability", async () => {
+    mockApiGet.mockResolvedValue({
+      activeShifts: 0,
+      totalShifts: 0,
+      activeDrivers: 0,
+      activeShiftsDetails: [],
+    });
+
+    render(<Dashboard />);
+
+    expect(
+      await screen.findByRole("button", { name: "Создать смену за водителя" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Создать смену вручную" })
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps an identical seeded row and projects the synthetic identity exactly once", async () => {
     mockApiGet.mockResolvedValue({
       activeShifts: 1,

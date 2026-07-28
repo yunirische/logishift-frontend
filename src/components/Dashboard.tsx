@@ -309,7 +309,7 @@ const Dashboard: React.FC = () => {
               className="mt-2 w-full py-2 bg-amber-500 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-amber-600 transition-all flex items-center justify-center gap-2"
             >
               <Plus size={20} />
-              Создать смену вручную
+              Создать смену за водителя
             </button>
           </div>
         </div>

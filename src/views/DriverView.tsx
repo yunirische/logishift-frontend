@@ -1217,6 +1217,11 @@ export const DriverView: React.FC<DriverViewProps> = ({
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Привет, {effectiveDriverName}
           </h1>
+          {isDemoMode && (
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              В демо этот экран показан на примере водителя Алексея Смирнова.
+            </p>
+          )}
           <div className="mt-2">
             <span
               className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${

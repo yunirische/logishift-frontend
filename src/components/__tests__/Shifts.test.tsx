@@ -319,12 +319,37 @@ describe("Shifts demo session projection", () => {
   it("shows active and finished synthetic rows alongside seeded server rows", async () => {
     render(<Shifts />);
 
+    expect(
+      await screen.findByText(
+        "Все смены компании: активные, завершённые и созданные администратором."
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Созданная в демо смена хранится только в браузере и не входит в экспорт."
+      )
+    ).toBeInTheDocument();
     expect(await screen.findByText("#demo-shift:active")).toBeInTheDocument();
     expect(screen.getByText("#demo-shift:finished")).toBeInTheDocument();
     expect(screen.getByText("#42")).toBeInTheDocument();
     expect(screen.getAllByText("Демонстрационная смена")).toHaveLength(2);
     expect(screen.getByText("АКТИВНА")).toBeInTheDocument();
     expect(screen.getAllByText("ЗАВЕРШЕНА")).toHaveLength(2);
+  });
+
+  it("labels synthetic demo photos by their metadata type", async () => {
+    render(<Shifts />);
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Проверить демонстрационное фото: Одометр до смены — active-meter.jpg",
+      })
+    ).toHaveTextContent("Одометр до смены");
+    expect(
+      screen.getByRole("button", {
+        name: "Проверить демонстрационное фото: Накладная — finished-invoice.jpg",
+      })
+    ).toHaveTextContent("Накладная");
   });
 
   it("does not expose edit/write actions for synthetic rows", async () => {
@@ -353,7 +378,7 @@ describe("Shifts demo session projection", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "Проверить демонстрационное фото: active-meter.jpg",
+        name: "Проверить демонстрационное фото: Одометр до смены — active-meter.jpg",
       })
     );
 
@@ -375,7 +400,7 @@ describe("Shifts demo session projection", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "Проверить демонстрационное фото: finished-invoice.jpg",
+        name: "Проверить демонстрационное фото: Накладная — finished-invoice.jpg",
       })
     );
 

@@ -13,7 +13,7 @@ const DemoBanner: React.FC<DemoBannerProps> = ({ demoPersona, setDemoPersona }) 
   const registrationUrl = getDemoRegistrationUrl();
 
   return (
-    <div className="mb-6 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center gap-3">
+    <div className="mb-4 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl flex flex-col gap-2.5 sm:mb-6 sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:py-3">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-amber-800">
           Демо-организация

@@ -52,4 +52,12 @@ describe("DemoBanner registration handoff", () => {
       "В реестре администратор может создать смену за другого водителя."
     );
   });
+
+  it("uses compact spacing before the small-screen breakpoint", () => {
+    render(<DemoBanner demoPersona="admin" setDemoPersona={vi.fn()} />);
+
+    expect(
+      screen.getByText("Демо-организация").closest("[class*='mb-4']")
+    ).toHaveClass("px-3", "py-2.5", "sm:px-4", "sm:py-3");
+  });
 });
