@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import Shifts from "../Shifts";
 import { API_ENDPOINTS } from "../../constants";
 
@@ -423,6 +423,124 @@ describe("Shifts demo session projection", () => {
       "ring-inset",
       "ring-amber-400"
     );
+  });
+
+  it("keeps a consumed focus highlight through a controlled rerender and removes it after 2400ms", async () => {
+    const onFocusDemoShiftHandled = vi.fn();
+    const view = render(
+      <Shifts
+        focusDemoShiftId={null}
+        onFocusDemoShiftHandled={onFocusDemoShiftHandled}
+      />
+    );
+    const row = await screen.findByTestId(
+      "demo-registry-row-demo-shift:active"
+    );
+
+    vi.useFakeTimers();
+    try {
+      view.rerender(
+        <Shifts
+          focusDemoShiftId="demo-shift:active"
+          onFocusDemoShiftHandled={onFocusDemoShiftHandled}
+        />
+      );
+      expect(row).toHaveClass("bg-amber-100");
+      expect(onFocusDemoShiftHandled).toHaveBeenCalledTimes(1);
+
+      view.rerender(
+        <Shifts
+          focusDemoShiftId={null}
+          onFocusDemoShiftHandled={onFocusDemoShiftHandled}
+        />
+      );
+      expect(row).toHaveClass("bg-amber-100");
+
+      act(() => {
+        vi.advanceTimersByTime(2399);
+      });
+      expect(row).toHaveClass("bg-amber-100");
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(row).not.toHaveClass("bg-amber-100");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("restarts the highlight timer for a repeated exact focus request", async () => {
+    const onFocusDemoShiftHandled = vi.fn();
+    const view = render(
+      <Shifts
+        focusDemoShiftId={null}
+        onFocusDemoShiftHandled={onFocusDemoShiftHandled}
+      />
+    );
+    const row = await screen.findByTestId(
+      "demo-registry-row-demo-shift:active"
+    );
+
+    vi.useFakeTimers();
+    try {
+      view.rerender(
+        <Shifts
+          focusDemoShiftId="demo-shift:active"
+          onFocusDemoShiftHandled={onFocusDemoShiftHandled}
+        />
+      );
+      act(() => {
+        vi.advanceTimersByTime(1200);
+      });
+
+      view.rerender(
+        <Shifts
+          focusDemoShiftId={null}
+          onFocusDemoShiftHandled={onFocusDemoShiftHandled}
+        />
+      );
+      view.rerender(
+        <Shifts
+          focusDemoShiftId="demo-shift:active"
+          onFocusDemoShiftHandled={onFocusDemoShiftHandled}
+        />
+      );
+      expect(onFocusDemoShiftHandled).toHaveBeenCalledTimes(2);
+
+      act(() => {
+        vi.advanceTimersByTime(1200);
+      });
+      expect(row).toHaveClass("bg-amber-100");
+
+      act(() => {
+        vi.advanceTimersByTime(1200);
+      });
+      expect(row).not.toHaveClass("bg-amber-100");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cleans the highlight timer on unmount without a late update warning", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const view = render(<Shifts focusDemoShiftId={null} />);
+    await screen.findByTestId("demo-registry-row-demo-shift:active");
+
+    vi.useFakeTimers();
+    try {
+      view.rerender(<Shifts focusDemoShiftId="demo-shift:active" />);
+      view.unmount();
+
+      act(() => {
+        vi.advanceTimersByTime(2400);
+      });
+
+      expect(consoleError).not.toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it("opens only the memory-local synthetic preview and never the server preview", async () => {

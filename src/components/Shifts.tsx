@@ -239,6 +239,7 @@ const Shifts: React.FC<ShiftsProps> = ({
   const [highlightedDemoShiftId, setHighlightedDemoShiftId] = useState<
     string | null
   >(null);
+  const [demoHighlightCycle, setDemoHighlightCycle] = useState(0);
   const focusedDemoRowRef = React.useRef<HTMLTableRowElement | null>(null);
 
   const user = api.getUserInfo();
@@ -535,21 +536,29 @@ const Shifts: React.FC<ShiftsProps> = ({
       block: "center",
     });
     setHighlightedDemoShiftId(focusDemoShiftId);
+    setDemoHighlightCycle((current) => current + 1);
     onFocusDemoShiftHandled?.();
-
-    const timeoutId = window.setTimeout(() => {
-      setHighlightedDemoShiftId((current) =>
-        current === focusDemoShiftId ? null : current
-      );
-    }, 2400);
-
-    return () => window.clearTimeout(timeoutId);
   }, [
     focusDemoShiftId,
     focusedDemoShiftIsVisible,
     loading,
     onFocusDemoShiftHandled,
   ]);
+
+  useEffect(() => {
+    if (!highlightedDemoShiftId) {
+      return;
+    }
+
+    const highlightedId = highlightedDemoShiftId;
+    const timeoutId = window.setTimeout(() => {
+      setHighlightedDemoShiftId((current) =>
+        current === highlightedId ? null : current
+      );
+    }, 2400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [demoHighlightCycle, highlightedDemoShiftId]);
 
   const resetFilters = () => {
     setFilters({
