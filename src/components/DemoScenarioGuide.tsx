@@ -63,6 +63,9 @@ const statusLabel = (status: DemoWorkflowStatus): string => {
   }
 };
 
+const PHOTO_REQUIREMENTS_EXPLANATION =
+  "Требования к фото задаются в настройках объекта. Администратор может сделать обязательными, например, фото одометра до и после смены или накладную.";
+
 const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
   demoPersona,
   activeTab,
@@ -140,7 +143,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
         return {
           step: 4,
           title: "Проверьте смену у администратора",
-          text: "Смена появилась в реестре. Откройте её, чтобы посмотреть данные и фотографии.",
+          text: "Администратор видит смену в реестре, может открыть её, проверить фотографии и комментарий, изменить данные, завершить или отменить смену.",
           actionLabel: "Показать в реестре",
           action: () => showDemoShiftInRegistry?.(activeShift.id),
           shift: activeShift,
@@ -177,6 +180,11 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
         step: 5,
         title: "Завершите смену",
         text,
+        detail:
+          activeShift.status === "awaiting_odo_end" ||
+          activeShift.status === "awaiting_invoice"
+            ? PHOTO_REQUIREMENTS_EXPLANATION
+            : undefined,
         actionLabel:
           activeShift.status === "active"
             ? "Перейти к завершению"
@@ -194,6 +202,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
         step: 3,
         title: "Добавьте данные смены",
         text: "Добавьте фото одометра перед началом.",
+        detail: PHOTO_REQUIREMENTS_EXPLANATION,
         actionLabel: "Перейти к фотографии",
         actionTarget: "#demo-driver-workflow",
         shift: activeShift,

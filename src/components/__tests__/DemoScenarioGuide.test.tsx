@@ -164,6 +164,13 @@ describe("DemoScenarioGuide", () => {
 
       expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(step);
       expect(screen.getByText(text)).toBeInTheDocument();
+      if (status !== "active") {
+        expect(
+          screen.getByText(
+            "Требования к фото задаются в настройках объекта. Администратор может сделать обязательными, например, фото одометра до и после смены или накладную."
+          )
+        ).toBeInTheDocument();
+      }
       expect(screen.getByRole("link", { name: action })).toBeInTheDocument();
     }
   );
@@ -210,7 +217,7 @@ describe("DemoScenarioGuide", () => {
 
     expect(
       screen.getByText(
-        "Смена появилась в реестре. Откройте её, чтобы посмотреть данные и фотографии."
+        "Администратор видит смену в реестре, может открыть её, проверить фотографии и комментарий, изменить данные, завершить или отменить смену."
       )
     ).toBeInTheDocument();
     await user.click(
