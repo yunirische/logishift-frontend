@@ -8,6 +8,7 @@ import LegalLinks from '../components/LegalLinks';
 import { REQUIRED_CONSENT_VERSIONS } from '../config/legal';
 import { getRegisterContextFromSearch, RegisterMode } from '../utils/registerInvite';
 import { readAttribution } from '../lib/attribution';
+import { consumeDemoSessionKeyFromFragment } from '../lib/demoFunnelSession';
 type ConsentKey = keyof typeof REQUIRED_CONSENT_VERSIONS;
 
 interface RegisterFormData {
@@ -33,6 +34,9 @@ const RegisterView: React.FC = () => {
   );
   const [registrationAttribution] = useState(() =>
     readAttribution(window.location.search)
+  );
+  const [demoSessionKey] = useState(() =>
+    consumeDemoSessionKeyFromFragment()
   );
   const [mode, setMode] = useState<RegisterMode>(() =>
     registerContext.initialMode
@@ -151,6 +155,7 @@ const RegisterView: React.FC = () => {
           websiteUrl: formData.websiteUrl,
           consents: consentPayload,
           attribution: registrationAttribution,
+          ...(demoSessionKey ? { demoSessionKey } : {}),
         });
       } else {
         // Driver registration - accept invite

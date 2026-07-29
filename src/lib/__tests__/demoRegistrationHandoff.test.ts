@@ -177,8 +177,9 @@ describe("demo registration attribution handoff", () => {
       getDemoRegistrationUrl(localStorage, now + DEMO_REGISTRATION_HANDOFF_TTL_MS)
     );
 
-    expect(url.toString()).toBe(
+    expect(`${url.origin}${url.pathname}${url.search}`).toBe(
       "https://app.kontrolsmen.ru/register?registration_source=demo"
     );
+    expect(url.hash).toMatch(/^#demo_session=[A-Za-z0-9_-]{43}$/);
   });
 });

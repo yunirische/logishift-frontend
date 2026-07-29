@@ -567,6 +567,17 @@ export interface OwnerInternalOverview {
       utmTerm: string | null;
     }>;
   };
+  demoFunnel: {
+    sessionsStarted: number;
+    scenariosCompleted: number;
+    registrationCtaClicked: number;
+    tenantsRegistered: number;
+    conversionFromStarted: {
+      scenariosCompleted: number | null;
+      registrationCtaClicked: number | null;
+      tenantsRegistered: number | null;
+    };
+  };
   risks: string[];
 }
 

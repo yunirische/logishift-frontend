@@ -85,7 +85,11 @@ describe("RegisterView", () => {
   });
 
   it("opens driver mode immediately when invite code is present", () => {
-    window.history.replaceState({}, "", "/register?code=ABC123");
+    window.history.replaceState(
+      {},
+      "",
+      `/register?code=ABC123#demo_session=${"i".repeat(43)}`
+    );
 
     render(<RegisterView />);
 
@@ -184,11 +188,12 @@ describe("RegisterView", () => {
     window.history.replaceState(
       {},
       "",
-      "/register?registration_source=demo&yclid=click&utm_source=yandex&utm_medium=cpc&utm_campaign=demo&utm_content=guide&utm_term=shift&arbitrary=value&demo_shift=demo-shift%3A1"
+      `/register?registration_source=demo&yclid=click&utm_source=yandex&utm_medium=cpc&utm_campaign=demo&utm_content=guide&utm_term=shift&arbitrary=value&demo_shift=demo-shift%3A1#demo_session=${"h".repeat(43)}`
     );
     vi.mocked(api.post).mockImplementationOnce(() => new Promise(() => undefined));
 
     render(<RegisterView />);
+    expect(window.location.hash).toBe("");
     window.history.replaceState(
       {},
       "",
@@ -212,6 +217,7 @@ describe("RegisterView", () => {
     });
     expect(payload.attribution).not.toHaveProperty("registration_source");
     expect(payload.attribution).not.toHaveProperty("arbitrary");
+    expect(payload.demoSessionKey).toBe("h".repeat(43));
     expect(payload).not.toHaveProperty("demo_shift");
     expect(payload).not.toHaveProperty("demoPersona");
     expect(payload).not.toHaveProperty("truck");
@@ -255,6 +261,9 @@ describe("RegisterView", () => {
         code: "ABC123",
         email: "driver@example.com",
       })
+    );
+    expect(vi.mocked(acceptInvite).mock.calls[0][0]).not.toHaveProperty(
+      "demoSessionKey"
     );
     expect(api.post).not.toHaveBeenCalled();
   });
