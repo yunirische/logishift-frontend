@@ -31,6 +31,8 @@ import {
   requestDemoShiftFinish,
   writeDemoSession,
 } from "../lib/demoSession";
+import { recordCurrentDemoFunnelEvent } from "../lib/demoFunnelEvents";
+import { getOrCreateDemoFunnelSession } from "../lib/demoFunnelSession";
 
 type DemoSessionAction =
   | { type: "replace"; state: DemoSessionState }
@@ -104,6 +106,10 @@ export const DemoSessionProvider = ({
       if (!initialEnabled) return EMPTY_DEMO_SESSION;
       clearObsoleteDemoActiveShiftKeys(localStorage);
       if (initialEntry) {
+        getOrCreateDemoFunnelSession({
+          explicitEntry: true,
+          storage: localStorage,
+        });
         clearDemoSessionStorage(localStorage);
         return EMPTY_DEMO_SESSION;
       }
@@ -152,6 +158,13 @@ export const DemoSessionProvider = ({
   }, [resetDemoSession, user?.tenant_id]);
 
   useEffect(() => {
+    if (!isDemoTenantId(user?.tenant_id)) return;
+    void recordCurrentDemoFunnelEvent("demo_session_started").catch(
+      () => undefined
+    );
+  }, [user?.tenant_id]);
+
+  useEffect(() => {
     if (!enabled) return;
     if (!hasCompletedInitialPersistencePass.current) {
       hasCompletedInitialPersistencePass.current = true;
@@ -182,6 +195,15 @@ export const DemoSessionProvider = ({
       const result = replaceDemoShift(state, shiftId, update);
       if (!result) return null;
       dispatch({ type: "replace", state: result.state });
+      if (
+        state.activeShift?.id === shiftId &&
+        state.activeShift.status !== "finished" &&
+        result.shift.status === "finished"
+      ) {
+        void recordCurrentDemoFunnelEvent(
+          "demo_scenario_completed"
+        ).catch(() => undefined);
+      }
       return result.shift;
     },
     [enabled, state]

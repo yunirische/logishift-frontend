@@ -174,6 +174,9 @@ const formatAttributionEventType = (eventType: "demo_entry_success" | "tenant_re
 const formatAttributionTimestamp = (value: string | null) =>
   value ? formatDateTime(value) : "нет";
 
+const formatDemoConversion = (value: number | null) =>
+  value === null ? "—" : `${value}% от начавших`;
+
 const OwnerActivitySection = ({
   overview,
   selectedWindow,
@@ -292,6 +295,68 @@ const OwnerActivitySection = ({
               detail={`Последняя регистрация: ${formatAttributionTimestamp(overview.attribution.lastRegistrationAt)}`}
               icon={Building2}
             />
+          </div>
+
+          <div
+            className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+            data-testid="owner-demo-funnel"
+          >
+            <div>
+              <h3 className="text-sm font-semibold text-slate-950">
+                Воронка публичного демо
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Уникальные browser-local demo sessions за выбранный период.
+              </p>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                {
+                  label: "Начали демо",
+                  value: overview.demoFunnel.sessionsStarted,
+                  detail: "Знаменатель воронки",
+                },
+                {
+                  label: "Завершили сценарий",
+                  value: overview.demoFunnel.scenariosCompleted,
+                  detail: formatDemoConversion(
+                    overview.demoFunnel.conversionFromStarted
+                      .scenariosCompleted
+                  ),
+                },
+                {
+                  label: "Перешли к регистрации",
+                  value: overview.demoFunnel.registrationCtaClicked,
+                  detail: formatDemoConversion(
+                    overview.demoFunnel.conversionFromStarted
+                      .registrationCtaClicked
+                  ),
+                },
+                {
+                  label: "Зарегистрировали компанию",
+                  value: overview.demoFunnel.tenantsRegistered,
+                  detail: formatDemoConversion(
+                    overview.demoFunnel.conversionFromStarted
+                      .tenantsRegistered
+                  ),
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-lg border border-slate-200 bg-white p-4"
+                >
+                  <p className="text-xs font-semibold text-slate-600">
+                    {item.label}
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-slate-950">
+                    {item.value}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {item.detail}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1.2fr]">

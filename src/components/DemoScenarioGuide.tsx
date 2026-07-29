@@ -3,6 +3,7 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { useDemoSession } from "../context/DemoSessionContext";
 import { DemoScenarioShift, DemoWorkflowStatus } from "../lib/demoSession";
 import { getDemoRegistrationUrl } from "../lib/demoRegistrationHandoff";
+import { recordDemoRegistrationCtaClick } from "../lib/demoFunnelEvents";
 
 type DemoPersona = "admin" | "driver";
 
@@ -297,6 +298,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
       {collapsed && guideState.completed && guideState.actionHref && (
         <a
           href={guideState.actionHref}
+          onClick={recordDemoRegistrationCtaClick}
           className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 sm:w-auto"
           data-testid="demo-guide-collapsed-registration-action"
         >
@@ -357,6 +359,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
             (guideState.actionHref ? (
               <a
                 href={guideState.actionHref}
+                onClick={recordDemoRegistrationCtaClick}
                 className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 sm:w-auto"
                 data-testid="demo-guide-primary-action"
               >

@@ -328,6 +328,10 @@ describe("DemoScenarioGuide", () => {
     );
     expect(registrationUrl.searchParams.get("utm_source")).toBe("yandex");
     expect(registrationUrl.searchParams.get("yclid")).toBe("click");
+    expect(registrationUrl.searchParams.has("demo_session")).toBe(false);
+    expect(registrationUrl.hash).toMatch(
+      /^#demo_session=[A-Za-z0-9_-]{43}$/
+    );
 
     await user.click(
       screen.getByRole("button", { name: "Посмотреть завершённую смену" })

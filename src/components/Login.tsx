@@ -129,13 +129,13 @@ const Login: React.FC = () => {
 
       await login(data.token, data.user);
 
+      const demoAttribution = readAttribution(window.location.search);
       try {
-        await recordDemoAttributionSuccess(readAttribution(window.location.search));
+        await recordDemoAttributionSuccess(demoAttribution);
         clearAttributionFromCurrentUrl();
       } catch {
         // The demo session is valid even when attribution observation is unavailable.
       }
-
       const url = new URL(window.location.href);
       url.searchParams.delete(DEMO_ENTRY_QUERY_PARAM);
       window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);

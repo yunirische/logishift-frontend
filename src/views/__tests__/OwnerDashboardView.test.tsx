@@ -144,6 +144,17 @@ const overview: OwnerInternalOverview = {
       },
     ],
   },
+  demoFunnel: {
+    sessionsStarted: 10,
+    scenariosCompleted: 6,
+    registrationCtaClicked: 4,
+    tenantsRegistered: 2,
+    conversionFromStarted: {
+      scenariosCompleted: 60,
+      registrationCtaClicked: 40,
+      tenantsRegistered: 20,
+    },
+  },
   risks: [],
 };
 
@@ -180,6 +191,14 @@ describe("OwnerDashboardView internal overview", () => {
     expect(screen.getByText("SHIFT_STARTED")).toBeInTheDocument();
     expect(screen.getByText("Смена начата")).toBeInTheDocument();
     expect(screen.getByText("Рекламная атрибуция")).toBeInTheDocument();
+    expect(screen.getByText("Воронка публичного демо")).toBeInTheDocument();
+    expect(screen.getByText("Начали демо")).toBeInTheDocument();
+    expect(screen.getByText("Завершили сценарий")).toBeInTheDocument();
+    expect(screen.getByText("Перешли к регистрации")).toBeInTheDocument();
+    expect(screen.getByText("Зарегистрировали компанию")).toBeInTheDocument();
+    expect(screen.getByText("60% от начавших")).toBeInTheDocument();
+    expect(screen.getByText("40% от начавших")).toBeInTheDocument();
+    expect(screen.getByText("20% от начавших")).toBeInTheDocument();
     expect(screen.getAllByText("yandex").length).toBeGreaterThan(0);
     expect(screen.getByText(/Последний вход: 07\.07\.2026, \d{2}:\d{2}/)).toBeInTheDocument();
     expect(screen.getByText(/Последняя регистрация: 07\.07\.2026, \d{2}:\d{2}/)).toBeInTheDocument();

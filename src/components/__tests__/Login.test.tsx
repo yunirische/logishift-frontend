@@ -7,6 +7,7 @@ const {
   mockLogin,
   mockLoginUser,
   mockRecordDemoAttributionSuccess,
+  mockRecordDemoFunnelEvent,
   mockGetDemoAppUrl,
   mockGetDemoEntryUrl,
   mockGetProductionAppUrl,
@@ -16,6 +17,7 @@ const {
   mockLogin: vi.fn(),
   mockLoginUser: vi.fn(),
   mockRecordDemoAttributionSuccess: vi.fn().mockResolvedValue(undefined),
+  mockRecordDemoFunnelEvent: vi.fn().mockResolvedValue(undefined),
   mockGetDemoAppUrl: vi.fn(() => "https://demo.kontrolsmen.ru"),
   mockGetDemoEntryUrl: vi.fn(() => "https://demo.kontrolsmen.ru/?enterDemo=1"),
   mockGetProductionAppUrl: vi.fn(
@@ -33,6 +35,7 @@ vi.mock("../../context/AuthContext", () => ({
 vi.mock("../../services/api", () => ({
   loginUser: mockLoginUser,
   recordDemoAttributionSuccess: mockRecordDemoAttributionSuccess,
+  recordDemoFunnelEvent: mockRecordDemoFunnelEvent,
 }));
 
 vi.mock("../../config/demo", () => ({
@@ -169,6 +172,7 @@ describe("Login single-window demo contract", () => {
       utm_source: "yandex",
     });
     expect(mockRecordDemoAttributionSuccess).toHaveBeenCalledTimes(1);
+    expect(mockRecordDemoFunnelEvent).not.toHaveBeenCalled();
     expect(screen.queryByText(/перенаправляем на единый экран входа/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/загрузка демо/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/открываем рабочий вход/i)).not.toBeInTheDocument();

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Truck, UserCog } from 'lucide-react';
 import { getDemoRegistrationUrl } from '../lib/demoRegistrationHandoff';
+import { recordDemoRegistrationCtaClick } from '../lib/demoFunnelEvents';
 
 type DemoPersona = 'admin' | 'driver';
 
@@ -21,7 +22,11 @@ const DemoBanner: React.FC<DemoBannerProps> = ({ demoPersona, setDemoPersona }) 
         <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
           Данные тестовые, изменения симулируются и не сохраняются.{' '}
           Для реальной работы{' '}
-          <a href={registrationUrl} className="underline hover:text-amber-900 transition-colors">
+          <a
+            href={registrationUrl}
+            onClick={recordDemoRegistrationCtaClick}
+            className="underline hover:text-amber-900 transition-colors"
+          >
             создайте свою компанию
           </a>.
         </p>

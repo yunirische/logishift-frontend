@@ -6,6 +6,10 @@ import {
   normalizeAttributionValue,
   readAttribution,
 } from "./attribution";
+import {
+  addDemoSessionFragment,
+  getOrCreateDemoFunnelSession,
+} from "./demoFunnelSession";
 
 export const DEMO_REGISTRATION_HANDOFF_STORAGE_KEY =
   "logishift_demo_registration_handoff_v1";
@@ -152,8 +156,14 @@ export const getDemoRegistrationUrl = (
   );
 
   const handoff = readDemoRegistrationHandoff(storage, now);
-  return addAttributionToUrl(
+  const registrationUrl = addAttributionToUrl(
     destination.toString(),
     handoff?.attribution || {}
   );
+  const funnelSession = getOrCreateDemoFunnelSession({
+    explicitEntry: false,
+    storage,
+    now,
+  });
+  return addDemoSessionFragment(registrationUrl, funnelSession?.key);
 };

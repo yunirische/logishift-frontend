@@ -17,6 +17,7 @@ import {
   OwnerTenantDetail,
 } from "../types";
 import type { Attribution } from "../lib/attribution";
+import type { DemoFunnelEventType } from "../lib/demoFunnelEvents";
 
 export const TOKEN_KEY = "logishift_auth_token";
 export const USER_KEY = "logishift_user_info";
@@ -897,6 +898,19 @@ export const recordDemoAttributionSuccess = async (
   attribution: Attribution
 ): Promise<void> => {
   await post(API_ENDPOINTS.ATTRIBUTION_DEMO_SUCCESS, { attribution });
+};
+
+export const recordDemoFunnelEvent = async (
+  eventType: DemoFunnelEventType,
+  demoSessionKey: string,
+  attribution: Attribution,
+  options: { keepalive?: boolean } = {}
+): Promise<void> => {
+  await apiRequest(API_ENDPOINTS.ATTRIBUTION_DEMO_FUNNEL, {
+    method: "POST",
+    body: JSON.stringify({ eventType, demoSessionKey, attribution }),
+    keepalive: options.keepalive === true,
+  });
 };
 
 /**

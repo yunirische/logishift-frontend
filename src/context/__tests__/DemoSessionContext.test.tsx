@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   DemoSessionProvider,
   useDemoSession,
@@ -8,13 +8,23 @@ import {
   createDemoScenarioShift,
   writeDemoSession,
 } from "../../lib/demoSession";
+import {
+  DEMO_FUNNEL_SESSION_STORAGE_KEY,
+  getOrCreateDemoFunnelSession,
+  readDemoFunnelSession,
+} from "../../lib/demoFunnelSession";
 
-const { mockUseAuth } = vi.hoisted(() => ({
+const { mockUseAuth, mockRecordCurrentDemoFunnelEvent } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
+  mockRecordCurrentDemoFunnelEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../AuthContext", () => ({
   useAuth: () => mockUseAuth(),
+}));
+
+vi.mock("../../lib/demoFunnelEvents", () => ({
+  recordCurrentDemoFunnelEvent: mockRecordCurrentDemoFunnelEvent,
 }));
 
 vi.mock("../../config/demo", async () => {
@@ -111,6 +121,7 @@ describe("DemoSessionProvider v2 lifecycle", () => {
     mockUseAuth.mockReturnValue({ user: { tenant_id: 999 } });
     createObjectURL.mockReset();
     revokeObjectURL.mockReset();
+    mockRecordCurrentDemoFunnelEvent.mockClear();
     createObjectURL
       .mockReturnValueOnce("blob:start")
       .mockReturnValueOnce("blob:end")
@@ -126,11 +137,16 @@ describe("DemoSessionProvider v2 lifecycle", () => {
     });
   });
 
-  it("runs the typed workflow, persists metadata/comment, and keeps bytes memory-only", () => {
+  it("runs the typed workflow, persists metadata/comment, and keeps bytes memory-only", async () => {
     render(
       <DemoSessionProvider>
         <Harness />
       </DemoSessionProvider>
+    );
+    await waitFor(() =>
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_session_started"
+      )
     );
 
     fireEvent.click(screen.getByRole("button", { name: "start" }));
@@ -161,6 +177,15 @@ describe("DemoSessionProvider v2 lifecycle", () => {
     expect(persisted).not.toContain("blob:");
     expect(persisted).not.toContain("image]");
     expect(createObjectURL).toHaveBeenCalledTimes(3);
+    await waitFor(() =>
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledTimes(2)
+    );
+    expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+      "demo_session_started"
+    );
+    expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+      "demo_scenario_completed"
+    );
   });
 
   it("revokes replaced previews, reset previews, and all previews on unmount", () => {
@@ -248,6 +273,10 @@ describe("DemoSessionProvider v2 lifecycle", () => {
   });
 
   it("clears metadata on explicit new entry and logout transition", () => {
+    const previousFunnelSession = getOrCreateDemoFunnelSession({
+      explicitEntry: true,
+      storage: localStorage,
+    });
     const shift = createDemoScenarioShift({
       ...startInput,
       odometerRequired: false,
@@ -263,6 +292,12 @@ describe("DemoSessionProvider v2 lifecycle", () => {
     );
     expect(screen.getByTestId("status")).toHaveTextContent("none");
     expect(localStorage.getItem(DEMO_SESSION_STORAGE_KEY)).toBeNull();
+    const rotatedFunnelSession = readDemoFunnelSession(localStorage);
+    expect(rotatedFunnelSession).not.toBeNull();
+    expect(rotatedFunnelSession?.key).not.toBe(previousFunnelSession?.key);
+    expect(
+      localStorage.getItem(DEMO_FUNNEL_SESSION_STORAGE_KEY)
+    ).not.toBeNull();
 
     window.history.replaceState({}, "", "/");
     fireEvent.click(screen.getByRole("button", { name: "start" }));
