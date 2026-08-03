@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { workboxConfig } from './pwa-workbox.config';
 
 export default defineConfig({
   plugins: [
@@ -9,38 +10,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: false,
       includeAssets: ['favicon.png', 'apple-touch-icon.png'],
-      workbox: {
-        // ДОБАВЬ ЭТИ СТРОКИ - форсируй обновление и очистку
-        cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
-        
-        // ДОБАВЬ - исключи /uploads/ из навигации
-        navigateFallbackDenylist: [/^\/uploads/],
-        
-        runtimeCaching: [
-          {
-            // Match API requests regardless of domain (supports local dev and production)
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 0
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-            // Match uploads regardless of domain (supports local dev and production)
-            urlPattern: ({ url }) => url.pathname.startsWith('/uploads/'),
-            handler: 'NetworkOnly', // Always fetch from server
-          }
-        ]
-      },
+      workbox: workboxConfig,
       manifest: {
         name: 'LogiShift',
         short_name: 'LogiShift',
