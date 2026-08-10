@@ -84,7 +84,9 @@ const UsageCard: React.FC<{
   );
 });
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({
+  onNavigate,
+}) => {
   const { user } = useAuth();
   const { activeShift: demoActiveShift } = useDemoSession();
   const currentUser = user;
@@ -143,18 +145,22 @@ const Dashboard: React.FC = () => {
     {
       label: "Добавьте объект работы",
       done: Boolean(usage?.sites.current),
+      tab: "objects",
     },
     {
       label: "Добавьте машину или технику",
       done: Boolean(usage?.trucks.current),
+      tab: "fleet",
     },
     {
       label: "Пригласите водителя",
       done: Boolean(usage?.drivers.current),
+      tab: "drivers",
     },
     {
       label: "Проверьте первую смену в реестре",
       done: stats.totalShifts > 0,
+      tab: "shifts",
     },
   ];
   const shouldHighlightOnboarding =
@@ -323,15 +329,8 @@ const Dashboard: React.FC = () => {
               После этого водитель сможет открыть смену с телефона, а диспетчер увидит ее в реестре.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {onboardingSteps.map((step, index) => (
-                <div
-                  key={step.label}
-                  className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${
-                    step.done
-                      ? "border-emerald-200 bg-emerald-50"
-                      : "border-slate-200 bg-slate-50"
-                  }`}
-                >
+              {onboardingSteps.map((step, index) => {
+                const content = <>
                   <div
                     className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                       step.done
@@ -347,8 +346,27 @@ const Dashboard: React.FC = () => {
                       {step.done ? "Шаг уже выполнен." : "Следующий шаг настройки кабинета."}
                     </p>
                   </div>
-                </div>
-              ))}
+                </>;
+
+                return step.done ? (
+                  <div
+                    key={step.label}
+                    className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3"
+                  >
+                    {content}
+                  </div>
+                ) : (
+                  <button
+                    key={step.label}
+                    type="button"
+                    aria-label={step.label}
+                    onClick={() => onNavigate(step.tab)}
+                    className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left transition-colors hover:border-[#0a192f]/30 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0a192f] focus-visible:ring-offset-2"
+                  >
+                    {content}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

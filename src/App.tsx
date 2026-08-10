@@ -377,7 +377,7 @@ const AppContent: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard onNavigate={handleSetActiveTab} />;
       case "my-shifts":
         return <DriverView />;
       case "driver-history":
@@ -432,7 +432,7 @@ const AppContent: React.FC = () => {
       case "users":
         return renderPlaceholder("Контроль Доступа", "👥");
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigate={handleSetActiveTab} />;
     }
   };
 

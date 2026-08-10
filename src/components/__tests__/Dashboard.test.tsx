@@ -1,4 +1,5 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import Dashboard from "../Dashboard";
 
 const {
@@ -80,7 +81,7 @@ describe("Dashboard onboarding", () => {
   });
 
   it("marks the first-shift onboarding step complete when totalShifts exists but activeShifts is zero", async () => {
-    render(<Dashboard />);
+    render(<Dashboard onNavigate={vi.fn()} />);
 
     await screen.findByText("Начните работу за 4 шага");
 
@@ -95,6 +96,51 @@ describe("Dashboard onboarding", () => {
     await waitFor(() => {
       expect(mockApiGet).toHaveBeenCalled();
     });
+  });
+
+  it.each([
+    ["Добавьте объект работы", "objects"],
+    ["Добавьте машину или технику", "fleet"],
+    ["Пригласите водителя", "drivers"],
+    ["Проверьте первую смену в реестре", "shifts"],
+  ])("navigates an incomplete %s step to %s", async (label, tab) => {
+    const onNavigate = vi.fn();
+    const user = userEvent.setup();
+    mockGetAnalyticsUsage.mockResolvedValue({
+      trucks: { current: 0, limit: 5, utilization_percent: 0 },
+      drivers: { current: 0, limit: 5, utilization_percent: 0 },
+      sites: { current: 0, limit: 5, utilization_percent: 0 },
+    });
+    mockApiGet.mockResolvedValue({
+      activeShifts: 0,
+      totalShifts: 0,
+      activeDrivers: 0,
+      activeShiftsDetails: [],
+    });
+
+    render(<Dashboard onNavigate={onNavigate} />);
+
+    await screen.findByText("Начните работу за 4 шага");
+    await user.click(screen.getByRole("button", { name: label }));
+
+    expect(onNavigate).toHaveBeenCalledWith(tab);
+  });
+
+  it("keeps a completed onboarding step non-interactive", async () => {
+    render(<Dashboard onNavigate={vi.fn()} />);
+
+    await screen.findByText("Начните работу за 4 шага");
+
+    expect(
+      screen.queryByRole("button", { name: "Проверьте первую смену в реестре" })
+    ).not.toBeInTheDocument();
+    const firstShiftStep = screen
+      .getByText("Проверьте первую смену в реестре")
+      .closest("div");
+    expect(firstShiftStep).not.toBeNull();
+    expect(
+      within(firstShiftStep as HTMLElement).getByText("Шаг уже выполнен.")
+    ).toBeInTheDocument();
   });
 });
 
@@ -151,7 +197,7 @@ describe("Dashboard demo session projection", () => {
       ],
     });
 
-    render(<Dashboard />);
+    render(<Dashboard onNavigate={vi.fn()} />);
 
     expect(await screen.findByText("Демонстрационная смена")).toBeInTheDocument();
     expect(screen.getByText(/Демо Водитель — КамАЗ — Склад/)).toBeInTheDocument();
@@ -169,7 +215,7 @@ describe("Dashboard demo session projection", () => {
       activeShiftsDetails: [],
     });
 
-    render(<Dashboard />);
+    render(<Dashboard onNavigate={vi.fn()} />);
 
     expect(
       await screen.findByRole("button", { name: "Создать смену за водителя" })
@@ -194,17 +240,19 @@ describe("Dashboard demo session projection", () => {
       ],
     });
 
-    const view = render(<Dashboard />);
+    const view = render(<Dashboard onNavigate={vi.fn()} />);
 
-    expect(
-      await screen.findAllByText(/Демо Водитель — КамАЗ — Склад/)
-    ).toHaveLength(2);
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/Демо Водитель — КамАЗ — Склад/)
+      ).toHaveLength(2);
+    });
     expect(
       screen.getAllByText("Активные смены")[0].previousElementSibling
     ).toHaveTextContent("2");
     expect(screen.getByText("Демонстрационная смена")).toBeInTheDocument();
 
-    view.rerender(<Dashboard />);
+    view.rerender(<Dashboard onNavigate={vi.fn()} />);
     expect(
       screen.getAllByText(/Демо Водитель — КамАЗ — Склад/)
     ).toHaveLength(2);
