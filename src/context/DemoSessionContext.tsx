@@ -181,6 +181,9 @@ export const DemoSessionProvider = ({
         type: "replace",
         state: { ...state, activeShift: shift },
       });
+      void recordCurrentDemoFunnelEvent("demo_shift_started").catch(
+        () => undefined
+      );
       return shift;
     },
     [enabled, state]

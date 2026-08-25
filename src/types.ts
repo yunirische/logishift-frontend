@@ -569,10 +569,14 @@ export interface OwnerInternalOverview {
   };
   demoFunnel: {
     sessionsStarted: number;
+    shiftsStarted: number;
+    ownerResultsShown: number;
     scenariosCompleted: number;
     registrationCtaClicked: number;
     tenantsRegistered: number;
     conversionFromStarted: {
+      shiftsStarted: number | null;
+      ownerResultsShown: number | null;
       scenariosCompleted: number | null;
       registrationCtaClicked: number | null;
       tenantsRegistered: number | null;

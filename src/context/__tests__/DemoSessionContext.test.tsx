@@ -8,6 +8,7 @@ import {
   createDemoScenarioShift,
   writeDemoSession,
 } from "../../lib/demoSession";
+import * as demoSession from "../../lib/demoSession";
 import {
   DEMO_FUNNEL_SESSION_STORAGE_KEY,
   getOrCreateDemoFunnelSession,
@@ -52,7 +53,11 @@ const startInput = {
 const testFile = (name: string) =>
   new File(["image"], name, { type: "image/jpeg" });
 
-const Harness = () => {
+const Harness = ({
+  onStartReady,
+}: {
+  onStartReady?: (start: () => unknown) => void;
+} = {}) => {
   const {
     activeShift,
     finishedShifts,
@@ -64,6 +69,7 @@ const Harness = () => {
     resetDemoSession,
   } = useDemoSession();
   const shift = activeShift || finishedShifts[0] || null;
+  onStartReady?.(() => startDemoShift(startInput));
 
   return (
     <div>
@@ -148,10 +154,16 @@ describe("DemoSessionProvider v2 lifecycle", () => {
         "demo_session_started"
       )
     );
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith(
+      "demo_shift_started"
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "start" }));
     expect(screen.getByTestId("status")).toHaveTextContent(
       "awaiting_odo_start"
+    );
+    expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+      "demo_shift_started"
     );
 
     fireEvent.click(screen.getByRole("button", { name: "comment" }));
@@ -178,14 +190,43 @@ describe("DemoSessionProvider v2 lifecycle", () => {
     expect(persisted).not.toContain("image]");
     expect(createObjectURL).toHaveBeenCalledTimes(3);
     await waitFor(() =>
-      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledTimes(2)
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledTimes(3)
     );
     expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
       "demo_session_started"
     );
     expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+      "demo_shift_started"
+    );
+    expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
       "demo_scenario_completed"
     );
+  });
+
+  it("does not record a shift event when synthetic shift creation fails", () => {
+    const failure = new Error("synthetic shift creation failed");
+    const createShiftSpy = vi
+      .spyOn(demoSession, "createDemoScenarioShift")
+      .mockImplementationOnce(() => {
+        throw failure;
+      });
+
+    try {
+      let invokeStart: (() => unknown) | undefined;
+      render(
+        <DemoSessionProvider>
+          <Harness onStartReady={(start) => (invokeStart = start)} />
+        </DemoSessionProvider>
+      );
+
+      expect(invokeStart).toBeDefined();
+      expect(invokeStart).toThrow(failure);
+      expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith(
+        "demo_shift_started"
+      );
+    } finally {
+      createShiftSpy.mockRestore();
+    }
   });
 
   it("revokes replaced previews, reset previews, and all previews on unmount", () => {

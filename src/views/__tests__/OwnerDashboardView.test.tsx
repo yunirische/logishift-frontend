@@ -146,10 +146,14 @@ const overview: OwnerInternalOverview = {
   },
   demoFunnel: {
     sessionsStarted: 10,
+    shiftsStarted: 8,
+    ownerResultsShown: 7,
     scenariosCompleted: 6,
     registrationCtaClicked: 4,
     tenantsRegistered: 2,
     conversionFromStarted: {
+      shiftsStarted: 80,
+      ownerResultsShown: 70,
       scenariosCompleted: 60,
       registrationCtaClicked: 40,
       tenantsRegistered: 20,
@@ -193,10 +197,28 @@ describe("OwnerDashboardView internal overview", () => {
     expect(screen.getByText("Рекламная атрибуция")).toBeInTheDocument();
     expect(screen.getByText("Воронка публичного демо")).toBeInTheDocument();
     expect(screen.getByText("Начали демо")).toBeInTheDocument();
+    expect(screen.getByText("Начали смену")).toBeInTheDocument();
+    expect(screen.getByText("Показан результат")).toBeInTheDocument();
     expect(screen.getByText("Завершили сценарий")).toBeInTheDocument();
     expect(screen.getByText("Перешли к регистрации")).toBeInTheDocument();
     expect(screen.getByText("Зарегистрировали компанию")).toBeInTheDocument();
+    const funnelStageLabels = [
+      "Начали демо",
+      "Начали смену",
+      "Показан результат",
+      "Завершили сценарий",
+      "Перешли к регистрации",
+      "Зарегистрировали компанию",
+    ].map((label) => screen.getByText(label));
+    funnelStageLabels.slice(1).forEach((label, index) => {
+      expect(
+        funnelStageLabels[index].compareDocumentPosition(label) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
     expect(screen.getByText("60% от начавших")).toBeInTheDocument();
+    expect(screen.getByText("80% от начавших")).toBeInTheDocument();
+    expect(screen.getByText("70% от начавших")).toBeInTheDocument();
     expect(screen.getByText("40% от начавших")).toBeInTheDocument();
     expect(screen.getByText("20% от начавших")).toBeInTheDocument();
     expect(screen.getAllByText("yandex").length).toBeGreaterThan(0);

@@ -4,6 +4,8 @@ import { recordDemoFunnelEvent } from "../services/api";
 
 export const DEMO_FUNNEL_EVENT_TYPES = [
   "demo_session_started",
+  "demo_shift_started",
+  "demo_owner_result_shown",
   "demo_scenario_completed",
   "demo_registration_cta_clicked",
 ] as const;

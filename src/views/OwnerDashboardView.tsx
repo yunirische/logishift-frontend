@@ -316,8 +316,23 @@ const OwnerActivitySection = ({
                   value: overview.demoFunnel.sessionsStarted,
                   detail: "Знаменатель воронки",
                 },
-                {
-                  label: "Завершили сценарий",
+                  {
+                    label: "Начали смену",
+                    value: overview.demoFunnel.shiftsStarted,
+                    detail: formatDemoConversion(
+                      overview.demoFunnel.conversionFromStarted.shiftsStarted
+                    ),
+                  },
+                  {
+                    label: "Показан результат",
+                    value: overview.demoFunnel.ownerResultsShown,
+                    detail: formatDemoConversion(
+                      overview.demoFunnel.conversionFromStarted
+                        .ownerResultsShown
+                    ),
+                  },
+                  {
+                    label: "Завершили сценарий",
                   value: overview.demoFunnel.scenariosCompleted,
                   detail: formatDemoConversion(
                     overview.demoFunnel.conversionFromStarted

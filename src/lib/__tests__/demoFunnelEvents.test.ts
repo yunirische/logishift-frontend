@@ -28,20 +28,20 @@ describe("demo funnel event producer", () => {
     });
     vi.mocked(recordDemoFunnelEvent).mockResolvedValue(undefined);
 
-    await recordCurrentDemoFunnelEvent("demo_scenario_completed");
-    await recordCurrentDemoFunnelEvent("demo_scenario_completed");
+    await recordCurrentDemoFunnelEvent("demo_shift_started");
+    await recordCurrentDemoFunnelEvent("demo_owner_result_shown");
 
     expect(recordDemoFunnelEvent).toHaveBeenCalledTimes(2);
     expect(recordDemoFunnelEvent).toHaveBeenNthCalledWith(
       1,
-      "demo_scenario_completed",
+      "demo_shift_started",
       session?.key,
       { utm_source: "yandex" },
       {}
     );
     expect(recordDemoFunnelEvent).toHaveBeenNthCalledWith(
       2,
-      "demo_scenario_completed",
+      "demo_owner_result_shown",
       session?.key,
       { utm_source: "yandex" },
       {}

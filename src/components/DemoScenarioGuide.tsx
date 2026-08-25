@@ -3,7 +3,10 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { useDemoSession } from "../context/DemoSessionContext";
 import { DemoScenarioShift, DemoWorkflowStatus } from "../lib/demoSession";
 import { getDemoRegistrationUrl } from "../lib/demoRegistrationHandoff";
-import { recordDemoRegistrationCtaClick } from "../lib/demoFunnelEvents";
+import {
+  recordCurrentDemoFunnelEvent,
+  recordDemoRegistrationCtaClick,
+} from "../lib/demoFunnelEvents";
 
 type DemoPersona = "admin" | "driver";
 
@@ -244,6 +247,22 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
       setActiveTab("my-shifts");
     }
   };
+
+  useEffect(() => {
+    if (
+      collapsed ||
+      demoPersona !== "admin" ||
+      guideState.step !== 4 ||
+      !guideState.shift ||
+      !isSyntheticShift(guideState.shift)
+    ) {
+      return;
+    }
+
+    void recordCurrentDemoFunnelEvent("demo_owner_result_shown").catch(
+      () => undefined
+    );
+  }, [collapsed, demoPersona, guideState]);
 
   return (
     <section

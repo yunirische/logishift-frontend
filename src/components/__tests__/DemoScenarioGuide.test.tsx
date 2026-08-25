@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoScenarioGuide, {
   selectLatestSyntheticFinishedShift,
@@ -6,12 +6,18 @@ import DemoScenarioGuide, {
 import { DemoScenarioShift, DemoSessionState } from "../../lib/demoSession";
 import { captureDemoRegistrationHandoff } from "../../lib/demoRegistrationHandoff";
 
-const { mockUseDemoSession } = vi.hoisted(() => ({
+const { mockUseDemoSession, mockRecordCurrentDemoFunnelEvent } = vi.hoisted(() => ({
   mockUseDemoSession: vi.fn(),
+  mockRecordCurrentDemoFunnelEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../../context/DemoSessionContext", () => ({
   useDemoSession: () => mockUseDemoSession(),
+}));
+
+vi.mock("../../lib/demoFunnelEvents", () => ({
+  recordCurrentDemoFunnelEvent: mockRecordCurrentDemoFunnelEvent,
+  recordDemoRegistrationCtaClick: vi.fn(),
 }));
 
 const createShift = (
@@ -101,6 +107,7 @@ describe("DemoScenarioGuide", () => {
 
     expect(setDemoPersona).toHaveBeenCalledTimes(1);
     expect(setDemoPersona).toHaveBeenCalledWith("driver");
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
   });
 
   it("shows confirmed seeded labels on step 2 without starting a shift", () => {
@@ -125,6 +132,7 @@ describe("DemoScenarioGuide", () => {
     ).toHaveAttribute("href", "#demo-driver-selection");
     expect(setDemoPersona).not.toHaveBeenCalled();
     expect(setActiveTab).not.toHaveBeenCalled();
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -214,6 +222,11 @@ describe("DemoScenarioGuide", () => {
     expect(summary).toHaveTextContent("КамАЗ 65115");
     expect(summary).toHaveTextContent("ЖК Северный");
     expect(summary).toHaveTextContent("Активна");
+    await waitFor(() =>
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_owner_result_shown"
+      )
+    );
 
     expect(
       screen.getByText(
@@ -264,6 +277,78 @@ describe("DemoScenarioGuide", () => {
         "Завершите смену и добавьте обязательные фотографии."
       )
     ).toBeInTheDocument();
+  });
+
+  it("records the result only for a visible expanded admin summary", async () => {
+    const shift = createShift({ comment: "Комментарий водителя" });
+    setSession({ activeShift: shift });
+    const { rerender } = renderGuide({ persona: "driver" });
+
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+
+    rerender(
+      <DemoScenarioGuide
+        demoPersona="admin"
+        activeTab="dashboard"
+        setDemoPersona={vi.fn()}
+        setActiveTab={vi.fn()}
+      />
+    );
+    await waitFor(() =>
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_owner_result_shown"
+      )
+    );
+
+    mockRecordCurrentDemoFunnelEvent.mockClear();
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "Свернуть" })
+    );
+    expect(screen.queryByTestId("demo-guide-shift-summary")).not.toBeInTheDocument();
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not record a role switch without a synthetic shift", () => {
+    const { rerender } = renderGuide({ persona: "driver" });
+
+    rerender(
+      <DemoScenarioGuide
+        demoPersona="admin"
+        activeTab="dashboard"
+        setDemoPersona={vi.fn()}
+        setActiveTab={vi.fn()}
+      />
+    );
+
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+  });
+
+  it("waits for a collapsed summary to be expanded before recording it", async () => {
+    const { rerender } = renderGuide({ persona: "admin" });
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "Свернуть" })
+    );
+    setSession({ activeShift: createShift({ comment: "Комментарий водителя" }) });
+
+    rerender(
+      <DemoScenarioGuide
+        demoPersona="admin"
+        activeTab="dashboard"
+        setDemoPersona={vi.fn()}
+        setActiveTab={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId("demo-guide-shift-summary")).not.toBeInTheDocument();
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "Развернуть" })
+    );
+    await waitFor(() =>
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_owner_result_shown"
+      )
+    );
   });
 
   it("offers the admin result to a driver and completes only for synthetic history", async () => {
