@@ -86,7 +86,7 @@ describe("DemoScenarioGuide", () => {
     setSession();
   });
 
-  it("starts on step 1 for an admin and opens the existing driver transition", async () => {
+  it("shows a display-only owner preview on step 1 and opens the existing driver transition", async () => {
     const user = userEvent.setup();
     const setDemoPersona = vi.fn();
     renderGuide({ setDemoPersona });
@@ -100,9 +100,32 @@ describe("DemoScenarioGuide", () => {
         "Переключитесь в режим водителя и начните тестовую смену."
       )
     ).toBeInTheDocument();
+    const preview = screen.getByTestId("demo-guide-owner-preview");
+    expect(preview).toHaveTextContent(
+      "Пример того, что видит руководитель"
+    );
+    expect(preview).toHaveTextContent("Демонстрационный пример");
+    expect(preview).toHaveTextContent("Водитель");
+    expect(preview).toHaveTextContent("Иван Петров");
+    expect(preview).toHaveTextContent("Техника");
+    expect(preview).toHaveTextContent("КамАЗ 65115");
+    expect(preview).toHaveTextContent("Объект");
+    expect(preview).toHaveTextContent("ЖК Северный");
+    expect(preview).toHaveTextContent("Статус");
+    expect(preview).toHaveTextContent("Активна");
+    const currentStep = screen.getByTestId("demo-guide-current-step");
+    expect(
+      preview.compareDocumentPosition(currentStep) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(screen.getByTestId("demo-scenario-guide")).not.toHaveAttribute(
+      "data-synthetic-shift-id"
+    );
 
     await user.click(
-      screen.getByRole("button", { name: "Открыть режим водителя" })
+      screen.getByRole("button", {
+        name: "Посмотреть, как водитель отмечает смену",
+      })
     );
 
     expect(setDemoPersona).toHaveBeenCalledTimes(1);

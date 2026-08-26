@@ -70,6 +70,13 @@ const statusLabel = (status: DemoWorkflowStatus): string => {
 const PHOTO_REQUIREMENTS_EXPLANATION =
   "Требования к фото задаются в настройках объекта. Администратор может сделать обязательными, например, фото одометра до и после смены или накладную.";
 
+const INITIAL_OWNER_PREVIEW = {
+  driverName: "Иван Петров",
+  truckName: "КамАЗ 65115",
+  siteName: "ЖК Северный",
+  status: "Активна",
+};
+
 const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
   demoPersona,
   activeTab,
@@ -110,7 +117,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
         step: 1,
         title: "Перейдите к водителю",
         text: "Переключитесь в режим водителя и начните тестовую смену.",
-        actionLabel: "Открыть режим водителя",
+        actionLabel: "Посмотреть, как водитель отмечает смену",
         action: () => setDemoPersona("driver"),
       };
     }
@@ -327,6 +334,46 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
 
       {!collapsed && (
         <div id="demo-scenario-guide-content" className="mt-3">
+          {guideState.step === 1 && demoPersona === "admin" && (
+            <div
+              className="mt-3 rounded-lg border border-blue-100 bg-white p-3 text-xs"
+              data-testid="demo-guide-owner-preview"
+            >
+              <p className="font-semibold text-slate-900">
+                Пример того, что видит руководитель
+              </p>
+              <p className="mt-1 text-slate-500">
+                Демонстрационный пример, не ваша текущая смена.
+              </p>
+              <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                <div>
+                  <dt className="text-slate-500">Водитель</dt>
+                  <dd className="font-semibold text-slate-900">
+                    {INITIAL_OWNER_PREVIEW.driverName}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Техника</dt>
+                  <dd className="font-semibold text-slate-900">
+                    {INITIAL_OWNER_PREVIEW.truckName}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Объект</dt>
+                  <dd className="font-semibold text-slate-900">
+                    {INITIAL_OWNER_PREVIEW.siteName}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">Статус</dt>
+                  <dd className="font-semibold text-slate-900">
+                    {INITIAL_OWNER_PREVIEW.status}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
+
           <div
             className="text-sm"
             aria-live="polite"
