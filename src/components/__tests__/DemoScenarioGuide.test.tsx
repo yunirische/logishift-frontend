@@ -86,38 +86,21 @@ describe("DemoScenarioGuide", () => {
     setSession();
   });
 
-  it("shows a display-only owner preview on step 1 and opens the existing driver transition", async () => {
+  it("keeps the fallback step 1 driver transition without recording funnel progress", async () => {
     const user = userEvent.setup();
     const setDemoPersona = vi.fn();
     renderGuide({ setDemoPersona });
 
     expect(screen.getByTestId("demo-scenario-guide")).toBeInTheDocument();
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
-      "Шаг 1 из 5"
+      "Шаг 1 из 4"
     );
     expect(
       screen.getByText(
         "Переключитесь в режим водителя и начните тестовую смену."
       )
     ).toBeInTheDocument();
-    const preview = screen.getByTestId("demo-guide-owner-preview");
-    expect(preview).toHaveTextContent(
-      "Пример того, что видит руководитель"
-    );
-    expect(preview).toHaveTextContent("Демонстрационный пример");
-    expect(preview).toHaveTextContent("Водитель");
-    expect(preview).toHaveTextContent("Иван Петров");
-    expect(preview).toHaveTextContent("Техника");
-    expect(preview).toHaveTextContent("КамАЗ 65115");
-    expect(preview).toHaveTextContent("Объект");
-    expect(preview).toHaveTextContent("ЖК Северный");
-    expect(preview).toHaveTextContent("Статус");
-    expect(preview).toHaveTextContent("Активна");
-    const currentStep = screen.getByTestId("demo-guide-current-step");
-    expect(
-      preview.compareDocumentPosition(currentStep) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
+    expect(screen.queryByTestId("demo-guide-owner-preview")).not.toBeInTheDocument();
     expect(screen.getByTestId("demo-scenario-guide")).not.toHaveAttribute(
       "data-synthetic-shift-id"
     );
@@ -143,7 +126,7 @@ describe("DemoScenarioGuide", () => {
     });
 
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
-      "Шаг 2 из 5"
+      "Шаг 1 из 4"
     );
     expect(
       screen.getByText(
@@ -162,28 +145,28 @@ describe("DemoScenarioGuide", () => {
     {
       status: "awaiting_odo_start" as const,
       comment: null,
-      step: "Шаг 3 из 5",
+      step: "Шаг 2 из 4",
       text: "Добавьте фото одометра перед началом.",
       action: "Перейти к фотографии",
     },
     {
       status: "active" as const,
       comment: null,
-      step: "Шаг 3 из 5",
+      step: "Шаг 2 из 4",
       text: "Добавьте короткий комментарий к смене.",
       action: "Перейти к комментарию",
     },
     {
       status: "awaiting_odo_end" as const,
       comment: "Готово",
-      step: "Шаг 5 из 5",
+      step: "Шаг 4 из 4",
       text: "Добавьте фото одометра после работы.",
       action: "Перейти к фотографии",
     },
     {
       status: "awaiting_invoice" as const,
       comment: "Готово",
-      step: "Шаг 5 из 5",
+      step: "Шаг 4 из 4",
       text: "Добавьте фотографию накладной.",
       action: "Перейти к фотографии",
     },
@@ -215,7 +198,7 @@ describe("DemoScenarioGuide", () => {
     renderGuide({ persona: "driver", setDemoPersona });
 
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
-      "Шаг 3 из 5"
+      "Шаг 2 из 4"
     );
     await user.click(
       screen.getByRole("button", { name: "Посмотреть как администратор" })
@@ -238,7 +221,7 @@ describe("DemoScenarioGuide", () => {
     });
 
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
-      "Шаг 4 из 5"
+      "Шаг 3 из 4"
     );
     const summary = screen.getByTestId("demo-guide-shift-summary");
     expect(summary).toHaveTextContent("Алексей Смирнов");
@@ -293,7 +276,7 @@ describe("DemoScenarioGuide", () => {
       />
     );
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
-      "Шаг 5 из 5"
+      "Шаг 4 из 4"
     );
     expect(
       screen.getByText(
@@ -412,7 +395,7 @@ describe("DemoScenarioGuide", () => {
       screen.getByRole("heading", { name: "Сценарий завершён" })
     ).toBeInTheDocument();
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
-      "Шаг 5 из 5"
+      "Шаг 4 из 4"
     );
     expect(
       screen.getByText("Перейдите к работе со своими данными.")
@@ -500,7 +483,7 @@ describe("DemoScenarioGuide", () => {
     renderGuide();
 
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
-      "Шаг 1 из 5"
+      "Шаг 1 из 4"
     );
     expect(
       screen.queryByRole("heading", { name: "Сценарий завершён" })
@@ -547,7 +530,7 @@ describe("DemoScenarioGuide", () => {
       />
     );
     expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
-      "Шаг 1 из 5"
+      "Шаг 1 из 4"
     );
     expect(
       Object.keys(localStorage).some((key) => /guide.*step|step.*guide/i.test(key))

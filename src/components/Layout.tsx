@@ -16,11 +16,13 @@ import {
   LucideIcon,
 } from "lucide-react";
 import DemoBanner from './DemoBanner';
+import DemoProductTour from "./DemoProductTour";
 import DemoScenarioGuide from "./DemoScenarioGuide";
 import { isDemoHostname, isDemoTenantId } from "../config/demo";
 import BrandLogo from "./BrandLogo";
 import AuthenticatedLegalMenu from "./AuthenticatedLegalMenu";
 import { useAuth } from "../context/AuthContext";
+import { useDemoSession } from "../context/DemoSessionContext";
 
 // Demo persona type
 type DemoPersona = 'admin' | 'driver';
@@ -56,6 +58,8 @@ const Layout: React.FC<LayoutProps> = ({
   showDemoShiftInRegistry,
 }) => {
   const { user, logout } = useAuth();
+  const { activeShift: demoActiveShift, finishedShifts: demoFinishedShifts } =
+    useDemoSession();
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
   const isDemoMode = isDemoTenantId(user?.tenant_id);
@@ -65,6 +69,20 @@ const Layout: React.FC<LayoutProps> = ({
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [legalMenuOpen, setLegalMenuOpen] = useState(false);
+  const [demoScenarioRequested, setDemoScenarioRequested] = useState(false);
+  const hasDemoScenarioState = Boolean(
+    demoActiveShift ||
+      demoFinishedShifts.some((shift) => shift.id.startsWith("demo-shift:"))
+  );
+  const shouldShowDemoScenarioGuide =
+    isDemoMode &&
+    (demoScenarioRequested || hasDemoScenarioState || isDemoDriverMode);
+  const demoAccountName = isDemoDriverMode
+    ? "Интерфейс водителя"
+    : user?.full_name;
+  const demoAccountRole = isDemoDriverMode
+    ? "Демо-персона"
+    : getRoleLabel(user?.role);
 
   const getTabTitle = (tabId: string) => {
     switch (tabId) {
@@ -211,7 +229,16 @@ const Layout: React.FC<LayoutProps> = ({
         >
           <item.icon className="w-6 h-6" strokeWidth={2} />
         </div>
-        <span className="text-sm font-semibold">{item.label}</span>
+        <span className="min-w-0 text-left">
+          <span className="block text-sm font-semibold">{item.label}</span>
+          {isDemoMode &&
+            !isDemoDriverMode &&
+            item.id === "my-shifts" && (
+              <span className="mt-0.5 block text-[10px] font-medium leading-4 text-slate-500">
+                Своя смена, в том числе у администратора
+              </span>
+            )}
+        </span>
       </button>
     );
   };
@@ -305,10 +332,10 @@ const Layout: React.FC<LayoutProps> = ({
               )}
             </div>
             <p className="text-xs font-semibold text-white truncate mt-0.5">
-              {user?.full_name}
+              {demoAccountName}
             </p>
             <p className="text-[9px] font-semibold text-[#3b82f6] uppercase mt-1">
-              {getRoleLabel(user?.role)}
+              {demoAccountRole}
             </p>
           </div>
           <button
@@ -361,16 +388,28 @@ const Layout: React.FC<LayoutProps> = ({
               </span>
             )}
             <div className="w-10 h-10 rounded-lg bg-[#0a192f]/10 text-[#0a192f] flex items-center justify-center font-semibold text-xs border border-[#0a192f]/20">
-              {user?.full_name?.charAt(0) || "U"}
+              {isDemoDriverMode
+                ? "В"
+                : user?.full_name?.charAt(0) || "U"}
             </div>
           </div>
         </header>
 
         <div className="flex-1 p-6 lg:p-10 overflow-x-clip">
           {shouldShowDemoBanner && setDemoPersona && (
-            <DemoBanner demoPersona={demoPersona} setDemoPersona={setDemoPersona} />
+            <DemoBanner />
           )}
-          {isDemoMode && setDemoPersona && (
+          {isDemoMode && setDemoPersona && !shouldShowDemoScenarioGuide && (
+            <DemoProductTour
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onStartDriverScenario={() => {
+                setDemoScenarioRequested(true);
+                setDemoPersona("driver");
+              }}
+            />
+          )}
+          {shouldShowDemoScenarioGuide && setDemoPersona && (
             <DemoScenarioGuide
               demoPersona={demoPersona}
               activeTab={activeTab}

@@ -21,10 +21,10 @@ describe("DemoBanner registration handoff", () => {
       now: Date.now(),
     });
 
-    render(<DemoBanner demoPersona="admin" setDemoPersona={vi.fn()} />);
+    render(<DemoBanner />);
 
     const link = screen.getByRole("link", {
-      name: "создайте свою компанию",
+      name: "Создать компанию",
     });
     const url = new URL(link.getAttribute("href") as string);
     expect(`${url.origin}${url.pathname}`).toBe(
@@ -36,40 +36,30 @@ describe("DemoBanner registration handoff", () => {
     expect(url.searchParams.has("demo_session")).toBe(false);
     expect(url.hash).toMatch(/^#demo_session=[A-Za-z0-9_-]{43}$/);
 
+    link.addEventListener("click", (event) => event.preventDefault());
     fireEvent.click(link);
     expect(mockRecordDemoRegistrationCtaClick).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the existing persona controls independent from registration", () => {
-    const setDemoPersona = vi.fn();
-    render(
-      <DemoBanner demoPersona="admin" setDemoPersona={setDemoPersona} />
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Водитель (мобильный)" })
-    );
-
-    expect(setDemoPersona).toHaveBeenCalledWith("driver");
-  });
-
-  it("distinguishes the demo admin's own shift from a shift created for another driver", () => {
-    render(<DemoBanner demoPersona="admin" setDemoPersona={vi.fn()} />);
+  it("keeps only the compact demo notice and registration action", () => {
+    render(<DemoBanner />);
 
     expect(
-      screen.getByText(
-        /В разделе «Мой рабочий день» администратор ведёт собственную смену\./
-      )
-    ).toHaveTextContent(
-      "В реестре он может создать смену за другого водителя."
-    );
+      screen.getByText("Демо · Тестовые данные, изменения не сохраняются.")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Демо-переключатель роли")
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Мой рабочий день/)).not.toBeInTheDocument();
   });
 
   it("uses compact spacing before the small-screen breakpoint", () => {
-    render(<DemoBanner demoPersona="admin" setDemoPersona={vi.fn()} />);
+    render(<DemoBanner />);
 
     expect(
-      screen.getByText("Демо-организация").closest("[class*='mb-4']")
-    ).toHaveClass("px-3", "py-2.5", "sm:px-4", "sm:py-3");
+      screen
+        .getByText("Демо · Тестовые данные, изменения не сохраняются.")
+        .closest("[class*='mb-3']")
+    ).toHaveClass("px-3", "py-2", "sm:px-4");
   });
 });

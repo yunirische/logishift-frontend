@@ -42,6 +42,20 @@ vi.mock("../DemoBanner", () => ({
   default: () => <div>Demo banner</div>,
 }));
 
+vi.mock("../DemoProductTour", () => ({
+  default: ({
+    onStartDriverScenario,
+  }: {
+    onStartDriverScenario: () => void;
+  }) => (
+    <div data-testid="demo-product-tour">
+      <button type="button" onClick={onStartDriverScenario}>
+        Start driver scenario
+      </button>
+    </div>
+  ),
+}));
+
 const renderLayout = (role: UserRole) => {
   mockUseAuth.mockReturnValue({
     logout: vi.fn(),
@@ -121,7 +135,8 @@ describe("Authenticated legal navigation", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows the guide only for the authenticated demo tenant", () => {
+  it("shows the product tour before the scenario guide for the demo tenant", async () => {
+    const user = userEvent.setup();
     mockIsDemoHostname.mockReturnValue(true);
     mockIsDemoTenantId.mockReturnValue(true);
     mockUseAuth.mockReturnValue({
@@ -146,10 +161,15 @@ describe("Authenticated legal navigation", () => {
       </Layout>
     );
 
-    expect(screen.getByTestId("demo-scenario-guide")).toBeInTheDocument();
-    expect(screen.getByTestId("demo-guide-progress")).toHaveTextContent(
-      "Шаг 1 из 5"
+    expect(screen.getByTestId("demo-product-tour")).toBeInTheDocument();
+    expect(screen.queryByTestId("demo-scenario-guide")).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Start driver scenario" })
     );
+
+    expect(screen.queryByTestId("demo-product-tour")).not.toBeInTheDocument();
+    expect(screen.getByTestId("demo-scenario-guide")).toBeInTheDocument();
   });
 
   it("shows the workday entry in the demo admin menu", () => {
@@ -179,6 +199,9 @@ describe("Authenticated legal navigation", () => {
 
     expect(
       screen.getByRole("button", { name: "Мой рабочий день" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Своя смена, в том числе у администратора")
     ).toBeInTheDocument();
   });
 
@@ -210,6 +233,11 @@ describe("Authenticated legal navigation", () => {
     expect(
       screen.getByRole("button", { name: "Мой рабочий день" })
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Своя смена, в том числе у администратора")
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Интерфейс водителя")).toBeInTheDocument();
+    expect(screen.getByText("Демо-персона")).toBeInTheDocument();
   });
 
   it("keeps the real admin workday menu entry unchanged", () => {
@@ -218,6 +246,9 @@ describe("Authenticated legal navigation", () => {
     expect(
       screen.getByRole("button", { name: "Мой рабочий день" })
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Своя смена, в том числе у администратора")
+    ).not.toBeInTheDocument();
   });
 
   it("uses the unified logout flow for demo logout", async () => {
