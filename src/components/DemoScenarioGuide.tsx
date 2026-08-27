@@ -252,6 +252,11 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
     }
   };
 
+  const returnToAdmin = () => {
+    setDemoPersona("admin");
+    setActiveTab("dashboard");
+  };
+
   useEffect(() => {
     if (
       collapsed ||
@@ -303,18 +308,30 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
         </button>
       </div>
 
-      <div className="mt-2 flex items-center gap-2">
-        <span
-          className="inline-flex rounded-full bg-blue-700 px-2.5 py-1 text-xs font-bold text-white"
-          data-testid="demo-guide-progress"
-        >
-          Шаг {displayedStep} из 4
-        </span>
-        {guideState.completed && (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
-            <Check size={14} aria-hidden="true" />
-            Готово
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-flex rounded-full bg-blue-700 px-2.5 py-1 text-xs font-bold text-white"
+            data-testid="demo-guide-progress"
+          >
+            Шаг {displayedStep} из 4
           </span>
+          {guideState.completed && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+              <Check size={14} aria-hidden="true" />
+              Готово
+            </span>
+          )}
+        </div>
+        {demoPersona === "driver" && (
+          <button
+            type="button"
+            onClick={returnToAdmin}
+            className="inline-flex min-h-9 items-center justify-center rounded-lg border border-blue-300 bg-white px-3 text-xs font-bold text-blue-800 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+            data-testid="demo-guide-return-to-admin"
+          >
+            Вернуться к администратору
+          </button>
         )}
       </div>
 

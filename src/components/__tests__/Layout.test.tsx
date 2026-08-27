@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Layout from "../Layout";
@@ -70,6 +71,24 @@ const renderLayout = (role: UserRole) => {
 
   return render(
     <Layout activeTab="my-shifts" setActiveTab={vi.fn()}>
+      <div>Page content</div>
+    </Layout>
+  );
+};
+
+const DemoDriverLayoutHarness = () => {
+  const [activeTab, setActiveTab] = useState("my-shifts");
+  const [demoPersona, setDemoPersona] = useState<"admin" | "driver">(
+    "driver"
+  );
+
+  return (
+    <Layout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      demoPersona={demoPersona}
+      setDemoPersona={setDemoPersona}
+    >
       <div>Page content</div>
     </Layout>
   );
@@ -238,6 +257,40 @@ describe("Authenticated legal navigation", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText("Интерфейс водителя")).toBeInTheDocument();
     expect(screen.getByText("Демо-персона")).toBeInTheDocument();
+  });
+
+  it("returns a demo driver to the admin dashboard without restarting the tour", async () => {
+    const user = userEvent.setup();
+    mockIsDemoHostname.mockReturnValue(true);
+    mockIsDemoTenantId.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({
+      logout: vi.fn(),
+      user: {
+        id: 1,
+        tenant_id: 999,
+        full_name: "Админ Тест",
+        role: UserRole.ADMIN,
+        current_state: "idle",
+      },
+    });
+
+    render(<DemoDriverLayoutHarness />);
+
+    expect(screen.getByText("Интерфейс водителя")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Вернуться к администратору" })
+    );
+
+    expect(screen.getByRole("heading", { name: "Главная" })).toBeInTheDocument();
+    expect(screen.getByText("Админ Тест")).toBeInTheDocument();
+    expect(screen.getByText("Администратор")).toBeInTheDocument();
+    expect(screen.getByTestId("demo-scenario-guide")).toBeInTheDocument();
+    expect(screen.queryByTestId("demo-product-tour")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Посмотреть, как водитель отмечает смену",
+      })
+    ).toBeVisible();
   });
 
   it("keeps the real admin workday menu entry unchanged", () => {

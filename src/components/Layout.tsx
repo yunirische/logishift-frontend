@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { UserRole } from "../types";
 import {
   Menu,
@@ -70,6 +70,11 @@ const Layout: React.FC<LayoutProps> = ({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [legalMenuOpen, setLegalMenuOpen] = useState(false);
   const [demoScenarioRequested, setDemoScenarioRequested] = useState(false);
+  useEffect(() => {
+    if (isDemoDriverMode) {
+      setDemoScenarioRequested(true);
+    }
+  }, [isDemoDriverMode]);
   const hasDemoScenarioState = Boolean(
     demoActiveShift ||
       demoFinishedShifts.some((shift) => shift.id.startsWith("demo-shift:"))

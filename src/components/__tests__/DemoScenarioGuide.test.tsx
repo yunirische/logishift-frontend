@@ -314,6 +314,27 @@ describe("DemoScenarioGuide", () => {
     expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
   });
 
+  it("keeps the driver-to-admin return visible even when the guide is collapsed", async () => {
+    const user = userEvent.setup();
+    const setDemoPersona = vi.fn();
+    const setActiveTab = vi.fn();
+    renderGuide({ persona: "driver", setDemoPersona, setActiveTab });
+
+    const returnToAdmin = screen.getByRole("button", {
+      name: "Вернуться к администратору",
+    });
+    expect(returnToAdmin).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Свернуть" }));
+    expect(returnToAdmin).toBeVisible();
+
+    await user.click(returnToAdmin);
+
+    expect(setDemoPersona).toHaveBeenCalledWith("admin");
+    expect(setActiveTab).toHaveBeenCalledWith("dashboard");
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+  });
+
   it("does not record a role switch without a synthetic shift", () => {
     const { rerender } = renderGuide({ persona: "driver" });
 
