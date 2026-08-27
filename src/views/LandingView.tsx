@@ -23,25 +23,21 @@ import {
 const LANDING_META_DESCRIPTION =
   "LogiShift — учёт и контроль смен транспорта и спецтехники: техника, водители, объекты, фото, комментарии, история и журнал действий.";
 
-const workSteps = [
+const painPoints = [
   {
-    title: "Водители",
-    text: "Водитель открывает телефон и начинает смену без звонков диспетчеру.",
+    text: "Смены остаются в таблицах и сообщениях.",
     icon: Phone,
   },
   {
-    title: "Техника",
-    text: "В смене видно, какая машина работает и кто за нее отвечает.",
+    text: "Фото и накладные лежат отдельно.",
     icon: Truck,
   },
   {
-    title: "Объекты",
-    text: "Каждая смена привязана к объекту, чтобы не искать детали в чатах.",
+    text: "Неясно, кто был на какой машине и объекте.",
     icon: MapPinned,
   },
   {
-    title: "Смены с фото",
-    text: "Фото, время начала и завершения сохраняются в истории.",
+    text: "Информацию собирают, когда уже пора считать работу.",
     icon: Camera,
   },
 ];
@@ -222,30 +218,26 @@ const LandingView: React.FC = () => {
           <section className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-center">
             <div className="max-w-3xl">
               <h1 className="max-w-4xl text-4xl font-bold leading-tight tracking-tight text-[#041627] sm:text-5xl lg:text-6xl">
-                Учёт и контроль смен транспорта и спецтехники
+                Смены транспорта и спецтехники — без Excel и чатов
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-                Водитель начинает смену с телефона, а руководитель видит технику, водителя, объект, время, фото и комментарии.
-                История смен сохраняется и помогает подтвердить выполненную работу.
-              </p>
-              <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
-                Подходит небольшим автопаркам, подрядчикам и строительным компаниям.
+                LogiShift — учёт смен: водитель отмечает смену с телефона, а руководитель видит водителя, технику, объект, время, фото и комментарии.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
-                  onClick={openRegister}
+                  onClick={openDemo}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#006497] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#006497]/20 transition-all hover:bg-[#004f79]"
                 >
-                  Начать бесплатно
+                  Посмотреть демо
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={openDemo}
+                  onClick={openRegister}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#041627] bg-white px-6 py-4 text-base font-semibold text-[#041627] transition-colors hover:bg-[#041627] hover:text-white"
                 >
-                  Открыть демо
+                  Начать бесплатно
                 </button>
               </div>
             </div>
@@ -307,9 +299,33 @@ const LandingView: React.FC = () => {
       </div>
 
       <main className="mx-auto max-w-7xl px-5 pb-12 pt-8 sm:px-6 lg:px-10 lg:pb-20 lg:pt-10">
+        <section>
+          <div className="max-w-3xl">
+            <div className="text-sm font-semibold uppercase tracking-[0.22em] text-[#006497]">
+              Проблема знакома?
+            </div>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#041627] sm:text-4xl">
+              В конце недели снова разбираетесь, кто где работал?
+            </h2>
+          </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {painPoints.map(({ text, icon: Icon }) => (
+              <div key={text} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e6f4ff] text-[#006497]">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <p className="mt-4 text-base font-semibold leading-6 text-[#041627]">{text}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600">
+            LogiShift фиксирует это во время самой смены.
+          </p>
+        </section>
+
         <section
           aria-label="Специальные условия на старте"
-          className="rounded-2xl border border-[#77c2ff]/70 bg-[#eef8ff] p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6"
+          className="mt-10 rounded-2xl border border-[#77c2ff]/70 bg-[#eef8ff] p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6 lg:mt-14"
         >
           <div>
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-[#006497]">
@@ -328,28 +344,6 @@ const LandingView: React.FC = () => {
           >
             Обсудить условия
           </a>
-        </section>
-
-        <section className="mt-10 lg:mt-14">
-          <div className="max-w-3xl">
-            <div className="text-sm font-semibold uppercase tracking-[0.22em] text-[#006497]">
-              Как работает
-            </div>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#041627] sm:text-4xl">
-              Простая схема для ежедневных смен
-            </h2>
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {workSteps.map(({ title, text, icon: Icon }) => (
-              <div key={title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e6f4ff] text-[#006497]">
-                  <Icon className="h-6 w-6" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#041627]">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
-              </div>
-            ))}
-          </div>
         </section>
 
         <section className="mt-16 grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">

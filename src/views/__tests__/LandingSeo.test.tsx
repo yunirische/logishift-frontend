@@ -302,11 +302,47 @@ describe("Landing product copy", () => {
     expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(2);
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Учёт и контроль смен транспорта и спецтехники"
+      "Смены транспорта и спецтехники — без Excel и чатов"
     );
     expect(container.textContent).toContain(
-      "Водитель начинает смену с телефона, а руководитель видит технику, водителя, объект, время, фото и комментарии."
+      "LogiShift — учёт смен: водитель отмечает смену с телефона, а руководитель видит водителя, технику, объект, время, фото и комментарии."
     );
+    const painHeading = screen.getByRole("heading", {
+      level: 2,
+      name: "В конце недели снова разбираетесь, кто где работал?",
+    });
+    const painSection = painHeading.closest("section");
+    expect(painSection).not.toBeNull();
+    expect(
+      painSection!.compareDocumentPosition(offerBanner) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(container.textContent).toContain(
+      "LogiShift фиксирует это во время самой смены."
+    );
+    [
+      "Смены остаются в таблицах и сообщениях.",
+      "Фото и накладные лежат отдельно.",
+      "Неясно, кто был на какой машине и объекте.",
+      "Информацию собирают, когда уже пора считать работу.",
+    ].forEach((painPoint) => {
+      expect(container.textContent).toContain(painPoint);
+    });
+
+    const heroHeading = screen.getByRole("heading", { level: 1 });
+    const heroSection = heroHeading.closest("section");
+    expect(heroSection).not.toBeNull();
+    const heroDemoCta = within(heroSection!).getByRole("button", {
+      name: "Посмотреть демо",
+    });
+    const heroRegisterCta = within(heroSection!).getByRole("button", {
+      name: "Начать бесплатно",
+    });
+    expect(
+      heroDemoCta.compareDocumentPosition(heroRegisterCta) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
     expect(container.textContent).toContain(
       "Откройте демо или зарегистрируйте компанию бесплатно, чтобы начать вести реальные смены."
     );
