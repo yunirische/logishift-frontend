@@ -187,7 +187,7 @@ const DemoProductTour: React.FC<DemoProductTourProps> = ({
           className="mt-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold leading-5 text-emerald-800"
           data-testid="demo-product-tour-owner-preview"
         >
-          Пример активной смены: Иван Петров · КамАЗ 65115 · ЖК Северный · Активна
+          Пример активной смены: Иван Петров · Scania R450 · Карьер Южный · Активна
         </p>
       )}
 

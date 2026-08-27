@@ -37,7 +37,7 @@ describe("DemoProductTour", () => {
       "Обзор 1 из 4"
     );
     expect(screen.getByTestId("demo-product-tour-owner-preview")).toHaveTextContent(
-      "Иван Петров · КамАЗ 65115 · ЖК Северный · Активна"
+      "Иван Петров · Scania R450 · Карьер Южный · Активна"
     );
 
     await user.click(screen.getByRole("button", { name: "Далее" }));
