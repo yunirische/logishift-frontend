@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoScenarioGuide, {
@@ -78,6 +79,20 @@ const renderGuide = ({
     />
   ),
 });
+
+const PersonaGuideHarness = () => {
+  const [persona, setPersona] = useState<"admin" | "driver">("driver");
+  const [activeTab, setActiveTab] = useState("my-shifts");
+
+  return (
+    <DemoScenarioGuide
+      demoPersona={persona}
+      activeTab={activeTab}
+      setDemoPersona={setPersona}
+      setActiveTab={setActiveTab}
+    />
+  );
+};
 
 describe("DemoScenarioGuide", () => {
   beforeEach(() => {
@@ -332,6 +347,35 @@ describe("DemoScenarioGuide", () => {
 
     expect(setDemoPersona).toHaveBeenCalledWith("admin");
     expect(setActiveTab).toHaveBeenCalledWith("dashboard");
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+  });
+
+  it("expands the guide only when the demo persona changes", async () => {
+    const user = userEvent.setup();
+    render(<PersonaGuideHarness />);
+
+    await user.click(screen.getByRole("button", { name: "Свернуть" }));
+    expect(screen.getByRole("button", { name: "Развернуть" })).toBeVisible();
+
+    await user.click(
+      screen.getByRole("button", { name: "Вернуться к администратору" })
+    );
+    expect(screen.getByRole("button", { name: "Свернуть" })).toBeVisible();
+    expect(
+      screen.getByRole("button", {
+        name: "Посмотреть, как водитель отмечает смену",
+      })
+    ).toBeVisible();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Посмотреть, как водитель отмечает смену",
+      })
+    );
+    expect(screen.getByRole("button", { name: "Свернуть" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Вернуться к администратору" })
+    ).toBeVisible();
     expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
   });
 

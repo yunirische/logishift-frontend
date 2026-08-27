@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { useDemoSession } from "../context/DemoSessionContext";
 import { DemoScenarioShift, DemoWorkflowStatus } from "../lib/demoSession";
@@ -79,6 +79,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
 }) => {
   const { activeShift, finishedShifts } = useDemoSession();
   const [collapsed, setCollapsed] = useState(false);
+  const previousDemoPersona = useRef(demoPersona);
   const [reviewedActiveShiftId, setReviewedActiveShiftId] = useState<
     string | null
   >(null);
@@ -93,6 +94,13 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
       setReviewedActiveShiftId(null);
     }
   }, [activeShift, reviewedActiveShiftId]);
+
+  useEffect(() => {
+    if (previousDemoPersona.current !== demoPersona) {
+      setCollapsed(false);
+      previousDemoPersona.current = demoPersona;
+    }
+  }, [demoPersona]);
 
   const guideState = useMemo<GuideState>(() => {
     if (!activeShift && !latestFinishedShift) {
