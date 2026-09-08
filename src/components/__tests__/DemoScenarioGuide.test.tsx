@@ -196,7 +196,7 @@ describe("DemoScenarioGuide", () => {
       if (status !== "active") {
         expect(
           screen.getByText(
-            "Требования к фото задаются в настройках объекта. Администратор может сделать обязательными, например, фото одометра до и после смены или накладную."
+            "Фото и документы нужны по настройкам компании и объекта. В демо можно использовать готовый образец."
           )
         ).toBeInTheDocument();
       }
@@ -658,17 +658,22 @@ describe("DemoScenarioGuide", () => {
     );
   });
 
-  it("stays sticky below the app header without becoming modal", () => {
+  it("keeps instructions in page flow so they do not cover mobile actions", () => {
     renderGuide();
 
     const guide = screen.getByTestId("demo-scenario-guide");
-    expect(guide).toHaveClass(
-      "sticky",
-      "top-[5.25rem]",
-      "z-20",
-      "max-h-[calc(100vh-5.75rem)]",
-      "overflow-y-auto"
-    );
+    expect(guide).not.toHaveClass("sticky", "fixed");
     expect(guide).not.toHaveAttribute("aria-modal");
+  });
+
+  it("lets a visitor see the admin result without entering a comment", async () => {
+    const user = userEvent.setup();
+    setSession({ activeShift: createShift({ comment: null }) });
+    const { setDemoPersona } = renderGuide({ persona: "driver" });
+
+    await user.click(screen.getByRole("button", { name: "Продолжить без комментария" }));
+
+    expect(setDemoPersona).toHaveBeenCalledWith("admin");
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
   });
 });

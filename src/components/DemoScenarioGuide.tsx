@@ -68,7 +68,7 @@ const statusLabel = (status: DemoWorkflowStatus): string => {
 };
 
 const PHOTO_REQUIREMENTS_EXPLANATION =
-  "Требования к фото задаются в настройках объекта. Администратор может сделать обязательными, например, фото одометра до и после смены или накладную.";
+  "Фото и документы нужны по настройкам компании и объекта. В демо можно использовать готовый образец.";
 
 const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
   demoPersona,
@@ -79,6 +79,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
 }) => {
   const { activeShift, finishedShifts } = useDemoSession();
   const [collapsed, setCollapsed] = useState(false);
+  const guideRef = useRef<HTMLElement | null>(null);
   const previousDemoPersona = useRef(demoPersona);
   const [reviewedActiveShiftId, setReviewedActiveShiftId] = useState<
     string | null
@@ -88,6 +89,12 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
     () => selectLatestSyntheticFinishedShift(finishedShifts),
     [finishedShifts]
   );
+
+  useEffect(() => {
+    if (activeShift || !latestFinishedShift) return;
+    setCollapsed(false);
+    guideRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+  }, [activeShift?.id, latestFinishedShift?.id, demoPersona]);
 
   useEffect(() => {
     if (!activeShift || activeShift.id !== reviewedActiveShiftId) {
@@ -227,7 +234,9 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
         title: "Добавьте данные смены",
         text: "Добавьте короткий комментарий к смене.",
         actionLabel: "Перейти к комментарию",
-        actionTarget: "#demo-driver-workflow",
+        actionTarget: "#demo-driver-comment",
+        secondaryActionLabel: "Продолжить без комментария",
+        secondaryAction: () => setDemoPersona("admin"),
         shift: activeShift,
       };
     }
@@ -283,7 +292,8 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
 
   return (
     <section
-      className="sticky top-[5.25rem] z-20 mb-4 max-h-[calc(100vh-5.75rem)] overflow-y-auto rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 shadow-md sm:mb-5 sm:px-4 sm:py-3"
+      ref={guideRef}
+      className="relative z-20 mb-4 scroll-mt-24 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 shadow-md sm:mb-5 sm:px-4 sm:py-3"
       data-testid="demo-scenario-guide"
       data-synthetic-shift-id={guideState.shift?.id}
       aria-labelledby="demo-scenario-guide-title"
@@ -299,7 +309,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
               : "Попробуйте сценарий смены"}
           </h3>
           {!collapsed && !guideState.completed && (
-            <p className="mt-1 text-xs leading-5 text-slate-600">
+            <p className="mt-1 hidden text-xs leading-5 text-slate-600 sm:block">
               Водитель начинает смену, администратор сразу видит её в системе.
             </p>
           )}

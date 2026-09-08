@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { DriverView } from "../DriverView";
 import { API_ENDPOINTS } from "../../constants";
 import { UserRole } from "../../types";
+import { createDemoPhotoSample } from "../../lib/demoPhotoSample";
+
+vi.mock("../../lib/demoPhotoSample", () => ({
+  createDemoPhotoSample: vi.fn(),
+}));
 
 const {
   mockUseAuth,
@@ -51,6 +56,51 @@ vi.mock("../../services/api", () => ({
 }));
 
 describe("DriverView comments", () => {
+  it.each([
+    ["awaiting_odo_start", "start", "active"],
+    ["awaiting_odo_end", "end", "awaiting_invoice"],
+    ["awaiting_invoice", "invoice", "finished"],
+  ])("uses a local example for %s without uploading it", async (status, type, nextStatus) => {
+    mockUseAuth.mockReturnValue({ user: {
+      id: 33, tenant_id: 999, role: "driver", full_name: "Тестовый водитель",
+      current_state: "idle",
+    } });
+    const shift = {
+      id: "demo-shift:sample", driverId: 33, driverName: "Тестовый водитель",
+      truckId: 11, truckName: "КамАЗ 65115", siteId: 22, siteName: "ЖК Северный",
+      startedAt: "2026-09-08T10:00:00.000Z", status,
+      odometerRequired: true, invoiceRequired: true, photos: {},
+    };
+    mockUseDemoSession.mockReturnValue({
+      activeShift: shift, finishedShifts: [], addDemoShiftPhoto: mockAddDemoShiftPhoto,
+      getDemoPhotoPreview: mockGetDemoPhotoPreview,
+    });
+    const file = new File(["example"], "demo.png", { type: "image/png" });
+    vi.mocked(createDemoPhotoSample).mockResolvedValue(file);
+    mockAddDemoShiftPhoto.mockReturnValue({
+      ...shift, status: nextStatus,
+      photos: { [type]: { fileName: "demo.png", mimeType: "image/png", size: file.size } },
+    });
+    render(<DriverView />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Использовать образец" }));
+
+    await waitFor(() => expect(mockAddDemoShiftPhoto).toHaveBeenCalledWith(shift.id, type, file));
+    expect(createDemoPhotoSample).toHaveBeenCalledWith(type);
+    expect(mockApiPost).not.toHaveBeenCalled();
+    expect(mockApiPostFormData).not.toHaveBeenCalled();
+  });
+
+  it("does not offer sample photos to a real driver", async () => {
+    mockGetCurrentShift.mockResolvedValue({
+      id: 113, status: "awaiting_odo_start", truck: { name: "КамАЗ" }, site: { name: "Объект" },
+    });
+    render(<DriverView />);
+    await screen.findByRole("button", { name: "Открыть камеру" });
+    expect(screen.queryByRole("button", { name: "Использовать образец" })).not.toBeInTheDocument();
+    expect(createDemoPhotoSample).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -1351,9 +1401,10 @@ describe("DriverView comments", () => {
     expect(mockApiPostFormData).not.toHaveBeenCalled();
     expect(
       await screen.findByText(
-        "Демонстрационное фото добавлено. Файл не отправлялся на сервер."
+        "Демонстрационное фото добавлено"
       )
     ).toBeInTheDocument();
+    expect(screen.queryByTestId("driver-shift-message")).not.toBeInTheDocument();
     fetchSpy.mockRestore();
   });
 

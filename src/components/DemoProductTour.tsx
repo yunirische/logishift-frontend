@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getDemoRegistrationUrl } from "../lib/demoRegistrationHandoff";
+import { recordDemoRegistrationCtaClick } from "../lib/demoFunnelEvents";
 
 interface DemoProductTourProps {
   activeTab: string;
@@ -112,7 +114,7 @@ const DemoProductTour: React.FC<DemoProductTourProps> = ({
         data-testid="demo-product-tour-choice"
         aria-labelledby="demo-product-tour-choice-title"
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p
               id="demo-product-tour-choice-title"
@@ -121,14 +123,21 @@ const DemoProductTour: React.FC<DemoProductTourProps> = ({
               Обзор закончен
             </p>
             <p className="mt-0.5 text-xs leading-5 text-slate-600">
-              Теперь можно посмотреть мобильный путь водителя.
+              Начните со своей техники. Бесплатно: 2 машины, 2 водителя и 2 объекта.
             </p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <a
+              href={getDemoRegistrationUrl()}
+              onClick={recordDemoRegistrationCtaClick}
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+            >
+              Создать свою компанию
+            </a>
             <button
               type="button"
               onClick={onStartDriverScenario}
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
             >
               Посмотреть, как водитель отмечает смену
             </button>

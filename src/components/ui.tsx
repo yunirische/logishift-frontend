@@ -6,6 +6,7 @@ export const Button = React.forwardRef<HTMLButtonElement, any>(
       ref={ref}
       className={`px-4 py-2 rounded-lg font-medium transition-colors ${className} ${props.disabled || isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       {...props}
+      disabled={Boolean(props.disabled || isLoading)}
     >
       {isLoading ? 'Загрузка...' : children}
     </button>

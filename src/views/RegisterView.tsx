@@ -205,8 +205,8 @@ const RegisterView: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-2xl p-10 border border-slate-50 text-center">
+      <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-4 sm:p-6">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-2xl p-5 sm:p-10 border border-slate-50 text-center">
           <div className="w-16 h-16 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
             <CheckCircle2 className="w-8 h-8 text-green-600" />
           </div>
@@ -226,8 +226,8 @@ const RegisterView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-2xl p-10 border border-slate-50">
+    <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-4 sm:p-6">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-2xl p-5 sm:p-10 border border-slate-50">
         <div className="text-center mb-10">
           <BrandLogo
             className="flex justify-center"

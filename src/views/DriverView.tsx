@@ -5,6 +5,7 @@ import {
   Clock,
   LogOut,
   History,
+  ImagePlus,
   MapPin,
   MessageSquare,
   Play,
@@ -39,6 +40,7 @@ import {
   FinishedShiftPhotoType,
 } from "../utils/finishedShiftPhotos";
 import { validatePhotoFile } from "../utils/photoFile";
+import { createDemoPhotoSample } from "../lib/demoPhotoSample";
 
 interface DriverViewProps {
   focusHistory?: boolean;
@@ -980,6 +982,33 @@ export const DriverView: React.FC<DriverViewProps> = ({
       fileInputRef.current.value = "";
     }
 
+    await uploadPhotoFile(file);
+  };
+
+  const handleDemoSample = async () => {
+    if (!isDemoMode || !activeShift?.is_demo_synthetic || loading) return;
+    const type: DemoPhotoType | null =
+      workflowState === "awaiting_odo_start" ? "start" :
+      workflowState === "awaiting_odo_end" ? "end" :
+      workflowState === "awaiting_invoice" ? "invoice" : null;
+    if (!type) return;
+
+    setLoading(true);
+    try {
+      await uploadPhotoFile(await createDemoPhotoSample(type));
+    } catch {
+      setActionMessage({
+        show: true,
+        message: "Не удалось подготовить образец. Повторите или выберите своё фото.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const uploadPhotoFile = async (file: File) => {
+
     const validation = validatePhotoFile(file);
     if ("error" in validation) {
       setToast({ show: true, message: validation.error, type: "error" });
@@ -1040,9 +1069,8 @@ export const DriverView: React.FC<DriverViewProps> = ({
           type: "success",
         });
         setActionMessage({
-          show: true,
-          message:
-            "Демонстрационное фото добавлено. Файл не отправлялся на сервер.",
+          show: false,
+          message: "",
           type: "success",
         });
         window.setTimeout(
@@ -1251,7 +1279,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
       </div>
 
       {!activeShift ? (
-        <div className="space-y-5" id="demo-driver-selection">
+        <div className="scroll-mt-24 space-y-5" id="demo-driver-selection">
           <Card className="border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <Truck size={16} />
@@ -1403,7 +1431,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
         </div>
       ) : (
-        <div className="space-y-5" id="demo-driver-workflow">
+        <div className="scroll-mt-24 space-y-5" id="demo-driver-workflow">
           <div data-testid="current-shift-status">
             <Card className="border border-slate-200 bg-white p-6 shadow-md">
             <div className="mb-5 flex items-center justify-between">
@@ -1535,7 +1563,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
                   </div>
                 </div>
               </div>
-              <Card className="border border-slate-200 bg-white p-4 shadow-sm">
+              <Card id="demo-driver-comment" className="scroll-mt-24 border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   <MessageSquare size={14} />
                   Комментарий к смене
@@ -1598,6 +1626,11 @@ export const DriverView: React.FC<DriverViewProps> = ({
                   {workflowState === "awaiting_invoice" &&
                     "Сфотографируйте накладную (ТТН)"}
                 </p>
+                {isDemoMode && activeShift.is_demo_synthetic && (
+                  <p className="mt-3 text-sm text-orange-800">
+                    Для демо подойдёт готовый образец. Своя фотография не обязательна.
+                  </p>
+                )}
               </div>
               <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-500 shadow-sm">
                 <AlertCircle
@@ -1674,6 +1707,26 @@ export const DriverView: React.FC<DriverViewProps> = ({
                 Завершить смену
               </Button>
             ) : ["awaiting_odo_start", "awaiting_odo_end", "awaiting_invoice"].includes(workflowState) ? (
+              isDemoMode && activeShift.is_demo_synthetic ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button
+                    onClick={handleDemoSample}
+                    isLoading={loading}
+                    className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-orange-500 py-3 text-sm font-bold text-white hover:bg-orange-600"
+                  >
+                    <ImagePlus size={18} />
+                    Использовать образец
+                  </Button>
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                    className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Camera size={18} />
+                    Выбрать своё фото
+                  </Button>
+                </div>
+              ) : (
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 py-3 text-base font-bold text-white shadow-lg shadow-orange-200 transition-all hover:bg-orange-600 active:scale-[0.98]"
@@ -1682,6 +1735,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
                 <Camera size={18} />
                 Открыть камеру
               </Button>
+              )
             ) : (
               <Button
                 onClick={() => {

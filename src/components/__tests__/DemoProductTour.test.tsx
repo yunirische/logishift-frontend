@@ -2,6 +2,11 @@ import React, { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoProductTour from "../DemoProductTour";
+import { recordDemoRegistrationCtaClick } from "../../lib/demoFunnelEvents";
+
+vi.mock("../../lib/demoFunnelEvents", () => ({
+  recordDemoRegistrationCtaClick: vi.fn(),
+}));
 
 const TourHarness = ({
   initialTab = "dashboard",
@@ -73,6 +78,11 @@ describe("DemoProductTour", () => {
       screen.getByRole("button", { name: "Закончить обзор" })
     );
     expect(screen.getByText("Обзор закончен")).toBeInTheDocument();
+    const registration = screen.getByRole("link", { name: "Создать свою компанию" });
+    expect(new URL(registration.getAttribute("href")!).pathname).toBe("/register");
+    registration.addEventListener("click", (event) => event.preventDefault());
+    await user.click(registration);
+    expect(recordDemoRegistrationCtaClick).toHaveBeenCalledTimes(1);
 
     await user.click(
       screen.getByRole("button", {
