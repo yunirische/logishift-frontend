@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getDemoRegistrationUrl } from "../lib/demoRegistrationHandoff";
-import { recordDemoRegistrationCtaClick } from "../lib/demoFunnelEvents";
+import {
+  recordCurrentDemoFunnelEvent,
+  recordDemoRegistrationCtaClick,
+} from "../lib/demoFunnelEvents";
 
 interface DemoProductTourProps {
   activeTab: string;
@@ -65,6 +68,20 @@ const DemoProductTour: React.FC<DemoProductTourProps> = ({
     setMode("launcher");
   }, [activeTab, mode]);
 
+  useEffect(() => {
+    if (mode !== "tour" && mode !== "choice") return;
+    const eventType =
+      mode === "tour" ? "demo_tour_shown" : "demo_tour_choice_shown";
+    void recordCurrentDemoFunnelEvent(eventType).catch(() => undefined);
+  }, [mode]);
+
+  const startDriverScenario = () => {
+    void recordCurrentDemoFunnelEvent(
+      "demo_driver_scenario_requested"
+    ).catch(() => undefined);
+    onStartDriverScenario();
+  };
+
   const openStep = (nextIndex: number) => {
     const nextStep = TOUR_STEPS[nextIndex];
     setStepIndex(nextIndex);
@@ -90,7 +107,7 @@ const DemoProductTour: React.FC<DemoProductTourProps> = ({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={onStartDriverScenario}
+            onClick={startDriverScenario}
             className="inline-flex min-h-9 items-center justify-center rounded-lg bg-blue-700 px-3 text-xs font-semibold text-white transition-colors hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
           >
             Посмотреть сценарий водителя
@@ -136,7 +153,7 @@ const DemoProductTour: React.FC<DemoProductTourProps> = ({
             </a>
             <button
               type="button"
-              onClick={onStartDriverScenario}
+              onClick={startDriverScenario}
               className="inline-flex min-h-10 items-center justify-center rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2"
             >
               Посмотреть, как водитель отмечает смену

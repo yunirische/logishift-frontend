@@ -1,10 +1,14 @@
 import React, { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DemoProductTour from "../DemoProductTour";
-import { recordDemoRegistrationCtaClick } from "../../lib/demoFunnelEvents";
+import {
+  recordCurrentDemoFunnelEvent,
+  recordDemoRegistrationCtaClick,
+} from "../../lib/demoFunnelEvents";
 
 vi.mock("../../lib/demoFunnelEvents", () => ({
+  recordCurrentDemoFunnelEvent: vi.fn().mockResolvedValue(undefined),
   recordDemoRegistrationCtaClick: vi.fn(),
 }));
 
@@ -33,6 +37,44 @@ const TourHarness = ({
 };
 
 describe("DemoProductTour", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("records actual tour and choice visibility without rerender duplicates", async () => {
+    const user = userEvent.setup();
+    const view = render(<TourHarness />);
+
+    await waitFor(() =>
+      expect(recordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_tour_shown"
+      )
+    );
+    view.rerender(<TourHarness />);
+    expect(recordCurrentDemoFunnelEvent).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Пропустить обзор" }));
+    await waitFor(() =>
+      expect(recordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_tour_choice_shown"
+      )
+    );
+    expect(recordCurrentDemoFunnelEvent).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not record tour visibility when only the launcher is shown", async () => {
+    render(<TourHarness initialTab="fleet" />);
+    await Promise.resolve();
+
+    expect(screen.getByTestId("demo-product-tour-launcher")).toBeInTheDocument();
+    expect(recordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith(
+      "demo_tour_shown"
+    );
+    expect(recordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith(
+      "demo_tour_choice_shown"
+    );
+  });
+
   it("shows a compact owner aha-moment and advances only on explicit action", async () => {
     const user = userEvent.setup();
     render(<TourHarness />);
@@ -88,6 +130,9 @@ describe("DemoProductTour", () => {
       screen.getByRole("button", {
         name: "Посмотреть, как водитель отмечает смену",
       })
+    );
+    expect(recordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+      "demo_driver_scenario_requested"
     );
     expect(onStartDriverScenario).toHaveBeenCalledTimes(1);
   });

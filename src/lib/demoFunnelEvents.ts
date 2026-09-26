@@ -4,6 +4,12 @@ import { recordDemoFunnelEvent } from "../services/api";
 
 export const DEMO_FUNNEL_EVENT_TYPES = [
   "demo_session_started",
+  "demo_tour_shown",
+  "demo_tour_choice_shown",
+  "demo_driver_scenario_requested",
+  "demo_driver_view_shown",
+  "demo_shift_selection_shown",
+  "demo_shift_start_ready",
   "demo_shift_started",
   "demo_owner_result_shown",
   "demo_scenario_completed",

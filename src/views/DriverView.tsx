@@ -41,6 +41,7 @@ import {
 } from "../utils/finishedShiftPhotos";
 import { validatePhotoFile } from "../utils/photoFile";
 import { createDemoPhotoSample } from "../lib/demoPhotoSample";
+import { recordCurrentDemoFunnelEvent } from "../lib/demoFunnelEvents";
 
 interface DriverViewProps {
   focusHistory?: boolean;
@@ -451,6 +452,59 @@ export const DriverView: React.FC<DriverViewProps> = ({
       void refreshCurrentShift();
     }
   }, [refreshCurrentShift, user]);
+
+  useEffect(() => {
+    if (!isDemoMode || focusHistory || loading) return;
+    void recordCurrentDemoFunnelEvent("demo_driver_view_shown").catch(
+      () => undefined
+    );
+  }, [focusHistory, isDemoMode, loading]);
+
+  useEffect(() => {
+    if (
+      !isDemoMode ||
+      focusHistory ||
+      loading ||
+      activeShift ||
+      trucks.length === 0 ||
+      sites.length === 0
+    ) {
+      return;
+    }
+    void recordCurrentDemoFunnelEvent("demo_shift_selection_shown").catch(
+      () => undefined
+    );
+  }, [
+    activeShift,
+    focusHistory,
+    isDemoMode,
+    loading,
+    sites.length,
+    trucks.length,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isDemoMode ||
+      focusHistory ||
+      loading ||
+      activeShift ||
+      !selectedTruck ||
+      !selectedSite
+    ) {
+      return;
+    }
+    void recordCurrentDemoFunnelEvent("demo_shift_start_ready").catch(
+      () => undefined
+    );
+  }, [
+    activeShift,
+    focusHistory,
+    isDemoMode,
+    loading,
+    selectedSite,
+    selectedTruck,
+  ]);
 
   useEffect(() => {
     if (!user || isDemoMode) return;

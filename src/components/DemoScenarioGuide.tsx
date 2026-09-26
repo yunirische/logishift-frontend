@@ -126,7 +126,12 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
         title: "Перейдите к водителю",
         text: "Переключитесь в режим водителя и начните тестовую смену.",
         actionLabel: "Посмотреть, как водитель отмечает смену",
-        action: () => setDemoPersona("driver"),
+        action: () => {
+          void recordCurrentDemoFunnelEvent(
+            "demo_driver_scenario_requested"
+          ).catch(() => undefined);
+          setDemoPersona("driver");
+        },
       };
     }
 

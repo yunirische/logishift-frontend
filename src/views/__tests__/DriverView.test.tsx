@@ -21,6 +21,7 @@ const {
   mockAddDemoShiftComment,
   mockAddDemoShiftPhoto,
   mockGetDemoPhotoPreview,
+  mockRecordCurrentDemoFunnelEvent,
 } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
   mockApiGet: vi.fn(),
@@ -34,6 +35,7 @@ const {
   mockAddDemoShiftComment: vi.fn(),
   mockAddDemoShiftPhoto: vi.fn(),
   mockGetDemoPhotoPreview: vi.fn(),
+  mockRecordCurrentDemoFunnelEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../../context/AuthContext", () => ({
@@ -42,6 +44,10 @@ vi.mock("../../context/AuthContext", () => ({
 
 vi.mock("../../context/DemoSessionContext", () => ({
   useDemoSession: () => mockUseDemoSession(),
+}));
+
+vi.mock("../../lib/demoFunnelEvents", () => ({
+  recordCurrentDemoFunnelEvent: mockRecordCurrentDemoFunnelEvent,
 }));
 
 vi.mock("../../services/api", () => ({
@@ -232,6 +238,120 @@ describe("DriverView comments", () => {
     expect(screen.getByText("Привет, Тестовый водитель")).toBeInTheDocument();
   });
 
+  it("records the direct demo DriverView bypass and selection readiness once", async () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockGetCurrentShift.mockResolvedValue(null);
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === API_ENDPOINTS.TENANT_SETTINGS) {
+        return Promise.resolve({ timezone: "Europe/Moscow" });
+      }
+      if (url === "/trucks") {
+        return Promise.resolve([{ id: 12, name: "КамАЗ" }]);
+      }
+      if (url === "/sites") {
+        return Promise.resolve([{ id: 31, name: "Склад" }]);
+      }
+      return Promise.resolve([]);
+    });
+
+    const view = render(<DriverView />);
+
+    await waitFor(() => {
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_driver_view_shown"
+      );
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_shift_selection_shown"
+      );
+    });
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith(
+      "demo_driver_scenario_requested"
+    );
+
+    view.rerender(<DriverView />);
+    expect(
+      mockRecordCurrentDemoFunnelEvent.mock.calls.filter(
+        ([eventType]) => eventType === "demo_driver_view_shown"
+      )
+    ).toHaveLength(1);
+    expect(
+      mockRecordCurrentDemoFunnelEvent.mock.calls.filter(
+        ([eventType]) => eventType === "demo_shift_selection_shown"
+      )
+    ).toHaveLength(1);
+
+    fireEvent.click(await screen.findByRole("button", { name: /КамАЗ/i }));
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith(
+      "demo_shift_start_ready"
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Склад" }));
+    await waitFor(() =>
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_shift_start_ready"
+      )
+    );
+  });
+
+  it("does not record selection or readiness while resources are loading or empty", async () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockGetCurrentShift.mockResolvedValue(null);
+
+    render(<DriverView />);
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+
+    await waitFor(() =>
+      expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+        "demo_driver_view_shown"
+      )
+    );
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith(
+      "demo_shift_selection_shown"
+    );
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith(
+      "demo_shift_start_ready"
+    );
+  });
+
+  it("does not record DriverView diagnostics for history-only mode", async () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 33,
+        tenant_id: 999,
+        full_name: "Демо водитель",
+        role: UserRole.DRIVER,
+        current_state: "idle",
+      },
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    });
+    mockGetCurrentShift.mockResolvedValue(null);
+
+    render(<DriverView focusHistory />);
+    await screen.findByRole("heading", { name: "Мои смены" });
+
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+  });
+
   it("keeps the existing start API flow for a real tenant", async () => {
     mockUseAuth.mockReturnValue({
       user: {
@@ -272,6 +392,7 @@ describe("DriverView comments", () => {
       });
     });
     expect(mockStartDemoShift).not.toHaveBeenCalled();
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
   });
 
   it("shows existing finished comments, allows commenting own shift, and hides controls for unrelated shifts", async () => {

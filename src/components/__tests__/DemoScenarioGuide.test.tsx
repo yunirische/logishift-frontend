@@ -101,7 +101,7 @@ describe("DemoScenarioGuide", () => {
     setSession();
   });
 
-  it("keeps the fallback step 1 driver transition without recording funnel progress", async () => {
+  it("records the explicit fallback driver scenario request", async () => {
     const user = userEvent.setup();
     const setDemoPersona = vi.fn();
     renderGuide({ setDemoPersona });
@@ -128,7 +128,9 @@ describe("DemoScenarioGuide", () => {
 
     expect(setDemoPersona).toHaveBeenCalledTimes(1);
     expect(setDemoPersona).toHaveBeenCalledWith("driver");
-    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+    expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+      "demo_driver_scenario_requested"
+    );
   });
 
   it("shows confirmed seeded labels on step 2 without starting a shift", () => {
@@ -376,7 +378,10 @@ describe("DemoScenarioGuide", () => {
     expect(
       screen.getByRole("button", { name: "Вернуться к администратору" })
     ).toBeVisible();
-    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+    expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledTimes(1);
+    expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledWith(
+      "demo_driver_scenario_requested"
+    );
   });
 
   it("does not record a role switch without a synthetic shift", () => {
