@@ -47,6 +47,7 @@ interface LayoutProps {
   demoPersona?: DemoPersona;
   setDemoPersona?: (persona: DemoPersona) => void;
   showDemoShiftInRegistry?: (shiftId: string) => void;
+  showDemoProductTour?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -56,6 +57,7 @@ const Layout: React.FC<LayoutProps> = ({
   demoPersona = 'admin',
   setDemoPersona,
   showDemoShiftInRegistry,
+  showDemoProductTour = false,
 }) => {
   const { user, logout } = useAuth();
   const { activeShift: demoActiveShift, finishedShifts: demoFinishedShifts } =
@@ -81,6 +83,7 @@ const Layout: React.FC<LayoutProps> = ({
   );
   const shouldShowDemoScenarioGuide =
     isDemoMode &&
+    !showDemoProductTour &&
     (demoScenarioRequested || hasDemoScenarioState || isDemoDriverMode);
   const demoAccountName = isDemoDriverMode
     ? "Интерфейс водителя"

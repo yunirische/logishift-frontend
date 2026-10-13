@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, lazy, Suspense } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
+import DemoScenarioEntry from "./components/DemoScenarioEntry";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import LandingView from "./views/LandingView";
@@ -151,6 +152,8 @@ const AppContent: React.FC = () => {
   const [demoRegistryFocusShiftId, setDemoRegistryFocusShiftId] = useState<
     string | null
   >(null);
+  const [demoPresentation, setDemoPresentation] = useState<"scenario" | "cabinet">("scenario");
+  const [demoTourRequested, setDemoTourRequested] = useState(false);
   // Initialize from localStorage or default to 'admin'
   const [demoPersona, setDemoPersona] = useState<DemoPersona>(() => {
     const saved = localStorage.getItem(APP_DEMO_PERSONA_KEY);
@@ -176,6 +179,8 @@ const AppContent: React.FC = () => {
   };
 
   const handleSetDemoPersona = (nextPersona: DemoPersona) => {
+    setDemoPresentation(nextPersona === "driver" ? "scenario" : "cabinet");
+    setDemoTourRequested(false);
     if (nextPersona === demoPersona) {
       return;
     }
@@ -187,6 +192,12 @@ const AppContent: React.FC = () => {
   const handleShowDemoShiftInRegistry = (shiftId: string) => {
     setDemoRegistryFocusShiftId(shiftId);
     setActiveTab("shifts");
+  };
+  const handleExploreDemoCabinet = () => {
+    setDemoPresentation("cabinet");
+    setDemoTourRequested(true);
+    setDemoPersona("admin");
+    setActiveTab("dashboard");
   };
   const handleDemoRegistryFocusHandled = useCallback(() => {
     setDemoRegistryFocusShiftId(null);
@@ -217,6 +228,8 @@ const AppContent: React.FC = () => {
       return;
     }
 
+    setDemoPresentation("scenario");
+    setDemoTourRequested(false);
     setDemoPersona((currentPersona) =>
       currentPersona === DEFAULT_DEMO_PERSONA
         ? currentPersona
@@ -470,6 +483,19 @@ const AppContent: React.FC = () => {
     );
   }
 
+  if (isDemoMode && demoPresentation === "scenario") {
+    return (
+      <ErrorBoundary>
+        <DemoScenarioEntry
+          onExploreCabinet={handleExploreDemoCabinet}
+          setDemoPersona={handleSetDemoPersona}
+          setActiveTab={handleSetActiveTab}
+          showDemoShiftInRegistry={handleShowDemoShiftInRegistry}
+        />
+      </ErrorBoundary>
+    );
+  }
+
   if (isDemoDriverMode) {
     return (
       <ErrorBoundary>
@@ -499,6 +525,7 @@ const AppContent: React.FC = () => {
           demoPersona={demoPersona}
           setDemoPersona={handleSetDemoPersona}
           showDemoShiftInRegistry={handleShowDemoShiftInRegistry}
+          showDemoProductTour={demoTourRequested}
         >
           <ErrorBoundary>
             {renderContent()}

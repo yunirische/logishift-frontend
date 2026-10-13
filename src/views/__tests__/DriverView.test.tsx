@@ -62,6 +62,21 @@ vi.mock("../../services/api", () => ({
 }));
 
 describe("DriverView comments", () => {
+  it("keeps the real driver unselected and the existing layout even if a demo presentation prop is supplied", async () => {
+    mockGetCurrentShift.mockResolvedValue(null);
+    mockApiGet.mockImplementation(async (url: string) => {
+      if (url === "/trucks") return [{ id: 11, name: "Рабочая машина" }];
+      if (url === "/sites") return [{ id: 22, name: "Рабочий объект" }];
+      return [];
+    });
+    render(<DriverView demoScenarioFirst />);
+    expect(await screen.findByText("Привет, Тестовый водитель")).toBeVisible();
+    expect(screen.queryByTestId("demo-scenario-preset")).not.toBeInTheDocument();
+    expect(screen.getByTestId("start-shift-button")).toBeDisabled();
+    expect(screen.getByTestId("driver-action-bar-shell").parentElement).toHaveClass("fixed");
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["awaiting_odo_start", "start", "active"],
     ["awaiting_odo_end", "end", "awaiting_invoice"],

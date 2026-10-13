@@ -39,6 +39,7 @@ vi.mock("../components/Layout", () => ({
     demoPersona,
     setDemoPersona,
     showDemoShiftInRegistry,
+    showDemoProductTour,
   }: {
     children: React.ReactNode;
     activeTab: string;
@@ -46,9 +47,11 @@ vi.mock("../components/Layout", () => ({
     demoPersona?: "admin" | "driver";
     setDemoPersona?: (persona: "admin" | "driver") => void;
     showDemoShiftInRegistry?: (shiftId: string) => void;
+    showDemoProductTour?: boolean;
   }) => (
     <div>
       <div data-testid="active-tab">{activeTab}</div>
+      {showDemoProductTour && <div data-testid="manual-demo-tour">Product Tour</div>}
       {demoPersona !== "driver" && (
         <div data-testid="admin-sidebar">Admin sidebar</div>
       )}
@@ -121,6 +124,21 @@ vi.mock("../views/OwnerTenantDetailView", () => ({
 
 vi.mock("../views/DriverView", () => ({
   DriverView: () => <div>Driver view</div>,
+}));
+
+vi.mock("../components/DemoScenarioEntry", () => ({
+  default: ({ onExploreCabinet, setDemoPersona }: {
+    onExploreCabinet: () => void;
+    setDemoPersona: (persona: "admin" | "driver") => void;
+  }) => (
+    <div data-testid="demo-scenario-entry">
+      <div>Driver view</div>
+      <div data-testid="active-tab">my-shifts</div>
+      <button onClick={onExploreCabinet}>Посмотреть кабинет подробнее</button>
+      <button onClick={() => setDemoPersona("admin")}>Switch demo persona to admin</button>
+      <button onClick={() => setDemoPersona("driver")}>Switch demo persona to driver</button>
+    </div>
+  ),
 }));
 
 vi.mock("../services/navigation", () => ({
@@ -341,6 +359,11 @@ describe("App protected routes", () => {
 
     render(<App />);
 
+    expect(screen.getByTestId("demo-scenario-entry")).toBeInTheDocument();
+    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("manual-demo-tour")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Посмотреть кабинет подробнее" }));
+    expect(screen.getByTestId("manual-demo-tour")).toBeInTheDocument();
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByTestId("active-tab")).toHaveTextContent("dashboard");
 
@@ -375,6 +398,7 @@ describe("App protected routes", () => {
     });
 
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Посмотреть кабинет подробнее" }));
 
     fireEvent.click(
       screen.getByRole("button", { name: "Guide open driver" })
@@ -403,6 +427,7 @@ describe("App protected routes", () => {
     });
 
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Посмотреть кабинет подробнее" }));
     fireEvent.click(screen.getByRole("button", { name: "Open shifts" }));
 
     expect(screen.getByTestId("active-tab")).toHaveTextContent("shifts");
@@ -425,6 +450,7 @@ describe("App protected routes", () => {
     });
 
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Посмотреть кабинет подробнее" }));
     fireEvent.click(
       screen.getByRole("button", { name: "Guide show synthetic shift" })
     );

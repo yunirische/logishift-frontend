@@ -45,6 +45,7 @@ import { recordCurrentDemoFunnelEvent } from "../lib/demoFunnelEvents";
 
 interface DriverViewProps {
   focusHistory?: boolean;
+  demoScenarioFirst?: boolean;
 }
 
 const MAX_SHIFT_COMMENT_LENGTH = DEMO_COMMENT_MAX_LENGTH;
@@ -90,6 +91,7 @@ const projectDemoShiftForDriver = (shift: DemoScenarioShift) => ({
 
 export const DriverView: React.FC<DriverViewProps> = ({
   focusHistory = false,
+  demoScenarioFirst = false,
 }) => {
   const { user, logout, refreshUser } = useAuth();
   const {
@@ -138,6 +140,10 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isDemoMode = isDemoTenantId(user?.tenant_id);
+  const compactDemo = isDemoMode && demoScenarioFirst && !focusHistory;
+  const [editingDemoSelection, setEditingDemoSelection] = useState(false);
+  const selectedDemoTruck = trucks.find(truck => String(truck.id) === selectedTruck);
+  const selectedDemoSite = sites.find(site => String(site.id) === selectedSite);
   // Demo-driver mode: substitute persona at the view layer only.
   // AuthContext.user is never mutated.
   const [demoPersona, setDemoPersona] = useState<DemoDriverPersona | null>(null);
@@ -452,6 +458,15 @@ export const DriverView: React.FC<DriverViewProps> = ({
       void refreshCurrentShift();
     }
   }, [refreshCurrentShift, user]);
+
+  useEffect(() => {
+    if (!compactDemo || loading || activeShift || demoActiveShift) return;
+    // Prepare a visible demo example from loaded resources; never auto-start a shift.
+    setSelectedTruck(current => trucks.some(truck => String(truck.id) === current)
+      ? current : String(trucks.find(truck => truck.is_active !== false)?.id ?? ""));
+    setSelectedSite(current => sites.some(site => String(site.id) === current)
+      ? current : String(sites.find(site => site.is_active !== false)?.id ?? ""));
+  }, [activeShift, compactDemo, demoActiveShift, loading, sites, trucks]);
 
   useEffect(() => {
     if (!isDemoMode || focusHistory || loading) return;
@@ -1284,7 +1299,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 pb-36 lg:pb-28">
+    <div className={compactDemo ? "bg-slate-50" : "min-h-screen bg-slate-50 p-4 pb-36 lg:pb-28"}>
       <input
         type="file"
         ref={fileInputRef}
@@ -1294,7 +1309,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
         onChange={handleFileUpload}
       />
 
-      <div className="mb-8 flex items-center justify-between">
+      {!compactDemo && <div className="mb-8 flex items-center justify-between">
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Привет, {effectiveDriverName}
@@ -1330,10 +1345,44 @@ export const DriverView: React.FC<DriverViewProps> = ({
         >
           <LogOut size={22} />
         </button>
-      </div>
+      </div>}
 
       {!activeShift ? (
         <div className="scroll-mt-24 space-y-5" id="demo-driver-selection">
+          {compactDemo && (
+            <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" data-testid="demo-scenario-preset">
+              <p className="text-xs font-semibold text-slate-500">Заранее подготовленный демо-пример</p>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-slate-500">Техника</dt>
+                  <dd className="mt-1 break-words text-sm font-semibold" data-testid="demo-preset-truck">
+                    {selectedDemoTruck?.name || "Нет доступной техники"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-slate-500">Объект</dt>
+                  <dd className="mt-1 break-words text-sm font-semibold" data-testid="demo-preset-site">
+                    {selectedDemoSite?.name || "Нет доступного объекта"}
+                  </dd>
+                </div>
+              </dl>
+              <button
+                type="button"
+                onClick={() => setEditingDemoSelection(current => !current)}
+                className="mt-3 min-h-9 text-sm font-semibold text-blue-700 underline underline-offset-4"
+                aria-expanded={editingDemoSelection}
+                aria-controls="demo-resource-selection"
+              >
+                {editingDemoSelection ? "Готово" : "Изменить технику и объект"}
+              </button>
+              {selectedDemoSite?.odometer_required && (
+                <p className="mt-2 text-xs leading-5 text-slate-600">
+                  После начала потребуется фото одометра. В демо можно использовать готовый образец.
+                </p>
+              )}
+            </section>
+          )}
+          <div id="demo-resource-selection" className={compactDemo && !editingDemoSelection ? "hidden" : "space-y-5"}>
           <Card className="border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
               <Truck size={16} />
@@ -1482,7 +1531,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
                 </Card>
               );
             })()}
-
+          </div>
         </div>
       ) : (
         <div className="scroll-mt-24 space-y-5" id="demo-driver-workflow">
@@ -1719,7 +1768,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
       {/* Sticky primary action bar */}
       <div
         id="demo-driver-action"
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm lg:left-72 lg:px-6"
+        className={compactDemo ? "mt-4 border-t border-slate-200 pt-4" : "fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-sm lg:left-72 lg:px-6"}
       >
         <div
           className="mx-auto w-full max-w-6xl"

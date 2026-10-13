@@ -304,6 +304,19 @@ describe("Authenticated legal navigation", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("allows an explicitly requested Product Tour even after a driver scenario was selected", () => {
+    mockIsDemoHostname.mockReturnValue(true);
+    mockIsDemoTenantId.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({ user: { id: 1, tenant_id: 999, role: UserRole.ADMIN, full_name: "Демо" }, logout: vi.fn() });
+    render(
+      <Layout activeTab="dashboard" setActiveTab={vi.fn()} demoPersona="driver" setDemoPersona={vi.fn()} showDemoProductTour>
+        Page content
+      </Layout>
+    );
+    expect(screen.getByTestId("demo-product-tour")).toBeInTheDocument();
+    expect(screen.queryByTestId("demo-scenario-guide")).not.toBeInTheDocument();
+  });
+
   it("uses the unified logout flow for demo logout", async () => {
     const user = userEvent.setup();
     const logout = vi.fn();
