@@ -5,17 +5,17 @@ it("shows one prepared story without starting a workflow or firing callbacks on 
   const props = { onTryScenario: vi.fn(), onExploreCabinet: vi.fn(), registrationHref: "/register", onRegistrationClick: vi.fn() };
   const { rerender } = render(<DemoOverview {...props} />);
   expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Одна смена — две стороны");
-  expect(screen.getByText("Демо LogiShift · Подготовленный пример")).toBeVisible();
+  expect(screen.getByText("Демо LogiShift · Пример")).toBeVisible();
   const scenes = within(screen.getByRole("list", { name: "Как действие водителя становится записью смены" })).getAllByRole("listitem").filter(item => item.parentElement?.tagName === "OL");
   expect(scenes).toHaveLength(3);
   for (const value of ["Алексей Смирнов", "КамАЗ 65115", "ЖК Северный"]) {
-    expect(scenes[1]).toHaveTextContent(value);
+    expect(scenes[0]).toHaveTextContent(value);
     expect(scenes[2]).toHaveTextContent(value);
   }
   expect(screen.getByTestId("demo-overview-result")).toHaveTextContent("09:00");
   expect(screen.getByTestId("demo-overview-result")).toHaveTextContent("На смене");
   expect(screen.getByText("Фото начала приложено")).toBeVisible();
-  expect(screen.getByText("Фото можно сделать обязательным по настройкам объекта.")).toBeVisible();
+  expect(screen.getByText("Фото и документы можно запрашивать по настройкам объекта.")).toBeVisible();
   expect(screen.queryByText(/Ожидается фото/)).not.toBeInTheDocument();
   const illustration = screen.getByTestId("demo-overview-start-illustration");
   expect(illustration.tagName).toBe("DIV");
