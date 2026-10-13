@@ -431,6 +431,7 @@ const AppContent: React.FC = () => {
         return (
           <Suspense fallback={loadingFallback}>
             <Shifts
+              onNavigateToBilling={() => handleSetActiveTab("billing")}
               focusDemoShiftId={demoRegistryFocusShiftId}
               onFocusDemoShiftHandled={handleDemoRegistryFocusHandled}
             />

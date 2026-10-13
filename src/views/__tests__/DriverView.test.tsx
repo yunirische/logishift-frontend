@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { DriverView } from "../DriverView";
 import { API_ENDPOINTS } from "../../constants";
 import { UserRole } from "../../types";
@@ -1643,12 +1643,17 @@ describe("DriverView comments", () => {
     mockApiGet.mockResolvedValue([]);
 
     render(<DriverView />);
-    fireEvent.click(await screen.findByTestId("end-shift-button"));
-
-    expect(mockFinishDemoShift).toHaveBeenCalledTimes(1);
-    expect(mockApiPost).not.toHaveBeenCalledWith("/shifts/end", {});
-    expect(
-      await screen.findByText(/Сфотографируйте одометр ПОСЛЕ работы/)
-    ).toBeInTheDocument();
+    const endButton = await screen.findByTestId("end-shift-button");
+    // The toast dismissal must run before jsdom teardown, not on a real timer.
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(endButton);
+      expect(mockFinishDemoShift).toHaveBeenCalledTimes(1);
+      expect(mockApiPost).not.toHaveBeenCalledWith("/shifts/end", {});
+      expect(screen.getByText(/Сфотографируйте одометр ПОСЛЕ работы/)).toBeInTheDocument();
+      await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

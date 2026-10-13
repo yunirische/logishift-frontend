@@ -101,8 +101,8 @@ vi.mock("../components/Dashboard", () => ({
 }));
 
 vi.mock("../components/Shifts", () => ({
-  default: ({ focusDemoShiftId }: { focusDemoShiftId?: string | null }) => (
-    <div data-testid="shifts-focus-id">{focusDemoShiftId || "none"}</div>
+  default: ({ focusDemoShiftId, onNavigateToBilling }: { focusDemoShiftId?: string | null; onNavigateToBilling?: () => void }) => (
+    <div data-testid="shifts-focus-id">{focusDemoShiftId || "none"}<button onClick={onNavigateToBilling}>Export tariff CTA</button></div>
   ),
 }));
 
@@ -217,6 +217,15 @@ describe("App protected routes", () => {
   });
 
   const authenticateDemo = () => mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false, error: null, clearError: vi.fn(), user: createDemoAdminUser() });
+
+  it("opens existing Billing from the registry export tariff CTA", async () => {
+    mockIsDemoHostname.mockReturnValue(false);
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false, error: null, user: createNonDemoAdminUser() });
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Open shifts" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Export tariff CTA" }));
+    expect(await screen.findByText("Billing")).toBeInTheDocument();
+  });
 
   it("consumes the one-shot entry marker after demo authentication without removing attribution", () => {
     clearDemoPresentation();

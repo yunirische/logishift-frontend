@@ -750,6 +750,10 @@ export const getTenantBilling = async (): Promise<TenantBillingSummary> => {
       : null,
     subscription_expires_at:
       data.subscription_expires_at || data.subscriptionExpiresAt || null,
+    report_exports: {
+      excel: typeof data.report_exports?.excel === "boolean" ? data.report_exports.excel : undefined,
+      photos_zip: typeof data.report_exports?.photos_zip === "boolean" ? data.report_exports.photos_zip : undefined,
+    },
     stored_plan: normalizePlan(data.stored_plan || data.storedPlan),
     effective_plan: normalizePlan(data.effective_plan || data.effectivePlan),
     entitlement: entitlement

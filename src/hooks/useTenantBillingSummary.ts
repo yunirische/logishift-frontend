@@ -24,26 +24,30 @@ export const useTenantBillingSummary = (
   const [isLoading, setIsLoading] = useState(autoLoad);
   const [error, setError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
   }, []);
 
   const refreshBilling = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     if (isMountedRef.current) {
+      setIsLoading(true);
       setError(null);
     }
 
     try {
       const billingData = await getTenantBilling();
-      if (isMountedRef.current) {
+      if (isMountedRef.current && requestId === requestIdRef.current) {
         setBilling(billingData);
       }
-      return billingData;
+      return requestId === requestIdRef.current ? billingData : null;
     } catch (error) {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && requestId === requestIdRef.current) {
         if (error instanceof Error && error.message) {
           setError(error.message);
         } else {
@@ -52,7 +56,7 @@ export const useTenantBillingSummary = (
       }
       return null;
     } finally {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && requestId === requestIdRef.current) {
         setIsLoading(false);
       }
     }

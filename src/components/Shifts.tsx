@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useState } from "react";
-import { Filter, X, ChevronDown, Download } from "lucide-react";
+import { Filter, X, ChevronDown, Download, Lock } from "lucide-react";
 import { DemoPhotoPreviewDialog } from "./DemoPhotoPreviewDialog";
 import { isDemoTenantId } from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
@@ -10,6 +10,7 @@ import {
   DemoScenarioShift,
 } from "../lib/demoSession";
 import api, { openShiftFilePreview, ShiftFileType } from "../services/api";
+import { useTenantBillingSummary } from "../hooks/useTenantBillingSummary";
 import { Shift, UserRole } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
 import { buildShiftQueryString } from "../utils/shiftFilters";
@@ -148,7 +149,10 @@ type ShiftListResponse = {
   total: number;
 };
 
+type ReportExportFeature = "excel" | "photos_zip";
+
 interface ShiftsProps {
+  onNavigateToBilling?: () => void;
   focusDemoShiftId?: string | null;
   onFocusDemoShiftHandled?: () => void;
 }
@@ -195,6 +199,7 @@ const filenameFromDisposition = (
 };
 
 const Shifts: React.FC<ShiftsProps> = ({
+  onNavigateToBilling,
   focusDemoShiftId = null,
   onFocusDemoShiftHandled,
 }) => {
@@ -247,10 +252,39 @@ const Shifts: React.FC<ShiftsProps> = ({
     user?.role === UserRole.ADMIN || user?.role === UserRole.FOREMAN;
   const isDemoMode = isDemoTenantId(user?.tenant_id);
 
+  const { billing, isLoading: billingLoading, error: billingError, refreshBilling, setBilling } =
+    useTenantBillingSummary({ autoLoad: isAdmin });
+  const [exportNotice, setExportNotice] = useState<ReportExportFeature | null>(null);
+  const exportAccess = (feature: ReportExportFeature): boolean | undefined =>
+    billingLoading || billingError ? undefined : billing?.report_exports?.[feature];
+  const excelAccess = exportAccess("excel");
+  const zipAccess = exportAccess("photos_zip");
+  const accessUnknown = excelAccess === undefined || zipAccess === undefined;
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const refresh = () => { void refreshBilling(); };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [isAdmin, refreshBilling]);
+
+  useEffect(() => {
+    if (exportNotice && (exportNotice === "excel" ? excelAccess : zipAccess) === true) {
+      setExportNotice(null);
+    }
+  }, [exportNotice, excelAccess, zipAccess]);
+
   const downloadReport = async (
     endpoint: string,
-    fallbackFilename: string
+    fallbackFilename: string,
+    feature: ReportExportFeature
   ) => {
+    if (exportAccess(feature) !== true) {
+      if (exportAccess(feature) === false) setExportNotice(feature);
+      return;
+    }
+    const setBusy = feature === "excel" ? setExporting : setExportingZip;
+    setBusy(true);
     try {
       const token = api.getAuthToken();
       const queryString = buildShiftQueryString({
@@ -268,6 +302,12 @@ const Shifts: React.FC<ShiftsProps> = ({
         const err = contentType.includes("application/json")
           ? await response.json().catch(() => ({}))
           : {};
+        if (response.status === 403 && err.code === "EXPORT_PLAN_REQUIRED") {
+          setExportNotice(feature);
+          setBilling(null);
+          await refreshBilling();
+          return;
+        }
         alert((err as any).error || `Ошибка экспорта (${response.status})`);
         return;
       }
@@ -286,26 +326,16 @@ const Shifts: React.FC<ShiftsProps> = ({
       document.body.removeChild(link);
     } catch (error: any) {
       alert(error.message || "Не удалось скачать файл");
+    } finally {
+      setBusy(false);
     }
   };
 
-  const handleExcelExport = async () => {
-    setExporting(true);
-    try {
-      await downloadReport(API_ENDPOINTS.REPORTS_EXCEL, "logishift-shifts-report.xlsx");
-    } finally {
-      setExporting(false);
-    }
-  };
+  const handleExcelExport = () =>
+    downloadReport(API_ENDPOINTS.REPORTS_EXCEL, "logishift-shifts-report.xlsx", "excel");
 
-  const handleZipExport = async () => {
-    setExportingZip(true);
-    try {
-      await downloadReport(API_ENDPOINTS.REPORTS_PHOTOS_ZIP, "logishift-shift-photos.zip");
-    } finally {
-      setExportingZip(false);
-    }
-  };
+  const handleZipExport = () =>
+    downloadReport(API_ENDPOINTS.REPORTS_PHOTOS_ZIP, "logishift-shift-photos.zip", "photos_zip");
 
   useEffect(() => {
     const fetchFilterData = async () => {
@@ -908,24 +938,37 @@ const Shifts: React.FC<ShiftsProps> = ({
                 </button>
                 <button
                   onClick={handleExcelExport}
-                  disabled={exporting || exportingZip}
+                  disabled={exporting || exportingZip || excelAccess === undefined}
                   className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Download size={15} />
-                  {exporting ? "Загрузка..." : "Выгрузить в Excel"}
+                  {excelAccess === false ? <Lock size={15} aria-hidden="true" /> : <Download size={15} aria-hidden="true" />}
+                  <span>{exporting ? "Загрузка..." : "Выгрузить в Excel"}{excelAccess === false && <span className="block text-xs font-medium">Доступно со Старт</span>}</span>
                 </button>
                 <button
                   onClick={handleZipExport}
-                  disabled={exportingZip || exporting}
+                  disabled={exportingZip || exporting || zipAccess === undefined}
                   className="flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Download size={15} />
-                  {exportingZip ? "Загрузка..." : "Выгрузить фото ZIP"}
+                  {zipAccess === false ? <Lock size={15} aria-hidden="true" /> : <Download size={15} aria-hidden="true" />}
+                  <span>{exportingZip ? "Загрузка..." : "Выгрузить фото ZIP"}{zipAccess === false && <span className="block text-xs font-medium">Доступно со Старт</span>}</span>
                 </button>
               </div>
+              {accessUnknown && (
+                <div className="text-sm text-slate-600" role="status">
+                  {billingLoading ? "Проверяем доступ к экспорту…" : "Доступ к экспорту не подтверждён. Обновите данные по тарифу."}
+                  {!billingLoading && <button type="button" className="ml-2 font-semibold text-blue-700 underline" onClick={() => { void refreshBilling(); }}>Обновить доступ</button>}
+                </div>
+              )}
+              {exportNotice && (
+                <div className="max-w-lg rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700" role="status">
+                  <p>{exportNotice === "excel" ? "Экспорт Excel доступен с тарифа Старт." : "Выгрузка фото ZIP доступна с тарифа Старт."}</p>
+                  {user?.role === UserRole.FOREMAN && <p className="mt-1">Тариф подключает администратор компании.</p>}
+                  {onNavigateToBilling && <button type="button" className="mt-2 font-semibold text-blue-700 underline" onClick={onNavigateToBilling}>Посмотреть тарифы</button>}
+                </div>
+              )}
               {isDemoMode && (
                 <p className="text-xs leading-5 text-amber-700">
-                  Созданная в демо смена хранится только в браузере и не входит в экспорт.
+                  Демо показывает возможности тарифов Старт и выше. Созданная в демо смена хранится только в браузере и не входит в экспорт.
                 </p>
               )}
             </div>

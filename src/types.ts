@@ -244,6 +244,7 @@ export interface BillingPaymentSummary {
 }
 
 export interface TenantBillingSummary {
+  report_exports?: { excel?: boolean; photos_zip?: boolean } | null;
   current_plan: BillingPlanInfo | null;
   subscription_expires_at: string | null;
   last_payment: BillingPaymentSummary | null;

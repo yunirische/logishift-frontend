@@ -3,6 +3,7 @@ import Shifts from "../Shifts";
 import { API_ENDPOINTS } from "../../constants";
 
 const {
+  mockGetTenantBilling,
   mockApiGet,
   mockGetUserInfo,
   mockGetAuthToken,
@@ -10,6 +11,7 @@ const {
   mockUseDemoSession,
   mockGetDemoPhotoPreview,
 } = vi.hoisted(() => ({
+  mockGetTenantBilling: vi.fn(),
   mockApiGet: vi.fn(),
   mockGetUserInfo: vi.fn(),
   mockGetAuthToken: vi.fn(),
@@ -28,6 +30,7 @@ vi.mock("../../services/api", () => ({
     getUserInfo: mockGetUserInfo,
     getAuthToken: mockGetAuthToken,
   },
+  getTenantBilling: mockGetTenantBilling,
   openShiftFilePreview: mockOpenShiftFilePreview,
 }));
 
@@ -36,6 +39,7 @@ vi.mock("../../context/DemoSessionContext", () => ({
 }));
 
 beforeEach(() => {
+  mockGetTenantBilling.mockResolvedValue({ report_exports: { excel: true, photos_zip: true } });
   mockUseDemoSession.mockReturnValue({
     activeShift: null,
     finishedShifts: [],
@@ -342,7 +346,7 @@ describe("Shifts demo session projection", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Созданная в демо смена хранится только в браузере и не входит в экспорт."
+        "Демо показывает возможности тарифов Старт и выше. Созданная в демо смена хранится только в браузере и не входит в экспорт."
       )
     ).toBeInTheDocument();
     expect(await screen.findByText("#demo-shift:active")).toBeInTheDocument();
