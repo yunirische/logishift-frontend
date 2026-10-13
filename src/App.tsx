@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useState, lazy, Suspense } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import DemoScenarioEntry from "./components/DemoScenarioEntry";
-import { rememberDemoPresentation, shouldResumeDemoCabinet } from "./lib/demoPresentation";
+import { rememberDemoPresentation, getInitialDemoPresentation } from "./lib/demoPresentation";
+import DemoOverview from "./components/DemoOverview";
+import { captureDemoRegistrationHandoff, getDemoRegistrationUrl } from "./lib/demoRegistrationHandoff";
+import { recordCurrentDemoFunnelEvent, recordDemoRegistrationCtaClick } from "./lib/demoFunnelEvents";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import LandingView from "./views/LandingView";
@@ -17,6 +20,7 @@ import { DriverView } from "./views/DriverView";
 import AnalyticsConsent from "./components/AnalyticsConsent";
 import {
   APP_DEMO_PERSONA_KEY,
+  DEMO_ENTRY_QUERY_PARAM,
   getMarketingHostAppRedirectUrl,
   isDemoHostname,
   isDemoTenantId,
@@ -155,10 +159,11 @@ const AppContent: React.FC = () => {
   const [demoRegistryFocusShiftId, setDemoRegistryFocusShiftId] = useState<
     string | null
   >(null);
-  const [demoPresentation, setDemoPresentation] = useState<"scenario" | "cabinet">(
-    () => shouldResumeDemoCabinet(demoSession) ? "cabinet" : "scenario"
+  const [demoPresentation, setDemoPresentation] = useState<"overview" | "scenario" | "cabinet">(
+    () => getInitialDemoPresentation(demoSession)
   );
   const [demoTourRequested, setDemoTourRequested] = useState(false);
+  const [demoRegistrationHref, setDemoRegistrationHref] = useState<string | null>(null);
   // Initialize from localStorage or default to 'admin'
   const [demoPersona, setDemoPersona] = useState<DemoPersona>(() => {
     const saved = localStorage.getItem(APP_DEMO_PERSONA_KEY);
@@ -214,6 +219,18 @@ const AppContent: React.FC = () => {
   const isDemoDriverMode = isDemoMode && demoPersona === 'driver';
 
   useEffect(() => {
+    if (isLoading || !isAuthenticated || !isDemoMode) return;
+    // Login consumes this for guests; an already-authenticated demo entry skips
+    // Login. Consume the one-shot marker here too so reload resumes the choice.
+    const url = new URL(window.location.href);
+    if (url.searchParams.get(DEMO_ENTRY_QUERY_PARAM) !== "1") return;
+    captureDemoRegistrationHandoff({ search: url.search, explicitEntry: true });
+    setDemoRegistrationHref(getDemoRegistrationUrl());
+    url.searchParams.delete(DEMO_ENTRY_QUERY_PARAM);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [isAuthenticated, isDemoMode, isLoading]);
+
+  useEffect(() => {
     if (isLoading) {
       return;
     }
@@ -235,7 +252,7 @@ const AppContent: React.FC = () => {
       return;
     }
 
-    setDemoPresentation("scenario");
+    setDemoPresentation("overview");
     setDemoTourRequested(false);
     setDemoPersona((currentPersona) =>
       currentPersona === DEFAULT_DEMO_PERSONA
@@ -486,6 +503,26 @@ const AppContent: React.FC = () => {
     return (
       <ErrorBoundary>
         <OwnerDashboardView />
+      </ErrorBoundary>
+    );
+  }
+
+  if (isDemoMode && demoPresentation === "overview") {
+    return (
+      <ErrorBoundary>
+        <DemoOverview
+          onTryScenario={() => {
+            void recordCurrentDemoFunnelEvent("demo_driver_scenario_requested").catch(() => undefined);
+            handleSetDemoPersona("driver");
+          }}
+          onExploreCabinet={handleExploreDemoCabinet}
+          registrationHref={demoRegistrationHref || getDemoRegistrationUrl()}
+          onRegistrationClick={() => {
+            // Returning from registration resumes the cabinet, without redirect loops.
+            rememberDemoPresentation("cabinet", demoShiftId);
+            recordDemoRegistrationCtaClick();
+          }}
+        />
       </ErrorBoundary>
     );
   }

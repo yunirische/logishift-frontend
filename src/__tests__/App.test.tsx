@@ -2,7 +2,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "../App";
 import React from "react";
 import { createDemoScenarioShift, writeDemoSession } from "../lib/demoSession";
-import { rememberDemoPresentation } from "../lib/demoPresentation";
+import { rememberDemoPresentation, clearDemoPresentation } from "../lib/demoPresentation";
+import { getOrCreateDemoFunnelSession } from "../lib/demoFunnelSession";
+import { captureDemoRegistrationHandoff } from "../lib/demoRegistrationHandoff";
 
 const {
   mockUseAuth,
@@ -11,6 +13,8 @@ const {
   mockIsMarketingHostname,
   mockIsProductionAppHostname,
   mockUseDemoSession,
+  mockRecordEvent,
+  mockRegistrationClick,
 } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
   mockIsDemoHostname: vi.fn(),
@@ -18,6 +22,13 @@ const {
   mockIsMarketingHostname: vi.fn(),
   mockIsProductionAppHostname: vi.fn(),
   mockUseDemoSession: vi.fn(),
+  mockRecordEvent: vi.fn().mockResolvedValue(undefined),
+  mockRegistrationClick: vi.fn(),
+}));
+
+vi.mock("../lib/demoFunnelEvents", () => ({
+  recordCurrentDemoFunnelEvent: mockRecordEvent,
+  recordDemoRegistrationCtaClick: mockRegistrationClick,
 }));
 
 vi.mock("../context/AuthContext", () => ({
@@ -156,6 +167,8 @@ vi.mock("../components/AnalyticsConsent", () => ({
 
 vi.mock("../config/demo", () => ({
   APP_DEMO_PERSONA_KEY: "demoPersona",
+  DEMO_ENTRY_QUERY_PARAM: "enterDemo",
+  getProductionAppUrl: (pathname = "/") => `https://app.kontrolsmen.ru${pathname}`,
   getMarketingHostAppRedirectUrl: (pathname: string, search = "") =>
     `https://app.kontrolsmen.ru${pathname === "/dashboard" ? "/" : pathname}${search}`,
   isDemoHostname: mockIsDemoHostname,
@@ -184,6 +197,9 @@ describe("App protected routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    // Existing routing tests exercise a visitor who already chose the driver path.
+    getOrCreateDemoFunnelSession({ explicitEntry: true });
+    rememberDemoPresentation("driver");
     mockUseDemoSession.mockReturnValue({ activeShift: null, finishedShifts: [] });
     sessionStorage.clear();
     window.history.replaceState({}, "", "/");
@@ -198,6 +214,103 @@ describe("App protected routes", () => {
       clearError: vi.fn(),
       user: null,
     });
+  });
+
+  const authenticateDemo = () => mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false, error: null, clearError: vi.fn(), user: createDemoAdminUser() });
+
+  it("consumes the one-shot entry marker after demo authentication without removing attribution", () => {
+    clearDemoPresentation();
+    window.history.replaceState({}, "", "/?enterDemo=1&utm_source=fixture#section");
+    authenticateDemo();
+    const first = render(<App />);
+    expect(screen.getByTestId("demo-overview")).toBeVisible();
+    expect(new URLSearchParams(window.location.search).has("enterDemo")).toBe(false);
+    expect(new URLSearchParams(window.location.search).get("utm_source")).toBe("fixture");
+    expect(window.location.hash).toBe("#section");
+    const registration = new URL(screen.getByRole("link", { name: "Создать свою компанию" }).getAttribute("href")!);
+    expect(registration.searchParams.get("utm_source")).toBe("fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Попробовать самому" }));
+    first.unmount();
+    render(<App />);
+    expect(screen.getByTestId("demo-scenario-entry")).toBeVisible();
+  });
+
+  it("shows overview on fresh entry/reload without mounting the scenario, dashboard or tour", () => {
+    clearDemoPresentation();
+    authenticateDemo();
+    const first = render(<App />);
+    expect(screen.getByTestId("demo-overview")).toBeVisible();
+    expect(screen.queryByTestId("demo-scenario-entry")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("manual-demo-tour")).not.toBeInTheDocument();
+    expect(mockRecordEvent).not.toHaveBeenCalled();
+    first.unmount();
+    render(<App />);
+    expect(screen.getByTestId("demo-overview")).toBeVisible();
+    expect(mockRecordEvent).not.toHaveBeenCalled();
+  });
+
+  it("enters the deployed driver flow only after an explicit choice and resumes it before Start", () => {
+    clearDemoPresentation();
+    authenticateDemo();
+    const first = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Попробовать самому" }));
+    expect(screen.getByTestId("demo-scenario-entry")).toBeVisible();
+    expect(mockRecordEvent).toHaveBeenCalledExactlyOnceWith("demo_driver_scenario_requested");
+    first.unmount();
+    render(<App />);
+    expect(screen.getByTestId("demo-scenario-entry")).toBeVisible();
+    expect(screen.queryByTestId("demo-overview")).not.toBeInTheDocument();
+    expect(mockRecordEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the existing full cabinet/Tour before a shift and does not return to overview on reload", () => {
+    clearDemoPresentation();
+    authenticateDemo();
+    const first = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Посмотреть настоящий кабинет" }));
+    expect(screen.getByTestId("manual-demo-tour")).toBeVisible();
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    first.unmount();
+    render(<App />);
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.queryByTestId("demo-overview")).not.toBeInTheDocument();
+  });
+
+  it("uses the existing registration handoff and resumes the cabinet when returning", () => {
+    clearDemoPresentation();
+    captureDemoRegistrationHandoff({ explicitEntry: true, search: "?utm_source=fixture&yclid=fixture" });
+    authenticateDemo();
+    const first = render(<App />);
+    const link = screen.getByRole("link", { name: "Создать свою компанию" });
+    const url = new URL(link.getAttribute("href")!);
+    expect(url.origin + url.pathname).toBe("https://app.kontrolsmen.ru/register");
+    expect(url.searchParams.get("registration_source")).toBe("demo");
+    expect(url.searchParams.get("utm_source")).toBe("fixture");
+    expect(url.searchParams.get("yclid")).toBe("fixture");
+    expect(url.hash).toMatch(/^#demo_session=/);
+    expect(mockRegistrationClick).not.toHaveBeenCalled();
+    link.addEventListener("click", event => event.preventDefault(), { once: true });
+    fireEvent.click(link);
+    expect(mockRegistrationClick).toHaveBeenCalledTimes(1);
+    expect(mockRecordEvent).not.toHaveBeenCalled();
+    first.unmount();
+    render(<App />);
+    expect(screen.queryByTestId("demo-overview")).not.toBeInTheDocument();
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+  });
+
+  it.each(["active", "finished"] as const)("preserves an existing %s synthetic scenario without overview", status => {
+    clearDemoPresentation();
+    const shift = { ...createDemoScenarioShift({ driverId: 7, driverName: "Демо водитель", truckId: 11, truckName: "КамАЗ", siteId: 22, siteName: "Объект", odometerRequired: false, invoiceRequired: false }), status };
+    const state = status === "finished" ? { activeShift: null, finishedShifts: [shift] } : { activeShift: shift, finishedShifts: [] };
+    mockUseDemoSession.mockReturnValue(state);
+    authenticateDemo();
+    render(<App />);
+    expect(screen.getByTestId("demo-scenario-entry")).toBeVisible();
+    expect(screen.queryByTestId("demo-overview")).not.toBeInTheDocument();
+    expect(mockUseDemoSession()).toEqual(state);
+    expect(mockRecordEvent).not.toHaveBeenCalled();
   });
 
   it("resumes the full demo cabinet after leaving the owner result, including after reload", async () => {
@@ -338,6 +451,8 @@ describe("App protected routes", () => {
       expect(localStorage.getItem("demoPersona")).toBe("admin");
     });
 
+    fireEvent.click(screen.getByRole("button", { name: "Попробовать самому" }));
+
     fireEvent.click(
       screen.getByRole("button", { name: "Switch demo persona to driver" })
     );
@@ -381,7 +496,7 @@ describe("App protected routes", () => {
     });
   });
 
-  it("opens the driver scenario from dashboard and restores dashboard on return to admin", async () => {
+  it("resumes the chosen driver scenario and restores dashboard on return to admin", async () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
       isLoading: false,

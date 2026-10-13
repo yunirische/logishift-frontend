@@ -33,6 +33,7 @@ import {
 } from "../lib/demoSession";
 import { recordCurrentDemoFunnelEvent } from "../lib/demoFunnelEvents";
 import { getOrCreateDemoFunnelSession } from "../lib/demoFunnelSession";
+import { clearDemoPresentation } from "../lib/demoPresentation";
 
 type DemoSessionAction =
   | { type: "replace"; state: DemoSessionState }
@@ -106,6 +107,7 @@ export const DemoSessionProvider = ({
       if (!initialEnabled) return EMPTY_DEMO_SESSION;
       clearObsoleteDemoActiveShiftKeys(localStorage);
       if (initialEntry) {
+        clearDemoPresentation();
         getOrCreateDemoFunnelSession({
           explicitEntry: true,
           storage: localStorage,
@@ -134,6 +136,7 @@ export const DemoSessionProvider = ({
   }, []);
 
   const resetDemoSession = useCallback(() => {
+    clearDemoPresentation();
     revokeAllPreviews();
     clearDemoSessionStorage(localStorage);
     dispatch({ type: "reset" });

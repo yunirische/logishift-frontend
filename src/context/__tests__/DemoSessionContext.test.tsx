@@ -9,6 +9,7 @@ import {
   writeDemoSession,
 } from "../../lib/demoSession";
 import * as demoSession from "../../lib/demoSession";
+import { getInitialDemoPresentation, rememberDemoPresentation } from "../../lib/demoPresentation";
 import {
   DEMO_FUNNEL_SESSION_STORAGE_KEY,
   getOrCreateDemoFunnelSession,
@@ -318,6 +319,8 @@ describe("DemoSessionProvider v2 lifecycle", () => {
       explicitEntry: true,
       storage: localStorage,
     });
+    rememberDemoPresentation("cabinet");
+    expect(getInitialDemoPresentation(demoSession.EMPTY_DEMO_SESSION)).toBe("cabinet");
     const shift = createDemoScenarioShift({
       ...startInput,
       odometerRequired: false,
@@ -334,6 +337,8 @@ describe("DemoSessionProvider v2 lifecycle", () => {
     expect(screen.getByTestId("status")).toHaveTextContent("none");
     expect(localStorage.getItem(DEMO_SESSION_STORAGE_KEY)).toBeNull();
     const rotatedFunnelSession = readDemoFunnelSession(localStorage);
+    expect(getInitialDemoPresentation(demoSession.EMPTY_DEMO_SESSION)).toBe("overview");
+    expect(localStorage.getItem("logishift_demo_presentation_v1")).toBeNull();
     expect(rotatedFunnelSession).not.toBeNull();
     expect(rotatedFunnelSession?.key).not.toBe(previousFunnelSession?.key);
     expect(
@@ -343,6 +348,7 @@ describe("DemoSessionProvider v2 lifecycle", () => {
     window.history.replaceState({}, "", "/");
     fireEvent.click(screen.getByRole("button", { name: "start" }));
     fireEvent.click(screen.getByRole("button", { name: "start-photo" }));
+    rememberDemoPresentation("cabinet");
     mockUseAuth.mockReturnValue({ user: null });
     view.rerender(
       <DemoSessionProvider>
@@ -353,5 +359,7 @@ describe("DemoSessionProvider v2 lifecycle", () => {
     expect(screen.getByTestId("status")).toHaveTextContent("none");
     expect(localStorage.getItem(DEMO_SESSION_STORAGE_KEY)).toBeNull();
     expect(revokeObjectURL).toHaveBeenCalled();
+    expect(getInitialDemoPresentation(demoSession.EMPTY_DEMO_SESSION)).toBe("overview");
+    expect(localStorage.getItem("logishift_demo_presentation_v1")).toBeNull();
   });
 });
