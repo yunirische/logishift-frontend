@@ -331,6 +331,15 @@ describe("DemoScenarioGuide", () => {
     expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalled();
   });
 
+  it("does not record the canonical summary again on an unrelated guide rerender", async () => {
+    setSession({ activeShift: createShift() });
+    const { rerender } = renderGuide();
+    await waitFor(() => expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledTimes(1));
+    rerender(<DemoScenarioGuide demoPersona="admin" activeTab="shifts" setDemoPersona={vi.fn()} setActiveTab={vi.fn()} />);
+    expect(screen.getByTestId("demo-guide-shift-summary")).toBeVisible();
+    expect(mockRecordCurrentDemoFunnelEvent).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the driver-to-admin return visible even when the guide is collapsed", async () => {
     const user = userEvent.setup();
     const setDemoPersona = vi.fn();

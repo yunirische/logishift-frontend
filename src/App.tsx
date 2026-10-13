@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState, lazy, Suspense } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import DemoScenarioEntry from "./components/DemoScenarioEntry";
+import { rememberDemoPresentation, shouldResumeDemoCabinet } from "./lib/demoPresentation";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import LandingView from "./views/LandingView";
@@ -24,7 +25,7 @@ import {
   isProductionAppHostname,
 } from "./config/demo";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { DemoSessionProvider } from "./context/DemoSessionContext";
+import { DemoSessionProvider, useDemoSession } from "./context/DemoSessionContext";
 import { replaceLocation } from "./services/navigation";
 
 // Bundle optimization: lazy load heavy components (bundle-dynamic-imports)
@@ -142,6 +143,8 @@ const getDefaultTab = ({
 };
 
 const AppContent: React.FC = () => {
+  const demoSession = useDemoSession();
+  const demoShiftId = demoSession.activeShift?.id || demoSession.finishedShifts[0]?.id;
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
     if (requestedTab && APP_TABS.includes(requestedTab as AppTab)) {
@@ -152,7 +155,9 @@ const AppContent: React.FC = () => {
   const [demoRegistryFocusShiftId, setDemoRegistryFocusShiftId] = useState<
     string | null
   >(null);
-  const [demoPresentation, setDemoPresentation] = useState<"scenario" | "cabinet">("scenario");
+  const [demoPresentation, setDemoPresentation] = useState<"scenario" | "cabinet">(
+    () => shouldResumeDemoCabinet(demoSession) ? "cabinet" : "scenario"
+  );
   const [demoTourRequested, setDemoTourRequested] = useState(false);
   // Initialize from localStorage or default to 'admin'
   const [demoPersona, setDemoPersona] = useState<DemoPersona>(() => {
@@ -179,6 +184,7 @@ const AppContent: React.FC = () => {
   };
 
   const handleSetDemoPersona = (nextPersona: DemoPersona) => {
+    rememberDemoPresentation(nextPersona === "driver" ? "driver" : "cabinet", demoShiftId);
     setDemoPresentation(nextPersona === "driver" ? "scenario" : "cabinet");
     setDemoTourRequested(false);
     if (nextPersona === demoPersona) {
@@ -194,6 +200,7 @@ const AppContent: React.FC = () => {
     setActiveTab("shifts");
   };
   const handleExploreDemoCabinet = () => {
+    rememberDemoPresentation("cabinet", demoShiftId);
     setDemoPresentation("cabinet");
     setDemoTourRequested(true);
     setDemoPersona("admin");

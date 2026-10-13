@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "../App";
 import React from "react";
+import { createDemoScenarioShift, writeDemoSession } from "../lib/demoSession";
+import { rememberDemoPresentation } from "../lib/demoPresentation";
 
 const {
   mockUseAuth,
@@ -8,12 +10,14 @@ const {
   mockIsDemoTenantId,
   mockIsMarketingHostname,
   mockIsProductionAppHostname,
+  mockUseDemoSession,
 } = vi.hoisted(() => ({
   mockUseAuth: vi.fn(),
   mockIsDemoHostname: vi.fn(),
   mockIsDemoTenantId: vi.fn(),
   mockIsMarketingHostname: vi.fn(),
   mockIsProductionAppHostname: vi.fn(),
+  mockUseDemoSession: vi.fn(),
 }));
 
 vi.mock("../context/AuthContext", () => ({
@@ -22,6 +26,7 @@ vi.mock("../context/AuthContext", () => ({
 }));
 
 vi.mock("../context/DemoSessionContext", () => ({
+  useDemoSession: () => mockUseDemoSession(),
   DemoSessionProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
@@ -179,6 +184,7 @@ describe("App protected routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mockUseDemoSession.mockReturnValue({ activeShift: null, finishedShifts: [] });
     sessionStorage.clear();
     window.history.replaceState({}, "", "/");
     mockIsDemoHostname.mockReturnValue(true);
@@ -192,6 +198,33 @@ describe("App protected routes", () => {
       clearError: vi.fn(),
       user: null,
     });
+  });
+
+  it("resumes the full demo cabinet after leaving the owner result, including after reload", async () => {
+    const shift = createDemoScenarioShift({ driverId: 7, driverName: "Демо водитель", truckId: 11, truckName: "КамАЗ", siteId: 22, siteName: "Объект", odometerRequired: false, invoiceRequired: false });
+    writeDemoSession(localStorage, { activeShift: shift, finishedShifts: [] });
+    mockUseDemoSession.mockReturnValue({ activeShift: shift, finishedShifts: [] });
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false, error: null, clearError: vi.fn(), user: createDemoAdminUser() });
+    const first = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Посмотреть кабинет подробнее" }));
+    expect(screen.getByTestId("manual-demo-tour")).toBeInTheDocument();
+    first.unmount();
+    render(<App />);
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.queryByTestId("demo-scenario-entry")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("manual-demo-tour")).not.toBeInTheDocument();
+  });
+
+  it("ignores remembered demo presentation for a real tenant", () => {
+    const shift = createDemoScenarioShift({ driverId: 7, driverName: "Демо водитель", truckId: 11, truckName: "КамАЗ", siteId: 22, siteName: "Объект", odometerRequired: false, invoiceRequired: false });
+    writeDemoSession(localStorage, { activeShift: shift, finishedShifts: [] });
+    mockUseDemoSession.mockReturnValue({ activeShift: shift, finishedShifts: [] });
+    rememberDemoPresentation("cabinet", shift.id);
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false, error: null, clearError: vi.fn(), user: createNonDemoAdminUser() });
+    render(<App />);
+    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.queryByTestId("demo-scenario-entry")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("manual-demo-tour")).not.toBeInTheDocument();
   });
 
   it("shows login on protected root when auth is gone after logout", () => {

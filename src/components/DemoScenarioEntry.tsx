@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { useDemoSession } from "../context/DemoSessionContext";
 import { DriverView } from "../views/DriverView";
 import DemoScenarioGuide from "./DemoScenarioGuide";
+import DemoOwnerResult from "./DemoOwnerResult";
+import { readDemoPresentation, rememberDemoPresentation } from "../lib/demoPresentation";
 
 interface DemoScenarioEntryProps {
   onExploreCabinet: () => void;
@@ -15,6 +17,14 @@ const DemoScenarioEntry: React.FC<DemoScenarioEntryProps> = ({ onExploreCabinet,
   const { activeShift, finishedShifts } = useDemoSession();
   const hasFinishedScenario = finishedShifts.some(shift => shift.id.startsWith("demo-shift:"));
   const hasScenario = Boolean(activeShift || hasFinishedScenario);
+  const [continuedShiftId, setContinuedShiftId] = useState<string | null>(null);
+  const showOwnerResult = Boolean(
+    activeShift?.id.startsWith("demo-shift:") &&
+    activeShift.status === "active" &&
+    (!activeShift.odometerRequired || activeShift.photos.start) &&
+    activeShift.id !== continuedShiftId &&
+    !readDemoPresentation(activeShift.id)
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900" data-testid="demo-scenario-entry">
@@ -22,25 +32,34 @@ const DemoScenarioEntry: React.FC<DemoScenarioEntryProps> = ({ onExploreCabinet,
         Демо LogiShift · Тестовые данные
       </header>
       <main className="mx-auto max-w-4xl px-4 pb-8 sm:px-6">
-        {!hasScenario && (
-          <div className="mb-4">
-            <h1 className="text-xl font-bold sm:text-2xl">Попробуйте смену</h1>
-            <p className="mt-2 text-sm leading-5 text-slate-600">
-              Начните тестовую смену — затем увидите её глазами руководителя.
-            </p>
-          </div>
+        {showOwnerResult && activeShift ? (
+          <DemoOwnerResult shift={activeShift} onExploreCabinet={onExploreCabinet} onContinue={() => {
+            rememberDemoPresentation("driver", activeShift.id);
+            setContinuedShiftId(activeShift.id);
+          }} />
+        ) : (
+          <>
+            {!hasScenario && (
+              <div className="mb-4">
+                <h1 className="text-xl font-bold sm:text-2xl">Попробуйте смену</h1>
+                <p className="mt-2 text-sm leading-5 text-slate-600">
+                  Начните тестовую смену — затем увидите её глазами руководителя.
+                </p>
+              </div>
+            )}
+            {hasScenario && (
+              <DemoScenarioGuide demoPersona="driver" activeTab="my-shifts" {...guideActions} />
+            )}
+            <DriverView demoScenarioFirst focusHistory={!activeShift && hasFinishedScenario} />
+            <button
+              type="button"
+              onClick={onExploreCabinet}
+              className="mt-5 min-h-10 text-left text-sm font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-900"
+            >
+              Посмотреть кабинет подробнее
+            </button>
+          </>
         )}
-        {hasScenario && (
-          <DemoScenarioGuide demoPersona="driver" activeTab="my-shifts" {...guideActions} />
-        )}
-        <DriverView demoScenarioFirst focusHistory={!activeShift && hasFinishedScenario} />
-        <button
-          type="button"
-          onClick={onExploreCabinet}
-          className="mt-5 min-h-10 text-left text-sm font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-900"
-        >
-          Посмотреть кабинет подробнее
-        </button>
         <p className="mt-2 text-xs leading-5 text-slate-500">Действия в демо не создают реальные смены.</p>
       </main>
     </div>

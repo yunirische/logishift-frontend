@@ -7,6 +7,7 @@ import {
   recordCurrentDemoFunnelEvent,
   recordDemoRegistrationCtaClick,
 } from "../lib/demoFunnelEvents";
+import { formatForDisplay } from "../utils/dateUtils";
 
 type DemoPersona = "admin" | "driver";
 
@@ -65,6 +66,46 @@ const statusLabel = (status: DemoWorkflowStatus): string => {
     default:
       return "Активна";
   }
+};
+
+// Shared by the full demo guide and the compact, canonical owner result.
+export const DemoOwnerShiftSummary: React.FC<{ shift: DemoScenarioShift; compact?: boolean }> = ({ shift, compact = false }) => {
+  const { getDemoPhotoPreview } = useDemoSession();
+  const recordedShiftId = useRef<string | null>(null);
+  const photo = shift.photos.start;
+  const preview = compact && photo ? getDemoPhotoPreview(shift.id, "start") : null;
+
+  useEffect(() => {
+    if (!isSyntheticShift(shift) || recordedShiftId.current === shift.id) return;
+    recordedShiftId.current = shift.id;
+    void recordCurrentDemoFunnelEvent("demo_owner_result_shown").catch(() => undefined);
+  }, [shift.id]);
+
+  return (
+    <dl className={`mt-3 grid gap-2 rounded-lg border border-blue-100 bg-white p-3 text-xs ${compact ? "grid-cols-2" : "sm:grid-cols-2"}`}
+      data-testid="demo-guide-shift-summary" data-synthetic-shift-id={shift.id}>
+      {[
+        ["Водитель", shift.driverName], ["Машина", shift.truckName],
+        ["Объект", shift.siteName], ["Статус", statusLabel(shift.status)],
+        ...(compact ? [["Начало (МСК)", formatForDisplay(shift.startedAt, "Europe/Moscow")]] : []),
+      ].map(([label, value]) => (
+        <div key={label} className="min-w-0 break-words">
+          <dt className="text-slate-500">{label}</dt>
+          <dd className="font-semibold text-slate-900">{value}</dd>
+        </div>
+      ))}
+      {compact && (
+        <div className="min-w-0">
+          <dt className="text-slate-500">Фото начала</dt>
+          <dd className="font-semibold text-slate-900">
+            {photo ? "Добавлено" : "Не добавлено"}
+            {preview && <img src={preview.url} alt="Фото начала тестовой смены" className="mt-1 h-10 w-16 rounded object-cover" />}
+            {photo && !preview && <span className="block text-xs font-normal text-slate-500">Превью доступно до перезагрузки.</span>}
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
 };
 
 const PHOTO_REQUIREMENTS_EXPLANATION =
@@ -279,22 +320,6 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
     setActiveTab("dashboard");
   };
 
-  useEffect(() => {
-    if (
-      collapsed ||
-      demoPersona !== "admin" ||
-      guideState.step !== 4 ||
-      !guideState.shift ||
-      !isSyntheticShift(guideState.shift)
-    ) {
-      return;
-    }
-
-    void recordCurrentDemoFunnelEvent("demo_owner_result_shown").catch(
-      () => undefined
-    );
-  }, [collapsed, demoPersona, guideState]);
-
   return (
     <section
       ref={guideRef}
@@ -387,35 +412,7 @@ const DemoScenarioGuide: React.FC<DemoScenarioGuideProps> = ({
           </div>
 
           {guideState.step === 4 && guideState.shift && (
-            <dl
-              className="mt-3 grid gap-2 rounded-lg border border-blue-100 bg-white p-3 text-xs sm:grid-cols-2"
-              data-testid="demo-guide-shift-summary"
-            >
-              <div>
-                <dt className="text-slate-500">Водитель</dt>
-                <dd className="font-semibold text-slate-900">
-                  {guideState.shift.driverName}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Машина</dt>
-                <dd className="font-semibold text-slate-900">
-                  {guideState.shift.truckName}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Объект</dt>
-                <dd className="font-semibold text-slate-900">
-                  {guideState.shift.siteName}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Статус</dt>
-                <dd className="font-semibold text-slate-900">
-                  {statusLabel(guideState.shift.status)}
-                </dd>
-              </div>
-            </dl>
+            <DemoOwnerShiftSummary shift={guideState.shift} />
           )}
 
           {guideState.actionLabel &&
