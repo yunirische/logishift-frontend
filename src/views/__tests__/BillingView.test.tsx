@@ -49,18 +49,20 @@ it("uses user-facing billing status and effective Free copy", async () => {
   expect(screen.getByText("Превышен лимит")).toBeInTheDocument();
 });
 
-it("offers same-plan paid renewal and blocks other plans according to server policy", async () => {
+it("blocks early same-plan renewal and other plans, showing server expiry", async () => {
   mockState.billing.effective_plan = { ...mockState.billing.effective_plan, code: "start", name: "Старт" };
   mockState.billing.entitlement = { source: "paid", status: "active", expires_at: "2026-11-14T00:00:00Z" };
-  mockState.billing.checkout_plans = { start: allowed("renew"), business: blocked(), company: blocked() };
+  mockState.billing.checkout_plans = { start: { ...blocked(), denial_code: "PAID_RENEWAL_NOT_AVAILABLE" }, business: blocked(), company: blocked() };
   await renderBilling();
-  const renew = card("Старт").getByRole("button", { name: "Продлить" });
-  expect(renew).toBeEnabled();
+  const renew = card("Старт").getByRole("button", { name: "После окончания периода" });
+  expect(renew).toBeDisabled();
   expect(card("Бизнес").getByRole("button")).toBeDisabled();
-  expect(card("Бизнес").getByText(/Смена тарифа доступна после окончания/)).toBeInTheDocument();
+  expect(card("Бизнес").getByText(/Оплата доступна после окончания/)).toBeInTheDocument();
+  expect(card("Старт").getByText(/14.11.2026/)).toBeInTheDocument();
+  expect(card("Старт").getByText(/Досрочная оплата недоступна/)).toBeInTheDocument();
   fireEvent.click(card("Бизнес").getByRole("button")); expect(createBillingCheckout).not.toHaveBeenCalled();
   fireEvent.click(renew);
-  await waitFor(() => expect(createBillingCheckout).toHaveBeenCalledWith("start"));
+  expect(createBillingCheckout).not.toHaveBeenCalled();
 });
 
 it("allows current Pilot plan to be purchased as paid", async () => {
@@ -102,7 +104,7 @@ it("foreman cannot purchase even when server plan policy permits renewal", async
 it("refreshes server policy after a stale plan-change denial and explains it", async () => {
   vi.mocked(createBillingCheckout).mockRejectedValue(Object.assign(new Error("denied"), { backendCode: "PAID_PLAN_CHANGE_NOT_ALLOWED" }));
   await renderBilling(); fireEvent.click(card("Бизнес").getByRole("button"));
-  expect(await screen.findByText(/Сменить тариф можно после окончания оплаченного периода/)).toBeInTheDocument();
+  expect(await screen.findByText(/Оплата доступна после окончания текущего оплаченного периода/)).toBeInTheDocument();
   await waitFor(() => expect(mockRefreshBilling).toHaveBeenCalledTimes(1));
 });
 
@@ -124,4 +126,24 @@ it("keeps disabled-provider wording when the backend rejects creation", async ()
   vi.mocked(createBillingCheckout).mockRejectedValue(new Error("YooKassa is disabled or not configured"));
   await renderBilling(); fireEvent.click(card("Старт").getByRole("button"));
   expect(await screen.findByText("Онлайн-оплата пока недоступна. Напишите в поддержку.")).toBeInTheDocument();
+});
+
+it("a double click before the render commits starts only one checkout", async()=>{
+  let finish!: (value:any)=>void;
+  vi.mocked(createBillingCheckout).mockReturnValue(new Promise(resolve=>{finish=resolve;}));
+  await renderBilling();const buy=card("Старт").getByRole("button");
+  fireEvent.click(buy);fireEvent.click(buy);expect(createBillingCheckout).toHaveBeenCalledTimes(1);
+  await act(async()=>{finish({payment_id:100,status:"pending",confirmation_url:null});});
+});
+
+it("after expiry the same plan is purchasable only when the server allows it",async()=>{
+  mockState.billing.current_plan={code:"start",name:"Старт"};
+  await renderBilling();expect(card("Старт").getByRole("button",{name:"Перейти к оплате"})).toBeEnabled();
+});
+
+it.each(["PAID_RENEWAL_NOT_AVAILABLE","CHECKOUT_RESULT_PENDING","CHECKOUT_REVIEW_REQUIRED"])("explains %s without encouraging an independent payment",async code=>{
+  vi.mocked(createBillingCheckout).mockRejectedValue(Object.assign(new Error("fixture"),{backendCode:code}));
+  await renderBilling();fireEvent.click(card("Старт").getByRole("button"));
+  const message=code==="PAID_RENEWAL_NOT_AVAILABLE"?/Досрочная оплата недоступна/:code==="CHECKOUT_RESULT_PENDING"?/восстановит существующий платёж/:/Не оплачивайте повторно/;
+  expect(await screen.findByText(message)).toBeInTheDocument();
 });

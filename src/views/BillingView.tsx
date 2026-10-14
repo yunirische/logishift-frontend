@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -91,6 +91,7 @@ const paymentStatusLabel = (status?: string) => {
     case "failed":
       return "Ошибка оплаты";
     case "requires_review":
+    case "checkout_review":
       return "Требует проверки";
     default:
       return "Статус уточняется";
@@ -138,9 +139,13 @@ const getSafeBillingLoadErrorMessage = (error: unknown) => {
 
 const getSafeBillingCheckoutErrorMessage = (error: unknown) => {
   const code = (error as { backendCode?: string } | null)?.backendCode;
-  if (code === "PAID_PLAN_CHANGE_NOT_ALLOWED") {
-    return "Сменить тариф можно после окончания оплаченного периода. Текущий тариф можно продлить.";
+  if (code === "PAID_PLAN_CHANGE_NOT_ALLOWED" || code === "PAID_RENEWAL_NOT_AVAILABLE") {
+    return "Оплата доступна после окончания текущего оплаченного периода. Досрочная оплата недоступна.";
   }
+  if (code === "CHECKOUT_RESULT_PENDING") return "Результат оплаты уточняется. Повторная попытка восстановит существующий платёж.";
+  if (code === "CHECKOUT_REVIEW_REQUIRED" || code === "CHECKOUT_ALREADY_PENDING") return "Предыдущая оплата ещё не завершена или требует проверки. Не оплачивайте повторно; обратитесь в поддержку.";
+  if (code === "CHECKOUT_EMAIL_REQUIRED") return "Для оплаты нужен корректный email администратора. Обратитесь в поддержку.";
+  if (code === "CHECKOUT_CREATE_REJECTED") return "Платёжный сервис отклонил запрос. Обратитесь в поддержку.";
   if (code === "PAYMENT_VERIFICATION_PENDING") {
     return "Платёж проверяется. Проверьте статус или обратитесь в поддержку.";
   }
@@ -165,6 +170,7 @@ const getSafeBillingCheckoutErrorMessage = (error: unknown) => {
 };
 
 const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
+  const checkoutInFlight = useRef(false);
   const { user } = useAuth();
   const isAdmin = user?.role === UserRole.ADMIN;
   const isReturnMode = Boolean(returnMode);
@@ -296,11 +302,13 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
   };
 
   const handleCheckout = async (planCode: string) => {
+    if (checkoutInFlight.current) return;
     if (!isAdmin) {
       setCheckoutError("Оплату может запустить только администратор компании.");
       return;
     }
 
+    checkoutInFlight.current = true;
     setCheckoutPlanCode(planCode);
     setCheckoutError(null);
 
@@ -320,13 +328,19 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
         return;
       }
 
+      if (result.status === "pending") {
+        setCheckoutError("Статус предыдущей оплаты уточняется. Повторная попытка восстановит тот же платёж.");
+        return;
+      }
+
       setCheckoutError(CHECKOUT_UNAVAILABLE_MESSAGE);
     } catch (error) {
       setCheckoutError(getSafeBillingCheckoutErrorMessage(error));
-      if ((error as { backendCode?: string } | null)?.backendCode === "PAID_PLAN_CHANGE_NOT_ALLOWED") {
+      if (["PAID_PLAN_CHANGE_NOT_ALLOWED", "PAID_RENEWAL_NOT_AVAILABLE"].includes((error as { backendCode?: string } | null)?.backendCode || "")) {
         await refreshBillingSummary();
       }
     } finally {
+      checkoutInFlight.current = false;
       setCheckoutPlanCode(null);
     }
   };
@@ -631,17 +645,18 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
                   ) : !checkoutAccess ? (
                     "Доступность уточняется"
                   ) : !checkoutAccess.allowed ? (
-                    "После окончания периода"
+                    checkoutAccess.denial_code === "ONLINE_CHECKOUT_NOT_AVAILABLE" ? "Онлайн-оплата недоступна" : "После окончания периода"
                   ) : checkoutAccess.action === "renew" ? (
                     "Продлить"
                   ) : (
                     "Перейти к оплате"
                   )}
                 </button>
-                {checkoutAccess?.denial_code === "PAID_PLAN_CHANGE_NOT_ALLOWED" && (
+                {["PAID_PLAN_CHANGE_NOT_ALLOWED", "PAID_RENEWAL_NOT_AVAILABLE"].includes(checkoutAccess?.denial_code || "") && (
                   <p className="mt-3 text-sm leading-6 text-slate-600">
-                    Смена тарифа доступна после окончания оплаченного периода
-                    {checkoutAccess.available_after ? ` (${formatDate(checkoutAccess.available_after)})` : ""}.
+                    Оплата доступна после окончания оплаченного периода
+                    {checkoutAccess?.available_after ? ` (${formatDate(checkoutAccess.available_after)})` : ""}.
+                    {" "}Досрочная оплата недоступна.
                   </p>
                 )}
               </div>

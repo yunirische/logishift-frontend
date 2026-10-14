@@ -42,6 +42,8 @@ export enum BackendErrorCode {
   SUBSCRIPTION_EXPIRED = 'SUBSCRIPTION_EXPIRED',
   PAID_PLAN_CHANGE_NOT_ALLOWED = 'PAID_PLAN_CHANGE_NOT_ALLOWED',
   PAYMENT_VERIFICATION_PENDING = 'PAYMENT_VERIFICATION_PENDING',
+  PAID_RENEWAL_NOT_AVAILABLE = 'PAID_RENEWAL_NOT_AVAILABLE',
+  CHECKOUT_CREATE_REJECTED = 'CHECKOUT_CREATE_REJECTED',
 }
 
 // Backend error response structure
@@ -820,16 +822,38 @@ export const getBillingPayments = async (): Promise<BillingPaymentSummary[]> => 
   }));
 };
 
-export const createBillingCheckout = async (
+const checkoutRequests = new Map<string, Promise<BillingCheckoutResponse>>();
+
+export const createBillingCheckout = (
   planCode: string
 ): Promise<BillingCheckoutResponse> => {
-  const data = await post(API_ENDPOINTS.BILLING_CHECKOUT, { planCode });
-
-  return {
-    payment_id: Number(data.payment_id ?? data.paymentId ?? 0),
-    status: String(data.status || "pending"),
-    confirmation_url: data.confirmation_url || data.confirmationUrl || null,
-  };
+  const user = getUserInfo();
+  if (!user?.id || !user.tenant_id) return Promise.reject(new Error("Для оплаты требуется повторный вход."));
+  const storageKey = `logishift_checkout_intent_v1:${user.tenant_id}:${user.id}:${planCode}`;
+  const active = checkoutRequests.get(storageKey);
+  if (active) return active;
+  let checkoutIntentId: string;
+  try {
+    checkoutIntentId = sessionStorage.getItem(storageKey) || crypto.randomUUID();
+    sessionStorage.setItem(storageKey, checkoutIntentId);
+  } catch { return Promise.reject(new Error("Не удалось сохранить попытку оплаты. Проверьте доступность хранилища браузера.")); }
+  const request = (async () => {
+    try {
+      const data = await post(API_ENDPOINTS.BILLING_CHECKOUT, { planCode, checkoutIntentId });
+      const result = {
+        payment_id: Number(data.payment_id ?? data.paymentId ?? 0),
+        status: String(data.status || "pending"),
+        confirmation_url: data.confirmation_url || data.confirmationUrl || null,
+      };
+      if (["succeeded", "canceled", "failed"].includes(result.status)) sessionStorage.removeItem(storageKey);
+      return result;
+    } catch (error) {
+      if ((error as ApiError)?.backendCode === "CHECKOUT_CREATE_REJECTED") sessionStorage.removeItem(storageKey);
+      throw error;
+    } finally { checkoutRequests.delete(storageKey); }
+  })();
+  checkoutRequests.set(storageKey, request);
+  return request;
 };
 
 export const getOwnerSummary = async (): Promise<OwnerSummary> => {
