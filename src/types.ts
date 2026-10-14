@@ -244,6 +244,12 @@ export interface BillingPaymentSummary {
 }
 
 export interface TenantBillingSummary {
+  checkout_plans?: Record<string, {
+    allowed: boolean;
+    action: "renew" | "activate" | "blocked";
+    denial_code: string | null;
+    available_after: string | null;
+  }> | null;
   report_exports?: { excel?: boolean; photos_zip?: boolean } | null;
   current_plan: BillingPlanInfo | null;
   subscription_expires_at: string | null;

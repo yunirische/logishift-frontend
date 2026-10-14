@@ -90,6 +90,8 @@ const paymentStatusLabel = (status?: string) => {
       return "Отменен";
     case "failed":
       return "Ошибка оплаты";
+    case "requires_review":
+      return "Требует проверки";
     default:
       return "Статус уточняется";
   }
@@ -135,6 +137,13 @@ const getSafeBillingLoadErrorMessage = (error: unknown) => {
 };
 
 const getSafeBillingCheckoutErrorMessage = (error: unknown) => {
+  const code = (error as { backendCode?: string } | null)?.backendCode;
+  if (code === "PAID_PLAN_CHANGE_NOT_ALLOWED") {
+    return "Сменить тариф можно после окончания оплаченного периода. Текущий тариф можно продлить.";
+  }
+  if (code === "PAYMENT_VERIFICATION_PENDING") {
+    return "Платёж проверяется. Проверьте статус или обратитесь в поддержку.";
+  }
   if (isCheckoutUnavailableError(error)) {
     return CHECKOUT_UNAVAILABLE_MESSAGE;
   }
@@ -303,9 +312,20 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
         return;
       }
 
+      if (result.status === "succeeded" || result.status === "requires_review") {
+        await refreshBilling();
+        if (result.status === "requires_review") {
+          setCheckoutError("Платёж получен и требует проверки. Обратитесь в поддержку.");
+        }
+        return;
+      }
+
       setCheckoutError(CHECKOUT_UNAVAILABLE_MESSAGE);
     } catch (error) {
       setCheckoutError(getSafeBillingCheckoutErrorMessage(error));
+      if ((error as { backendCode?: string } | null)?.backendCode === "PAID_PLAN_CHANGE_NOT_ALLOWED") {
+        await refreshBillingSummary();
+      }
     } finally {
       setCheckoutPlanCode(null);
     }
@@ -546,11 +566,15 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
         <div className="mt-6 grid gap-4 xl:grid-cols-3">
           {publicCheckoutPlans.map((plan) => {
             const isCurrentPlan = effectivePlan?.code === plan.code;
+            const checkoutAccess = billing?.checkout_plans?.[plan.code];
+            const checkoutUnavailable = checkoutAccess?.allowed !== true;
             const isBusy = checkoutPlanCode === plan.code || redirectingPlanCode === plan.code;
 
             return (
               <div
                 key={plan.code}
+                role="group"
+                aria-label={`Тариф ${plan.name}`}
                 className={`flex h-full flex-col rounded-2xl border p-5 ${
                   isCurrentPlan
                     ? "border-[#77c2ff] bg-[#eef8ff]"
@@ -588,9 +612,9 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
                 <button
                   type="button"
                   onClick={() => void handleCheckout(plan.code)}
-                  disabled={!isAdmin || isBusy || isCurrentPlan}
+                  disabled={!isAdmin || isBusy || checkoutUnavailable}
                   className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                    !isAdmin || isCurrentPlan
+                    !isAdmin || checkoutUnavailable
                       ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
                       : "bg-[#041627] text-white hover:bg-[#1a2b3c]"
                   }`}
@@ -602,14 +626,24 @@ const BillingView: React.FC<BillingViewProps> = ({ returnMode }) => {
                         ? "Переходим к оплате..."
                         : "Готовим оплату..."}
                     </>
-                  ) : isCurrentPlan ? (
-                    "Уже подключен"
                   ) : !isAdmin ? (
                     "Доступно администратору"
+                  ) : !checkoutAccess ? (
+                    "Доступность уточняется"
+                  ) : !checkoutAccess.allowed ? (
+                    "После окончания периода"
+                  ) : checkoutAccess.action === "renew" ? (
+                    "Продлить"
                   ) : (
                     "Перейти к оплате"
                   )}
                 </button>
+                {checkoutAccess?.denial_code === "PAID_PLAN_CHANGE_NOT_ALLOWED" && (
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    Смена тарифа доступна после окончания оплаченного периода
+                    {checkoutAccess.available_after ? ` (${formatDate(checkoutAccess.available_after)})` : ""}.
+                  </p>
+                )}
               </div>
             );
           })}

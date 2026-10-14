@@ -40,6 +40,8 @@ export enum BackendErrorCode {
   MISSING_TOKEN = 'MISSING_TOKEN',
   AUTH_ERROR = 'AUTH_ERROR',
   SUBSCRIPTION_EXPIRED = 'SUBSCRIPTION_EXPIRED',
+  PAID_PLAN_CHANGE_NOT_ALLOWED = 'PAID_PLAN_CHANGE_NOT_ALLOWED',
+  PAYMENT_VERIFICATION_PENDING = 'PAYMENT_VERIFICATION_PENDING',
 }
 
 // Backend error response structure
@@ -241,17 +243,19 @@ export const apiRequest = async (endpoint: string, options: any = {}) => {
     // Handle other HTTP errors
     if (!response.ok) {
       let errorMessage = `HTTP Error ${response.status}`;
+      let backendCode: BackendErrorCode | undefined;
 
       try {
         const errorData = await response.json();
         // Try multiple possible error field names (detail, message, error)
         errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage;
+        backendCode = errorData.code as BackendErrorCode;
       } catch {
         // If response is not JSON, use status text
         errorMessage = response.statusText || errorMessage;
       }
 
-      throw createApiError(errorMessage, ApiErrorType.SERVER, response.status);
+      throw createApiError(errorMessage, ApiErrorType.SERVER, response.status, backendCode);
     }
 
     // Handle empty responses
@@ -765,6 +769,17 @@ export const getTenantBilling = async (): Promise<TenantBillingSummary> => {
         }
       : null,
     usage: normalizeUsage(data.usage),
+    checkout_plans: data.checkout_plans && typeof data.checkout_plans === "object"
+      ? Object.fromEntries(Object.entries(data.checkout_plans).flatMap(([code, value]) => {
+          const policy = value as any;
+          return typeof policy?.allowed === "boolean" && ["renew", "activate", "blocked"].includes(policy.action)
+            ? [[code, {
+                allowed: policy.allowed, action: policy.action,
+                denial_code: typeof policy.denial_code === "string" ? policy.denial_code : null,
+                available_after: typeof policy.available_after === "string" ? policy.available_after : null,
+              }]] : [];
+        }))
+      : null,
     last_payment: lastPayment
       ? {
           id: Number(lastPayment.id),
