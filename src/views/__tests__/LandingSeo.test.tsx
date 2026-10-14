@@ -274,17 +274,15 @@ describe("Landing product copy", () => {
     [
       "учёт текущих и завершённых смен",
       "техника, водители и объекты",
-      "фото к сменам",
-      "комментарии к сменам",
+      "фото и комментарии к сменам",
       "история и журнал действий",
       "роли пользователей и приглашения водителей",
       "ручное создание, завершение и отмена смен",
-      "тарифы и лимиты для техники, водителей и объектов",
     ].forEach((feature) => {
       expect(screen.getByText(feature)).toBeInTheDocument();
     });
 
-    expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(3);
     expect(screen.getAllByRole("button", { name: "Открыть демо" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Бесплатный тариф включает до 2 машин, 2 водителей и 2 объектов. Для растущего парка доступны тарифы с большими лимитами.")).toBeInTheDocument();
 
@@ -299,13 +297,16 @@ describe("Landing product copy", () => {
     expect(supportLink).toHaveAttribute("rel", "noopener noreferrer");
     expect(within(offerBanner).queryByRole("button", { name: "Узнать условия" })).not.toBeInTheDocument();
 
-    expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(2);
+    const tariffSection = screen.getByRole("heading", { name: "Начните с бесплатного тарифа" }).closest("section")!;
+    expect(within(tariffSection).getByRole("button", { name: "Начать бесплатно" })).toBeInTheDocument();
+    expect(within(tariffSection).getByText("Excel и фото ZIP не входят")).toBeInTheDocument();
+    expect(within(tariffSection).getByText("без ограничения по времени")).toBeInTheDocument();
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Смены транспорта и спецтехники — без Excel и чатов"
     );
     expect(container.textContent).toContain(
-      "LogiShift — учёт смен: водитель отмечает смену с телефона, а руководитель видит водителя, технику, объект, время, фото и комментарии."
+      "LogiShift: водитель отмечает смену с телефона, руководитель видит работу парка в одном месте."
     );
     const painHeading = screen.getByRole("heading", {
       level: 2,

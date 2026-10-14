@@ -86,29 +86,27 @@ const AnalyticsConsent: React.FC = () => {
   return (
     <section
       aria-label="Настройки аналитических cookies"
-      className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-2xl shadow-slate-900/20 backdrop-blur md:bottom-6 md:flex md:items-center md:gap-5 md:p-5"
+      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-3 shadow-lg shadow-slate-900/10 md:inset-x-4 md:bottom-6 md:flex md:items-center md:gap-5 md:rounded-3xl md:p-5"
     >
-      <p className="text-sm leading-6 text-slate-700">
-        Мы используем Яндекс Метрику для анализа посещаемости сайта и
-        эффективности рекламы. Метрика загружается только с вашего согласия.
-        Подробнее - в{" "}
+      <p className="text-[13px] leading-5 text-slate-700 md:text-sm md:leading-6">
+        Яндекс Метрика для анализа посещений — только с вашего согласия.{" "}
         <a className="font-semibold text-[#0a192f] underline" href="/privacy">
-          Политике обработки персональных данных
+          Подробнее
         </a>
         .
       </p>
-      <div className="mt-4 grid grid-cols-2 gap-3 md:mt-0 md:w-64 md:flex-none">
+      <div className="mt-2 grid grid-cols-2 gap-2 md:mt-0 md:w-64 md:flex-none">
         <button
           type="button"
           onClick={accept}
-          className="rounded-full border border-[#0a192f] bg-[#0a192f] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#152238]"
+          className="min-h-11 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#0a192f] transition-colors hover:border-[#0a192f]"
         >
           Принять
         </button>
         <button
           type="button"
           onClick={reject}
-          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#0a192f] transition-colors hover:border-[#0a192f]"
+          className="min-h-11 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#0a192f] transition-colors hover:border-[#0a192f]"
         >
           Отклонить
         </button>

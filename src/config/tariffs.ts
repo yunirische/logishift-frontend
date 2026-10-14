@@ -36,7 +36,7 @@ export const PUBLIC_TARIFFS: PublicTariffDefinition[] = [
       "до 5 машин",
       "до 10 водителей",
       "до 5 объектов",
-      "онлайн-оплата после включения биллинга",
+      "для небольшого парка",
       "Excel и фото ZIP входят",
     ],
     checkoutEnabled: true,
