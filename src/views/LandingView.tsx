@@ -463,7 +463,7 @@ const LandingView: React.FC = () => {
           </div>
           <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-600 shadow-sm sm:p-5">
             Для крупного парка, отдельного внедрения или особых требований подготовим индивидуальные условия.
-            {" "}Онлайн-оплата сейчас недоступна. По вопросам подключения платного тарифа{" "}
+            {" "}Платный тариф можно подключить онлайн в кабинете. Если нужна помощь,{" "}
             <a href={SUPPORT_EMAIL_HREF} className="font-semibold text-[#006497] underline underline-offset-4">напишите нам</a>.
           </div>
         </section>
