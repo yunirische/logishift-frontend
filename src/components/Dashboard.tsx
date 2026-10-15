@@ -8,7 +8,6 @@ import { DriverState, UserRole, AnalyticsUsage } from "../types";
 import {
   Clock,
   Truck,
-  Hand,
   Plus,
   User,
   Building2,
@@ -61,11 +60,11 @@ const UsageCard: React.FC<{
   const displayLimit = limit === -1 ? "∞" : limit;
 
   return (
-    <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm w-full">
-      <div className="flex items-center justify-between mb-2">
+    <div className="min-w-0">
+      <div className="flex items-center justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-2">
           {icon}
-          <span className="text-xs font-bold text-slate-500 uppercase">{label}</span>
+          <span className="text-sm font-medium text-slate-600">{label}</span>
         </div>
         <span className={`text-sm font-semibold ${isNearLimit ? 'text-orange-500' : isUnlimited ? 'text-slate-600' : 'text-slate-800'}`}>
           {current} / {displayLimit}
@@ -278,46 +277,36 @@ const Dashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({
   // === ADMIN VIEW ===
   if (isAdminView) {
     return (
-      <div className="space-y-8 animate-in fade-in">
-        {/* Основная статистика */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="w-12 h-12 rounded-lg bg-indigo-50 text-[#0a192f] flex items-center justify-center mb-4">
-              <Clock size={24} />
+      <div className="space-y-4 md:space-y-5 animate-in fade-in">
+        {/* Две метрики и отдельное действие */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+          <div role="group" aria-label="Сводка смен" className="grid grid-cols-2 gap-3 lg:max-w-xl lg:flex-1">
+            <div className="relative min-h-24 bg-white p-3 md:p-4 rounded-lg border border-slate-100 shadow-sm">
+              <Clock size={20} className="absolute right-3 top-3 text-slate-400" aria-hidden="true" />
+              <p className="pr-6 text-3xl leading-9 font-semibold text-[#1B254B]">
+                {displayStats.activeShifts}
+              </p>
+              <p className="text-xs leading-4 md:text-sm md:leading-5 font-medium text-slate-600 mt-1">
+                Активные смены
+              </p>
             </div>
-            <p className="text-3xl font-semibold text-[#1B254B]">
-              {displayStats.activeShifts}
-            </p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-              Активные смены
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
-              <Truck size={24} />
+            <div className="relative min-h-24 bg-white p-3 md:p-4 rounded-lg border border-slate-100 shadow-sm">
+              <Truck size={20} className="absolute right-3 top-3 text-emerald-600" aria-hidden="true" />
+              <p className="pr-6 text-3xl leading-9 font-semibold text-[#1B254B]">
+                {displayStats.activeDrivers}
+              </p>
+              <p className="text-xs leading-4 md:text-sm md:leading-5 font-medium text-slate-600 mt-1">
+                Водителей на смене
+              </p>
             </div>
-            <p className="text-3xl font-semibold text-[#1B254B]">
-              {displayStats.activeDrivers}
-            </p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-              Водителей на смене
-            </p>
           </div>
-          <div className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
-            <div className="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
-              <Hand size={24} />
-            </div>
-            <p className="text-3xl font-semibold text-[#1B254B]">
-              +
-            </p>
-            <button
-              onClick={() => setShowManualModal(true)}
-              className="mt-2 w-full py-2 bg-amber-500 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-amber-600 transition-all flex items-center justify-center gap-2"
-            >
-              <Plus size={20} />
-              Создать смену за водителя
-            </button>
-          </div>
+          <button
+            onClick={() => setShowManualModal(true)}
+            className="min-h-11 w-full lg:w-auto shrink-0 px-3 py-2 bg-amber-500 text-slate-900 text-sm font-semibold rounded-lg hover:bg-amber-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <Plus size={18} className="shrink-0" aria-hidden="true" />
+            Создать смену за водителя
+          </button>
         </div>
 
         {shouldHighlightOnboarding && (
@@ -371,50 +360,6 @@ const Dashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({
           </div>
         )}
 
-        {/* НОВЫЙ РАЗДЕЛ: Usage Limits (Лимиты тарифа) */}
-        <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-[#1B254B]">Лимиты тарифа</h3>
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-indigo-100 text-[#0a192f] text-xs font-bold rounded-full">
-                {currentPlanLabel}
-              </span>
-              <button
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
-                title="Обновить статистику"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {usage && (
-              <>
-                <UsageCard
-                  label="Машины"
-                  icon={<Truck size={24} className="text-[#0a192f]" />}
-                  current={usage.trucks.current}
-                  limit={usage.trucks.limit}
-                />
-                <UsageCard
-                  label="Водители"
-                  icon={<User size={24} className="text-[#0a192f]" />}
-                  current={usage.drivers.current}
-                  limit={usage.drivers.limit}
-                />
-                <UsageCard
-                  label="Объекты"
-                  icon={<Building2 size={24} className="text-[#0a192f]" />}
-                  current={usage.sites.current}
-                  limit={usage.sites.limit}
-                />
-              </>
-            )}
-          </div>
-        </div>
-
         {/* Активные смены */}
         {displayStats.activeShiftsDetails.length > 0 && (
           <div className="bg-white p-8 rounded-lg border border-slate-100 shadow-sm">
@@ -443,6 +388,50 @@ const Dashboard: React.FC<{ onNavigate: (tab: string) => void }> = ({
             </div>
           </div>
         )}
+
+        {/* Лимиты тарифа */}
+        <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-center gap-2 mb-3">
+            <h3 className="min-w-0 text-base leading-5 md:text-lg md:leading-7 font-semibold text-[#1B254B]">Лимиты тарифа</h3>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="max-w-24 md:max-w-none px-2 py-1 bg-indigo-100 text-[#0a192f] text-xs font-bold rounded-full">
+                {currentPlanLabel}
+              </span>
+              <button
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="min-h-11 min-w-11 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50"
+                title="Обновить статистику"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
+            {usage && (
+              <>
+                <UsageCard
+                  label="Машины"
+                  icon={<Truck size={18} className="shrink-0 text-[#0a192f]" />}
+                  current={usage.trucks.current}
+                  limit={usage.trucks.limit}
+                />
+                <UsageCard
+                  label="Водители"
+                  icon={<User size={18} className="shrink-0 text-[#0a192f]" />}
+                  current={usage.drivers.current}
+                  limit={usage.drivers.limit}
+                />
+                <UsageCard
+                  label="Объекты"
+                  icon={<Building2 size={18} className="shrink-0 text-[#0a192f]" />}
+                  current={usage.sites.current}
+                  limit={usage.sites.limit}
+                />
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Модальное окно для ручной смены */}
         {showManualModal && (

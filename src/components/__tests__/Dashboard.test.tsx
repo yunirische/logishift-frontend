@@ -46,7 +46,15 @@ vi.mock("../../services/api", () => ({
 }));
 
 vi.mock("../ManualShiftModal", () => ({
-  default: () => <div>Manual shift modal</div>,
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div role="dialog" aria-label="Manual shift modal">
+      <button onClick={onClose}>Закрыть</button>
+    </div>
+  ),
+}));
+
+vi.mock("../../views/DriverView", () => ({
+  DriverView: () => <div>Driver workspace</div>,
 }));
 
 describe("Dashboard onboarding", () => {
@@ -259,5 +267,149 @@ describe("Dashboard demo session projection", () => {
     expect(
       screen.getAllByText("Активные смены")[0].previousElementSibling
     ).toHaveTextContent("2");
+  });
+});
+
+
+describe("Dashboard density and preserved behavior", () => {
+  const stats = {
+    activeShifts: 3,
+    activeDrivers: 2,
+    totalShifts: 7,
+    activeShiftsDetails: [{
+      id: 12,
+      driver_name: "Иван Петров",
+      truck_name: "КАМАЗ",
+      site_name: "Карьер",
+      start_time: "2026-10-09T05:12:22.000Z",
+    }],
+  };
+  const usage = {
+    trucks: { current: 2, limit: 2, utilization_percent: 100 },
+    drivers: { current: 1, limit: 2, utilization_percent: 50 },
+    sites: { current: 2, limit: 2, utilization_percent: 100 },
+  };
+  const comesBefore = (first: Element, second: Element) =>
+    Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({ user: {
+      id: 4, full_name: "Admin", role: "admin", current_state: "idle", tenant_id: 1,
+    } });
+    mockUseDemoSession.mockReturnValue({ activeShift: null, finishedShifts: [] });
+    mockGetCurrentShift.mockResolvedValue(null);
+    mockRefreshBillingSummary.mockResolvedValue(null);
+    mockGetAnalyticsUsage.mockResolvedValue(usage);
+    mockApiGet.mockResolvedValue(stats);
+  });
+
+  it("renders two distinct metrics with the server values and keeps action outside the summary", async () => {
+    render(<Dashboard onNavigate={vi.fn()} />);
+    const summary = await screen.findByRole("group", { name: "Сводка смен" });
+    expect(summary.children).toHaveLength(2);
+    expect(within(summary).getByText("Активные смены").previousElementSibling).toHaveTextContent("3");
+    expect(within(summary).getByText("Водителей на смене").previousElementSibling).toHaveTextContent("2");
+    expect(within(summary).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByText("+")).not.toBeInTheDocument();
+  });
+
+  it.each(["admin", "foreman"])("preserves the create-shift modal for %s", async (role) => {
+    mockUseAuth.mockReturnValue({ user: {
+      id: 4, role, current_state: "idle", tenant_id: 1,
+    } });
+    const user = userEvent.setup({ delay: null });
+    render(<Dashboard onNavigate={vi.fn()} />);
+    await user.click(await screen.findByRole("button", { name: "Создать смену за водителя" }));
+    const modal = await screen.findByRole("dialog", { name: "Manual shift modal" });
+    await user.click(within(modal).getByRole("button", { name: "Закрыть" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("preserves the driver workspace without admin summary, action or limits", async () => {
+    mockUseAuth.mockReturnValue({ user: {
+      id: 8, role: "driver", current_state: "idle", tenant_id: 1,
+    } });
+    render(<Dashboard onNavigate={vi.fn()} />);
+    await screen.findByText("Driver workspace");
+    expect(screen.queryByRole("group", { name: "Сводка смен" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Создать смену за водителя" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Лимиты тарифа")).not.toBeInTheDocument();
+    expect(mockApiGet).not.toHaveBeenCalled();
+  });
+
+  it("orders a working dashboard as summary, action, active shifts, limits", async () => {
+    render(<Dashboard onNavigate={vi.fn()} />);
+    const summary = await screen.findByRole("group", { name: "Сводка смен" });
+    const action = screen.getByRole("button", { name: "Создать смену за водителя" });
+    const active = screen.getByRole("heading", { name: "Активные смены" });
+    const limits = screen.getByRole("heading", { name: "Лимиты тарифа" });
+    expect(comesBefore(summary, action)).toBe(true);
+    expect(comesBefore(action, active)).toBe(true);
+    expect(comesBefore(active, limits)).toBe(true);
+    expect(screen.queryByText("Начните работу за 4 шага")).not.toBeInTheDocument();
+    expect(screen.getByText("Иван Петров — КАМАЗ — Карьер")).toBeInTheDocument();
+    expect(screen.getByText("В работе")).toBeInTheDocument();
+  });
+
+  it.each(["sites", "trucks", "drivers", "firstShift"])("keeps incomplete %s onboarding before active shifts and limits", async (missing) => {
+    if (missing === "firstShift") mockApiGet.mockResolvedValue({ ...stats, totalShifts: 0 });
+    else mockGetAnalyticsUsage.mockResolvedValue({ ...usage, [missing]: { current: 0, limit: 2 } });
+    render(<Dashboard onNavigate={vi.fn()} />);
+    const onboarding = await screen.findByRole("heading", { name: "Начните работу за 4 шага" });
+    expect(comesBefore(screen.getByRole("button", { name: "Создать смену за водителя" }), onboarding)).toBe(true);
+    expect(comesBefore(onboarding, screen.getByRole("heading", { name: "Активные смены" }))).toBe(true);
+    expect(comesBefore(onboarding, screen.getByRole("heading", { name: "Лимиты тарифа" }))).toBe(true);
+  });
+
+  it("keeps limits available without adding an active-shifts section for an empty list", async () => {
+    mockApiGet.mockResolvedValue({ ...stats, activeShifts: 0, activeShiftsDetails: [] });
+    render(<Dashboard onNavigate={vi.fn()} />);
+    await screen.findByRole("heading", { name: "Лимиты тарифа" });
+    expect(screen.queryByRole("heading", { name: "Активные смены" })).not.toBeInTheDocument();
+  });
+
+  it("preserves three limit values, full-limit warning colors, progress and tariff badge", async () => {
+    render(<Dashboard onNavigate={vi.fn()} />);
+    await screen.findByRole("heading", { name: "Лимиты тарифа" });
+    for (const label of ["Машины", "Водители", "Объекты"]) expect(screen.getByText(label)).toBeInTheDocument();
+    const full = screen.getAllByText("2 / 2");
+    expect(full).toHaveLength(2);
+    for (const value of full) {
+      expect(value).toHaveClass("text-orange-500");
+      const progress = value.parentElement!.nextElementSibling!.firstElementChild;
+      expect(progress).toHaveClass("bg-orange-500");
+      expect(progress).toHaveStyle({ width: "100%" });
+    }
+    expect(screen.getByText("1 / 2")).toHaveClass("text-slate-800");
+    expect(screen.getByText("Старт")).toBeInTheDocument();
+  });
+
+  it.each([-1, 0])("preserves the %s limit state", async (limit) => {
+    mockGetAnalyticsUsage.mockResolvedValue({ ...usage, trucks: { current: 2, limit } });
+    render(<Dashboard onNavigate={vi.fn()} />);
+    const value = await screen.findByText(limit === -1 ? "2 / ∞" : "2 / 0");
+    const progress = value.parentElement!.nextElementSibling!.firstElementChild;
+    expect(progress).toHaveStyle({ width: limit === -1 ? "100%" : "0%" });
+    expect(progress).toHaveClass(limit === -1 ? "bg-slate-300" : "bg-[#0a192f]");
+  });
+
+  it("keeps refresh wired to stats, usage and billing", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<Dashboard onNavigate={vi.fn()} />);
+    const refresh = await screen.findByRole("button", { name: "Обновить статистику" });
+    const initial = mockApiGet.mock.calls.length;
+    await user.click(refresh);
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledTimes(initial + 1));
+    expect(mockGetAnalyticsUsage).toHaveBeenCalledTimes(initial + 1);
+    expect(mockRefreshBillingSummary).toHaveBeenCalledTimes(initial + 1);
+  });
+
+  it("handles unavailable usage without inventing limits or onboarding", async () => {
+    mockGetAnalyticsUsage.mockRejectedValue(new Error("Unavailable"));
+    render(<Dashboard onNavigate={vi.fn()} />);
+    await screen.findByRole("heading", { name: "Лимиты тарифа" });
+    expect(screen.queryByText("Машины")).not.toBeInTheDocument();
+    expect(screen.queryByText("Начните работу за 4 шага")).not.toBeInTheDocument();
   });
 });
