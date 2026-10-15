@@ -1,7 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import api, { acceptInvite } from "../../services/api";
-import RegisterView from "../RegisterView";
+import RegisterView, { getRegistrationPasswordChecks } from "../RegisterView";
+import { PUBLIC_TARIFFS } from "../../config/tariffs";
+import { REQUIRED_CONSENT_VERSIONS } from "../../config/legal";
 
 vi.mock("../../components/BrandLogo", () => ({
   default: () => <div>Brand</div>,
@@ -17,6 +19,27 @@ vi.mock("../../services/api", () => ({
   },
   acceptInvite: vi.fn(),
 }));
+
+describe("registration password backend contract", () => {
+  it.each([" ", "\t", "\n", "Я", "я", "🙂", "`", "~", "—"])(
+    "does not accept a non-contract character as punctuation: %j",
+    (character) => expect(getRegistrationPasswordChecks(character).special).toBe(false)
+  );
+
+  it.each(Array.from("!@#$%^&*()_+-=[]{};':\"\\|,.<>/?"))(
+    "accepts backend punctuation %j",
+    (character) => expect(getRegistrationPasswordChecks(character).special).toBe(true)
+  );
+
+  it("preserves length, Latin uppercase and numeric boundaries", () => {
+    expect(getRegistrationPasswordChecks("Aa1!aaa").length).toBe(false);
+    expect(getRegistrationPasswordChecks("Aa1!aaaa")).toEqual({ length: true, upper: true, number: true, special: true });
+    expect(getRegistrationPasswordChecks("Яя1!aaaa").upper).toBe(false);
+    expect(getRegistrationPasswordChecks("Aa!aaaaa").number).toBe(false);
+    // Other characters are permitted in a password; they just do not satisfy punctuation.
+    expect(getRegistrationPasswordChecks("Я🙂 Aa1!aaaa").special).toBe(true);
+  });
+});
 
 describe("RegisterView", () => {
   beforeEach(() => {
@@ -56,6 +79,152 @@ describe("RegisterView", () => {
     expect(screen.getByText("LegalLinks")).toBeInTheDocument();
   });
 
+  it("continues the landing Free offer using the existing tariff configuration", () => {
+    window.history.replaceState({}, "", "/register");
+    render(<RegisterView />);
+    const free = PUBLIC_TARIFFS.find((plan) => plan.code === "free")!;
+    const context = screen.getByTestId("free-registration-context");
+    expect(screen.getByRole("heading", { name: "Создайте компанию бесплатно" })).toBeInTheDocument();
+    expect(context).toHaveTextContent(free.priceLabel);
+    expect(context).toHaveTextContent(free.meta);
+    free.details.slice(0, 3).forEach((detail) => expect(context).toHaveTextContent(detail));
+    expect(context).not.toHaveTextContent(/Excel|ZIP/);
+    expect(screen.getByLabelText(/название компании/i)).toHaveAttribute("autocomplete", "organization");
+    expect(screen.getByLabelText(/email администратора/i)).toHaveAttribute("placeholder", "name@example.com");
+  });
+
+  it("does not claim Free company creation in driver mode", async () => {
+    window.history.replaceState({}, "", "/register");
+    const user = userEvent.setup({ delay: null });
+    render(<RegisterView />);
+    await user.click(screen.getByRole("button", { name: "Водитель" }));
+    expect(screen.queryByTestId("free-registration-context")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/код приглашения/i)).toBeRequired();
+    await user.click(screen.getByRole("button", { name: "Компания" }));
+    expect(screen.getByTestId("free-registration-context")).toBeInTheDocument();
+  });
+
+  it("keeps exactly three required consents unchecked and gates submit until all are accepted", async () => {
+    window.history.replaceState({}, "", "/register");
+    const user = userEvent.setup({ delay: null });
+    render(<RegisterView />);
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes).toHaveLength(3);
+    checkboxes.forEach((checkbox) => {
+      expect(checkbox).toBeRequired();
+      expect(checkbox).not.toBeChecked();
+    });
+    const submit = screen.getByRole("button", { name: /создать компанию/i });
+    await user.click(checkboxes[0]);
+    await user.click(checkboxes[1]);
+    expect(submit).toBeDisabled();
+    await user.click(checkboxes[2]);
+    expect(submit).toBeEnabled();
+    await user.click(checkboxes[0]);
+    expect(submit).toBeDisabled();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it("validates empty fields without native submit UI and focuses the first invalid field", async () => {
+    window.history.replaceState({}, "", "/register");
+    const user = userEvent.setup({ delay: null });
+    render(<RegisterView />);
+    await acceptRequiredConsents(user);
+    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+    const company = screen.getByLabelText(/название компании/i);
+    expect(company).toHaveFocus();
+    expect(company).toHaveAttribute("aria-invalid", "true");
+    expect(company).toHaveAccessibleDescription(/Введите название компании/);
+    expect(screen.getByText("Введите название компании").parentElement).toContainElement(company);
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it("shows a malformed email error on blur and clears it after correction", async () => {
+    window.history.replaceState({}, "", "/register");
+    const user = userEvent.setup({ delay: null });
+    render(<RegisterView />);
+    const email = screen.getByLabelText(/email администратора/i);
+    await user.type(email, "not-an-email");
+    await user.tab();
+    expect(email).toHaveAttribute("aria-invalid", "true");
+    expect(email).toHaveAccessibleDescription("Введите корректный email");
+    await user.clear(email);
+    await user.type(email, "admin@example.com");
+    await user.tab();
+    expect(email).toHaveAttribute("aria-invalid", "false");
+    expect(screen.queryByText("Введите корректный email")).not.toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it("binds password mismatch to confirmation and focuses it after failed submit", async () => {
+    window.history.replaceState({}, "", "/register");
+    const user = userEvent.setup({ delay: null });
+    render(<RegisterView />);
+    await fillAdminRegistrationForm(user);
+    const confirmation = screen.getByLabelText(/подтвердите пароль/i);
+    await user.clear(confirmation);
+    await user.type(confirmation, "DifferentPass1!");
+    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+    expect(confirmation).toHaveFocus();
+    expect(confirmation).toHaveAttribute("aria-invalid", "true");
+    expect(confirmation).toHaveAccessibleDescription("Пароли не совпадают");
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it("uses the same punctuation predicate for live checklist and submit validation", async () => {
+    window.history.replaceState({}, "", "/register");
+    const user = userEvent.setup({ delay: null });
+    render(<RegisterView />);
+    await fillAdminRegistrationForm(user);
+    const password = screen.getByLabelText(/^пароль/i);
+    const confirmation = screen.getByLabelText(/подтвердите пароль/i);
+    await user.clear(password);
+    await user.type(password, "StrongPass1 ");
+    await user.clear(confirmation);
+    await user.type(confirmation, "StrongPass1 ");
+    const specialCheck = screen.getByText("Спецсимвол ! @ #");
+    expect(specialCheck.querySelector("svg")).toBeNull();
+    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+    expect(password).toHaveFocus();
+    expect(password).toHaveAttribute("aria-invalid", "true");
+    expect(api.post).not.toHaveBeenCalled();
+    await user.type(password, "!");
+    expect(specialCheck.querySelector("svg")).not.toBeNull();
+  });
+
+  it("places unchanged server errors by submit and focuses the alert", async () => {
+    window.history.replaceState({}, "", "/register");
+    const user = userEvent.setup({ delay: null });
+    vi.mocked(api.post).mockRejectedValueOnce(new Error("Сервис временно недоступен"));
+    render(<RegisterView />);
+    await fillAdminRegistrationForm(user);
+    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Сервис временно недоступен");
+    await waitFor(() => expect(alert).toHaveFocus());
+    const submit = screen.getByRole("button", { name: /создать компанию/i });
+    expect(alert.nextElementSibling).toBe(submit);
+    expect(within(alert).queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("toggles both password fields independently without submitting or changing their values", async () => {
+    window.history.replaceState({}, "", "/register");
+    const user = userEvent.setup({ delay: null });
+    render(<RegisterView />);
+    const password = screen.getByLabelText(/^пароль/i);
+    const confirmation = screen.getByLabelText(/подтвердите пароль/i);
+    await user.type(password, "StrongPass1!");
+    await user.click(screen.getByRole("button", { name: "Показать пароль" }));
+    expect(password).toHaveAttribute("type", "text");
+    expect(password).toHaveValue("StrongPass1!");
+    expect(confirmation).toHaveAttribute("type", "password");
+    await user.click(screen.getByRole("button", { name: "Показать повтор пароля" }));
+    expect(confirmation).toHaveAttribute("type", "text");
+    await user.click(screen.getByRole("button", { name: "Скрыть пароль" }));
+    expect(password).toHaveAttribute("type", "password");
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
   it("shows concise company context only for a demo-source registration", () => {
     window.history.replaceState(
       {},
@@ -68,9 +237,7 @@ describe("RegisterView", () => {
     expect(screen.getByTestId("demo-registration-context")).toHaveTextContent(
       "Продолжите со своими данными"
     );
-    expect(screen.getByTestId("demo-registration-context")).toHaveTextContent(
-      "На бесплатном тарифе доступны 2 машины, 2 объекта и 2 водителя."
-    );
+    expect(screen.getByTestId("free-registration-context")).toBeInTheDocument();
     expect(screen.getByLabelText(/название компании/i)).toBeInTheDocument();
   });
 
@@ -115,7 +282,7 @@ describe("RegisterView", () => {
   });
 
   it("keeps manual mode switching working after invite prefill", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     window.history.replaceState({}, "", "/register?code=ABC123");
 
     render(<RegisterView />);
@@ -141,7 +308,7 @@ describe("RegisterView", () => {
   });
 
   it("renders the honeypot in the DOM but keeps it hidden and out of tab navigation", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     window.history.replaceState({}, "", "/register");
 
     const { container } = render(<RegisterView />);
@@ -161,7 +328,7 @@ describe("RegisterView", () => {
   });
 
   it("submits normal admin registration with normalized email and empty honeypot", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     window.history.replaceState({}, "", "/register");
     vi.mocked(api.post).mockImplementationOnce(() => new Promise(() => undefined));
 
@@ -178,13 +345,14 @@ describe("RegisterView", () => {
         email: "admin@example.com",
         password: "StrongPass1!",
         websiteUrl: "",
+        consents: { accepted: true, versions: REQUIRED_CONSENT_VERSIONS },
       })
     );
     expect(screen.getByRole("button", { name: /регистрация/i })).toBeDisabled();
   });
 
   it("captures the initial allowlisted attribution and excludes demo context from the admin payload", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     window.history.replaceState(
       {},
       "",
@@ -227,7 +395,7 @@ describe("RegisterView", () => {
   });
 
   it("blocks repeated submit while registration is loading", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     window.history.replaceState({}, "", "/register");
     vi.mocked(api.post).mockImplementationOnce(() => new Promise(() => undefined));
 
@@ -243,7 +411,7 @@ describe("RegisterView", () => {
   });
 
   it("keeps invite registration mode working without sending the admin honeypot payload", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     window.history.replaceState({}, "", "/register?code=ABC123");
     vi.mocked(acceptInvite).mockResolvedValueOnce(undefined);
 
@@ -260,6 +428,7 @@ describe("RegisterView", () => {
       expect.objectContaining({
         code: "ABC123",
         email: "driver@example.com",
+        consents: { accepted: true, versions: REQUIRED_CONSENT_VERSIONS },
       })
     );
     expect(vi.mocked(acceptInvite).mock.calls[0][0]).not.toHaveProperty(
