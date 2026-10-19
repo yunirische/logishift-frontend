@@ -12,6 +12,8 @@ import {
   destroyYandexMetrika,
   loadYandexMetrika,
 } from "../services/yandexMetrika";
+import { clearVkAdsPixelCookies, loadVkAdsPixel, removeVkAdsPixel } from "../services/vkAdsPixel";
+import { reloadLocation } from "../services/navigation";
 
 const readStoredChoice = (): AnalyticsConsentChoice | null => {
   try {
@@ -44,6 +46,7 @@ const AnalyticsConsent: React.FC = () => {
 
     if (choice === ANALYTICS_CONSENT_ACCEPTED) {
       loadYandexMetrika();
+      loadVkAdsPixel();
       setIsOpen(false);
       return;
     }
@@ -77,9 +80,11 @@ const AnalyticsConsent: React.FC = () => {
     writeStoredChoice(ANALYTICS_CONSENT_REJECTED);
     destroyYandexMetrika();
     clearYandexMetrikaCookies();
+    removeVkAdsPixel();
+    clearVkAdsPixelCookies();
     setChoice(ANALYTICS_CONSENT_REJECTED);
     if (choice === ANALYTICS_CONSENT_ACCEPTED) {
-      window.location.reload();
+      reloadLocation();
     }
   };
 
@@ -89,7 +94,7 @@ const AnalyticsConsent: React.FC = () => {
       className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-3 shadow-lg shadow-slate-900/10 md:inset-x-4 md:bottom-6 md:flex md:items-center md:gap-5 md:rounded-3xl md:p-5"
     >
       <p className="text-[13px] leading-5 text-slate-700 md:text-sm md:leading-6">
-        Яндекс Метрика для анализа посещений — только с вашего согласия.{" "}
+        Яндекс Метрика и пиксель VK Рекламы для анализа посещений — только с вашего согласия.{" "}
         <a className="font-semibold text-[#0a192f] underline" href="/privacy">
           Подробнее
         </a>

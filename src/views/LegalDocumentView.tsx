@@ -160,7 +160,7 @@ const LegalDocumentView: React.FC<LegalDocumentViewProps> = ({ documentKey }) =>
                 <BrandLogo className="min-w-0" imageClassName="h-auto w-[12rem] max-w-full sm:w-[13.5rem]" />
               </a>
               <p className="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-[#006497]">
-                {LEGAL_REVISION_LABEL}
+                {legalDocument.revisionLabel ?? LEGAL_REVISION_LABEL}
               </p>
               <h1 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight text-[#041627] sm:text-4xl">
                 {legalDocument.title}

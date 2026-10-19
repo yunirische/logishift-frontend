@@ -3,11 +3,25 @@ import {
   isPublicMarketingAnalyticsPath,
   isYandexMetrikaAllowedContext,
   YANDEX_METRIKA_ID,
+  isVkAdsPixelAllowedContext,
+  VK_ADS_PIXEL_ID,
 } from "../analytics";
 
 describe("analytics config", () => {
   it("uses the production Yandex Metrika counter id", () => {
     expect(YANDEX_METRIKA_ID).toBe(110142109);
+  });
+
+  it("allows the supplied VK pixel only on the HTTPS apex landing", () => {
+    expect(VK_ADS_PIXEL_ID).toBe("3805967");
+    expect(isVkAdsPixelAllowedContext("kontrolsmen.ru", "/", "https:")).toBe(true);
+    for (const hostname of ["www.kontrolsmen.ru", "demo.kontrolsmen.ru", "app.kontrolsmen.ru", "api.kontrolsmen.ru", "localhost"]) {
+      expect(isVkAdsPixelAllowedContext(hostname, "/", "https:")).toBe(false);
+    }
+    for (const pathname of ["/register", "/login", "/privacy", "/owner", "/payment/success"]) {
+      expect(isVkAdsPixelAllowedContext("kontrolsmen.ru", pathname, "https:")).toBe(false);
+    }
+    expect(isVkAdsPixelAllowedContext("kontrolsmen.ru", "/", "http:")).toBe(false);
   });
 
   it("allows Metrika only on the marketing landing route", () => {

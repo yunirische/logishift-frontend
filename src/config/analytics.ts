@@ -5,6 +5,7 @@ export const ANALYTICS_CONSENT_ACCEPTED = "accepted";
 export const ANALYTICS_CONSENT_REJECTED = "rejected";
 export const ANALYTICS_CONSENT_OPEN_EVENT = "logishift:analytics-consent-open";
 export const YANDEX_METRIKA_ID = 110142109;
+export const VK_ADS_PIXEL_ID = "3805967";
 
 export type AnalyticsConsentChoice =
   | typeof ANALYTICS_CONSENT_ACCEPTED
@@ -20,3 +21,10 @@ export const isYandexMetrikaAllowedContext = (
   pathname: string
 ): boolean =>
   isMarketingHostname(hostname) && isPublicMarketingAnalyticsPath(pathname);
+
+export const isVkAdsPixelAllowedContext = (
+  hostname: string,
+  pathname: string,
+  protocol: string
+): boolean =>
+  protocol === "https:" && hostname === "kontrolsmen.ru" && pathname === "/";
