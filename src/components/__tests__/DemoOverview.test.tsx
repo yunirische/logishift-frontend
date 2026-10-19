@@ -1,5 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import DemoOverview from "../DemoOverview";
+import { recordCurrentDemoFunnelEvent } from "../../lib/demoFunnelEvents";
+
+vi.mock("../../lib/demoFunnelEvents", () => ({
+  recordCurrentDemoFunnelEvent: vi.fn().mockResolvedValue(undefined),
+}));
 
 it("shows one prepared story without starting a workflow or firing callbacks on mount/rerender", () => {
   const props = { onTryScenario: vi.fn(), onExploreCabinet: vi.fn(), registrationHref: "/register", onRegistrationClick: vi.fn() };
@@ -23,6 +28,7 @@ it("shows one prepared story without starting a workflow or firing callbacks on 
   expect(screen.queryByRole("button", { name: "Начать смену" })).not.toBeInTheDocument();
   fireEvent.click(illustration);
   rerender(<DemoOverview {...props} />);
+  expect(recordCurrentDemoFunnelEvent).toHaveBeenCalledExactlyOnceWith("demo_overview_shown");
   for (const callback of [props.onTryScenario, props.onExploreCabinet, props.onRegistrationClick]) expect(callback).not.toHaveBeenCalled();
   expect(screen.queryByTestId("demo-scenario-entry")).not.toBeInTheDocument();
   expect(screen.queryByTestId("demo-scenario-guide")).not.toBeInTheDocument();

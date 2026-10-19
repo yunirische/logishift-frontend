@@ -8,6 +8,7 @@ import { getOrCreateDemoFunnelSession } from "../demoFunnelSession";
 
 vi.mock("../../services/api", () => ({
   recordDemoFunnelEvent: vi.fn(),
+  recordPublicFunnelEvent: vi.fn(),
 }));
 
 describe("demo funnel event producer", () => {

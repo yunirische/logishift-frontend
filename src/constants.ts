@@ -65,6 +65,7 @@ export const API_ENDPOINTS = {
   AUTH_REGISTER_TENANT: `${API_BASE_URL}/auth/register-tenant`,
   ATTRIBUTION_DEMO_SUCCESS: `${API_BASE_URL}/attribution/demo-success`,
   ATTRIBUTION_DEMO_FUNNEL: `${API_BASE_URL}/attribution/demo-funnel`,
+    ATTRIBUTION_PUBLIC_FUNNEL: `${API_BASE_URL}/attribution/public-funnel`,
 
   // Maintenance & Monitoring
   MAINTENANCE_CLEANUP: `${API_BASE_URL}/maintenance/cleanup`,

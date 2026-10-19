@@ -32,7 +32,7 @@ import {
   writeDemoSession,
 } from "../lib/demoSession";
 import { recordCurrentDemoFunnelEvent } from "../lib/demoFunnelEvents";
-import { getOrCreateDemoFunnelSession } from "../lib/demoFunnelSession";
+import { prepareAttributionSession } from "../lib/demoRegistrationHandoff";
 import { clearDemoPresentation } from "../lib/demoPresentation";
 
 type DemoSessionAction =
@@ -105,13 +105,10 @@ export const DemoSessionProvider = ({
     { enabled, isExplicitNewEntry },
     ({ enabled: initialEnabled, isExplicitNewEntry: initialEntry }) => {
       if (!initialEnabled) return EMPTY_DEMO_SESSION;
+      prepareAttributionSession({ explicitEntry: initialEntry, storage: localStorage });
       clearObsoleteDemoActiveShiftKeys(localStorage);
       if (initialEntry) {
         clearDemoPresentation();
-        getOrCreateDemoFunnelSession({
-          explicitEntry: true,
-          storage: localStorage,
-        });
         clearDemoSessionStorage(localStorage);
         return EMPTY_DEMO_SESSION;
       }

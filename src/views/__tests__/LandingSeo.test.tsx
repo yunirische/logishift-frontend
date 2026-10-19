@@ -38,6 +38,7 @@ vi.mock("../../services/api", async () => {
   return {
     ...actual,
     loginUser: vi.fn(),
+    recordPublicFunnelEvent: vi.fn(),
   };
 });
 

@@ -218,6 +218,14 @@ describe("App protected routes", () => {
 
   const authenticateDemo = () => mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false, error: null, clearError: vi.fn(), user: createDemoAdminUser() });
 
+  it.each(["/register", "/privacy"])("does not observe Overview when demo-auth renders another route: %s", pathname => {
+    clearDemoPresentation(); authenticateDemo();
+    window.history.replaceState({}, "", pathname);
+    render(<App />);
+    expect(screen.queryByTestId("demo-overview")).not.toBeInTheDocument();
+    expect(mockRecordEvent).not.toHaveBeenCalled();
+  });
+
   it("opens existing Billing from the registry export tariff CTA", async () => {
     mockIsDemoHostname.mockReturnValue(false);
     mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false, error: null, user: createNonDemoAdminUser() });
@@ -252,11 +260,12 @@ describe("App protected routes", () => {
     expect(screen.queryByTestId("demo-scenario-entry")).not.toBeInTheDocument();
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
     expect(screen.queryByTestId("manual-demo-tour")).not.toBeInTheDocument();
-    expect(mockRecordEvent).not.toHaveBeenCalled();
+    expect(mockRecordEvent).toHaveBeenCalledExactlyOnceWith("demo_overview_shown");
     first.unmount();
     render(<App />);
     expect(screen.getByTestId("demo-overview")).toBeVisible();
-    expect(mockRecordEvent).not.toHaveBeenCalled();
+    // Remount may retry the request; the server unique index keeps one stored event.
+    expect(mockRecordEvent.mock.calls).toEqual([["demo_overview_shown"], ["demo_overview_shown"]]);
   });
 
   it("enters the deployed driver flow only after an explicit choice and resumes it before Start", () => {
@@ -265,12 +274,12 @@ describe("App protected routes", () => {
     const first = render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Попробовать самому" }));
     expect(screen.getByTestId("demo-scenario-entry")).toBeVisible();
-    expect(mockRecordEvent).toHaveBeenCalledExactlyOnceWith("demo_driver_scenario_requested");
+    expect(mockRecordEvent.mock.calls).toEqual([["demo_overview_shown"], ["demo_driver_scenario_requested"]]);
     first.unmount();
     render(<App />);
     expect(screen.getByTestId("demo-scenario-entry")).toBeVisible();
     expect(screen.queryByTestId("demo-overview")).not.toBeInTheDocument();
-    expect(mockRecordEvent).toHaveBeenCalledTimes(1);
+    expect(mockRecordEvent).toHaveBeenCalledTimes(2);
   });
 
   it("opens the existing full cabinet/Tour before a shift and does not return to overview on reload", () => {
@@ -278,6 +287,7 @@ describe("App protected routes", () => {
     authenticateDemo();
     const first = render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Посмотреть настоящий кабинет" }));
+    expect(mockRecordEvent.mock.calls).toEqual([["demo_overview_shown"], ["demo_cabinet_requested"]]);
     expect(screen.getByTestId("manual-demo-tour")).toBeVisible();
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     first.unmount();
@@ -302,7 +312,7 @@ describe("App protected routes", () => {
     link.addEventListener("click", event => event.preventDefault(), { once: true });
     fireEvent.click(link);
     expect(mockRegistrationClick).toHaveBeenCalledTimes(1);
-    expect(mockRecordEvent).not.toHaveBeenCalled();
+    expect(mockRecordEvent).toHaveBeenCalledExactlyOnceWith("demo_overview_shown");
     first.unmount();
     render(<App />);
     expect(screen.queryByTestId("demo-overview")).not.toBeInTheDocument();

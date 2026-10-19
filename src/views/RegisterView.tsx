@@ -8,7 +8,8 @@ import LegalLinks from '../components/LegalLinks';
 import { REQUIRED_CONSENT_VERSIONS } from '../config/legal';
 import { getRegisterContextFromSearch, RegisterMode } from '../utils/registerInvite';
 import { readAttribution } from '../lib/attribution';
-import { consumeDemoSessionKeyFromFragment } from '../lib/demoFunnelSession';
+import { prepareAttributionSession } from '../lib/demoRegistrationHandoff';
+import { recordCurrentPublicFunnelEvent } from '../lib/demoFunnelEvents';
 import { PUBLIC_TARIFFS } from '../config/tariffs';
 type ConsentKey = keyof typeof REQUIRED_CONSENT_VERSIONS;
 
@@ -42,12 +43,14 @@ const RegisterView: React.FC = () => {
   const [registrationAttribution] = useState(() =>
     readAttribution(window.location.search)
   );
-  const [demoSessionKey] = useState(() =>
-    consumeDemoSessionKeyFromFragment()
-  );
+  const [measurementSession] = useState(() => prepareAttributionSession());
+  const demoSessionKey = measurementSession?.key;
   const [mode, setMode] = useState<RegisterMode>(() =>
     registerContext.initialMode
   );
+  useEffect(() => {
+    if (mode === 'admin') void recordCurrentPublicFunnelEvent('registration_viewed').catch(() => undefined);
+  }, [mode]);
   const [formData, setFormData] = useState<RegisterFormData>(() => ({
     code: registerContext.inviteCode,
     full_name: '',
@@ -168,6 +171,7 @@ const RegisterView: React.FC = () => {
           consents: consentPayload,
           attribution: registrationAttribution,
           ...(demoSessionKey ? { demoSessionKey } : {}),
+          ...(measurementSession?.isInternal ? { isInternal: true } : {}),
         });
       } else {
         // Driver registration - accept invite

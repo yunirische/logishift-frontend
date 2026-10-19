@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import { getDemoEntryUrl, getProductionAppUrl } from "../config/demo";
 import { getAttributionNavigationUrl } from "../lib/attribution";
+import { getAttributionSessionNavigationUrl } from "../lib/demoRegistrationHandoff";
+import { recordCurrentPublicFunnelEvent } from "../lib/demoFunnelEvents";
+import { assignLocation } from "../services/navigation";
 import { PUBLIC_TARIFFS } from "../config/tariffs";
 import BrandLogo from "../components/BrandLogo";
 import LegalLinks from "../components/LegalLinks";
@@ -175,14 +178,21 @@ const openLogin = () => {
 };
 
 const openRegister = () => {
-  window.location.href = getAttributionNavigationUrl(getProductionAppUrl("/register"));
+  const destination = getAttributionSessionNavigationUrl(getProductionAppUrl("/register"));
+  void recordCurrentPublicFunnelEvent("landing_registration_clicked").catch(() => undefined);
+  assignLocation(destination);
 };
 
 const openDemo = () => {
-  window.location.href = getAttributionNavigationUrl(getDemoEntryUrl());
+  const destination = getAttributionSessionNavigationUrl(getDemoEntryUrl());
+  void recordCurrentPublicFunnelEvent("landing_demo_clicked").catch(() => undefined);
+  assignLocation(destination);
 };
 
 const LandingView: React.FC = () => {
+  useEffect(() => {
+    void recordCurrentPublicFunnelEvent("landing_viewed").catch(() => undefined);
+  }, []);
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-slate-900">
       <PageMetadata

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
 import {
   DemoSessionProvider,
   useDemoSession,
@@ -121,6 +122,16 @@ const Harness = ({
 describe("DemoSessionProvider v2 lifecycle", () => {
   const createObjectURL = vi.fn();
   const revokeObjectURL = vi.fn();
+
+  it("adopts the landing handoff before explicit demo initialization without changing its key or starting a shift", () => {
+    const key = "l".repeat(43), expiresAt = Date.now() + 3600000;
+    window.history.replaceState({}, "", `/?enterDemo=1&utm_source=vk#offer&demo_session=${key}&demo_session_expires=${expiresAt}&measurement_internal=1`);
+    render(<StrictMode><DemoSessionProvider><Harness /></DemoSessionProvider></StrictMode>);
+    expect(readDemoFunnelSession(localStorage)).toEqual({ version: 1, key, expiresAt, isInternal: true });
+    expect(window.location.hash).toBe("#offer");
+    expect(screen.getByTestId("status")).toHaveTextContent("none");
+    expect(mockRecordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith("demo_shift_started");
+  });
 
   beforeEach(() => {
     localStorage.clear();

@@ -499,9 +499,10 @@ describe("DemoScenarioGuide", () => {
     expect(registrationUrl.searchParams.get("utm_source")).toBe("yandex");
     expect(registrationUrl.searchParams.get("yclid")).toBe("click");
     expect(registrationUrl.searchParams.has("demo_session")).toBe(false);
-    expect(registrationUrl.hash).toMatch(
-      /^#demo_session=[A-Za-z0-9_-]{43}$/
-    );
+    const fragment = new URLSearchParams(registrationUrl.hash.slice(1));
+    expect(fragment.get("demo_session")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(Number(fragment.get("demo_session_expires"))).toBeGreaterThan(Date.now());
+    expect(fragment.get("measurement_internal")).toBe("0");
 
     await user.click(
       screen.getByRole("button", { name: "Посмотреть завершённую смену" })

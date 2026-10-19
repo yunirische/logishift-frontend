@@ -48,6 +48,7 @@ vi.mock("../../services/api", async () => {
 
   return {
     ...actual,
+    recordPublicFunnelEvent: vi.fn(),
     default: {
       post: vi.fn(),
     },

@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ArrowDown, ArrowRight, Camera, Check, ClipboardList, Smartphone, Truck, MapPin } from "lucide-react";
 import { Card } from "./ui";
+import { recordCurrentDemoFunnelEvent } from "../lib/demoFunnelEvents";
 
 interface DemoOverviewProps {
   onTryScenario: () => void;
@@ -17,7 +18,11 @@ const example = {
   start: "09:00",
 };
 
-const DemoOverview: React.FC<DemoOverviewProps> = ({ onTryScenario, onExploreCabinet, registrationHref, onRegistrationClick }) => (
+const DemoOverview: React.FC<DemoOverviewProps> = ({ onTryScenario, onExploreCabinet, registrationHref, onRegistrationClick }) => {
+  useEffect(() => {
+    void recordCurrentDemoFunnelEvent("demo_overview_shown").catch(() => undefined);
+  }, []);
+  return (
   <div className="min-h-screen bg-slate-50 text-slate-900" data-testid="demo-overview">
     <header className="mx-auto max-w-6xl px-4 pt-4 text-xs font-semibold text-slate-500 sm:px-6">
       Демо LogiShift · Пример
@@ -84,6 +89,7 @@ const DemoOverview: React.FC<DemoOverviewProps> = ({ onTryScenario, onExploreCab
       <p className="mt-3 text-xs leading-5 text-slate-500">Это иллюстрация готовой смены. «Попробовать самому» открывает интерактивное демо.</p>
     </main>
   </div>
-);
+  );
+};
 
 export default DemoOverview;

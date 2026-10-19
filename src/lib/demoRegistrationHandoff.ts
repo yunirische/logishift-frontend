@@ -9,6 +9,8 @@ import {
 import {
   addDemoSessionFragment,
   getOrCreateDemoFunnelSession,
+  initializeDemoFunnelSession,
+  readDemoFunnelSession,
 } from "./demoFunnelSession";
 
 export const DEMO_REGISTRATION_HANDOFF_STORAGE_KEY =
@@ -27,8 +29,10 @@ export interface DemoRegistrationHandoff {
 const PAYLOAD_KEYS = new Set(["version", "expiresAt", "attribution"]);
 const ATTRIBUTION_KEYS = new Set<string>(ATTRIBUTION_PARAM_NAMES);
 
-const browserStorage = (): Storage | null =>
-  typeof window === "undefined" ? null : window.localStorage;
+const browserStorage = (): Storage | null => {
+  try { return typeof window === "undefined" ? null : window.localStorage; }
+  catch { return null; }
+};
 
 const clearStoredHandoff = (storage: Storage | null): void => {
   try {
@@ -126,9 +130,13 @@ export const captureDemoRegistrationHandoff = ({
     return null;
   }
 
+  // Capture may precede the demo provider (for example, a restored entry).
+  // Anchor metadata now so provider initialization cannot mistake it for stale attribution.
+  const session = getOrCreateDemoFunnelSession({ explicitEntry: false, storage, now });
+  if (!session) return null;
   const handoff: DemoRegistrationHandoff = {
     version: DEMO_REGISTRATION_HANDOFF_VERSION,
-    expiresAt: now + DEMO_REGISTRATION_HANDOFF_TTL_MS,
+    expiresAt: session.expiresAt,
     attribution,
   };
 
@@ -165,5 +173,32 @@ export const getDemoRegistrationUrl = (
     storage,
     now,
   });
-  return addDemoSessionFragment(registrationUrl, funnelSession?.key);
+  return addDemoSessionFragment(registrationUrl, funnelSession, now);
+};
+
+// Reuse the existing two storage records: opaque session and allowlisted attribution.
+export const prepareAttributionSession = (
+  options: Parameters<typeof initializeDemoFunnelSession>[0] = {}
+) => {
+  const storage = options.storage === undefined ? browserStorage() : options.storage;
+  const now = options.now ?? Date.now();
+  const href = options.href ?? window.location.href;
+  const previous = readDemoFunnelSession(storage, now);
+  const session = initializeDemoFunnelSession({ ...options, storage, now, href });
+  if (session && (previous?.key !== session.key || options.explicitEntry ||
+      Object.keys(readAttribution(new URL(href).search)).length > 0)) {
+    captureDemoRegistrationHandoff({ search: new URL(href).search, explicitEntry: true, storage, now });
+  }
+  return session;
+};
+
+export const getAttributionSessionNavigationUrl = (
+  destination: string, options: Parameters<typeof prepareAttributionSession>[0] = {}
+): string => {
+  const session = prepareAttributionSession(options);
+  const storage = options.storage === undefined ? browserStorage() : options.storage;
+  const now = options.now ?? Date.now();
+  const attribution = readDemoRegistrationHandoff(storage, now)?.attribution ??
+    readAttribution(new URL(options.href ?? window.location.href).search);
+  return addDemoSessionFragment(addAttributionToUrl(destination, attribution), session, now);
 };

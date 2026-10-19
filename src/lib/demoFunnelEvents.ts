@@ -1,9 +1,11 @@
-import { readDemoRegistrationHandoff } from "./demoRegistrationHandoff";
+import { prepareAttributionSession, readDemoRegistrationHandoff } from "./demoRegistrationHandoff";
 import { getOrCreateDemoFunnelSession } from "./demoFunnelSession";
-import { recordDemoFunnelEvent } from "../services/api";
+import { recordDemoFunnelEvent, recordPublicFunnelEvent } from "../services/api";
 
 export const DEMO_FUNNEL_EVENT_TYPES = [
   "demo_session_started",
+  "demo_overview_shown",
+  "demo_cabinet_requested",
   "demo_tour_shown",
   "demo_tour_choice_shown",
   "demo_driver_scenario_requested",
@@ -19,6 +21,18 @@ export const DEMO_FUNNEL_EVENT_TYPES = [
 export type DemoFunnelEventType =
   (typeof DEMO_FUNNEL_EVENT_TYPES)[number];
 
+export const PUBLIC_FUNNEL_EVENT_TYPES = [
+  "landing_viewed", "landing_demo_clicked", "landing_registration_clicked", "registration_viewed",
+] as const;
+export type PublicFunnelEventType = (typeof PUBLIC_FUNNEL_EVENT_TYPES)[number];
+
+export const recordCurrentPublicFunnelEvent = async (eventType: PublicFunnelEventType): Promise<void> => {
+  const session = prepareAttributionSession();
+  if (!session) return;
+  await recordPublicFunnelEvent(eventType, session.key, readDemoRegistrationHandoff()?.attribution || {},
+    session.isInternal);
+};
+
 export const recordCurrentDemoFunnelEvent = async (
   eventType: DemoFunnelEventType,
   options: { keepalive?: boolean } = {}
@@ -31,7 +45,7 @@ export const recordCurrentDemoFunnelEvent = async (
     eventType,
     session.key,
     attribution,
-    options
+    session.isInternal ? { ...options, isInternal: true } : options
   );
 };
 

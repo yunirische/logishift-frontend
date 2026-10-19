@@ -18,6 +18,7 @@ vi.mock("../../services/api", () => ({
     post: vi.fn(),
   },
   acceptInvite: vi.fn(),
+  recordPublicFunnelEvent: vi.fn(),
 }));
 
 describe("registration password backend contract", () => {
@@ -44,6 +45,7 @@ describe("registration password backend contract", () => {
 describe("RegisterView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -356,7 +358,7 @@ describe("RegisterView", () => {
     window.history.replaceState(
       {},
       "",
-      `/register?registration_source=demo&yclid=click&utm_source=yandex&utm_medium=cpc&utm_campaign=demo&utm_content=guide&utm_term=shift&arbitrary=value&demo_shift=demo-shift%3A1#demo_session=${"h".repeat(43)}`
+      `/register?registration_source=demo&yclid=click&utm_source=yandex&utm_medium=cpc&utm_campaign=demo&utm_content=guide&utm_term=shift&arbitrary=value&demo_shift=demo-shift%3A1#demo_session=${"h".repeat(43)}&demo_session_expires=${Date.now() + 3600000}&measurement_internal=0`
     );
     vi.mocked(api.post).mockImplementationOnce(() => new Promise(() => undefined));
 

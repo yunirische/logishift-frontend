@@ -180,6 +180,7 @@ describe("demo registration attribution handoff", () => {
     expect(`${url.origin}${url.pathname}${url.search}`).toBe(
       "https://app.kontrolsmen.ru/register?registration_source=demo"
     );
-    expect(url.hash).toMatch(/^#demo_session=[A-Za-z0-9_-]{43}$/);
+    expect(new URLSearchParams(url.hash.slice(1)).get("demo_session")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(new URLSearchParams(url.hash.slice(1)).get("measurement_internal")).toBe("0");
   });
 });

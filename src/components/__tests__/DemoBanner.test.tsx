@@ -34,7 +34,10 @@ describe("DemoBanner registration handoff", () => {
     expect(url.searchParams.get("yclid")).toBe("click");
     expect(url.searchParams.get("utm_source")).toBe("yandex");
     expect(url.searchParams.has("demo_session")).toBe(false);
-    expect(url.hash).toMatch(/^#demo_session=[A-Za-z0-9_-]{43}$/);
+    const fragment = new URLSearchParams(url.hash.slice(1));
+    expect(fragment.get("demo_session")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(Number(fragment.get("demo_session_expires"))).toBeGreaterThan(Date.now());
+    expect(fragment.get("measurement_internal")).toBe("0");
 
     link.addEventListener("click", (event) => event.preventDefault());
     fireEvent.click(link);

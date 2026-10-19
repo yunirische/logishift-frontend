@@ -205,6 +205,7 @@ const AppContent: React.FC = () => {
     setActiveTab("shifts");
   };
   const handleExploreDemoCabinet = () => {
+    void recordCurrentDemoFunnelEvent("demo_cabinet_requested").catch(() => undefined);
     rememberDemoPresentation("cabinet", demoShiftId);
     setDemoPresentation("cabinet");
     setDemoTourRequested(true);

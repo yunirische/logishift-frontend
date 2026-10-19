@@ -2,7 +2,7 @@ import {
   DEMO_FUNNEL_SESSION_STORAGE_KEY,
   DEMO_FUNNEL_SESSION_TTL_MS,
   addDemoSessionFragment,
-  consumeDemoSessionKeyFromFragment,
+  initializeDemoFunnelSession,
   getOrCreateDemoFunnelSession,
   readDemoFunnelSession,
 } from "../demoFunnelSession";
@@ -70,37 +70,34 @@ describe("demo funnel browser-local session", () => {
     expect(readDemoFunnelSession(localStorage, 2_000)).toBeNull();
   });
 
-  it("passes the opaque key only in a URL fragment and survives one StrictMode replay", async () => {
+  it("passes key, expiry and explicit internal metadata only in the fragment and survives initialization replay", async () => {
     const sessionKey = "c".repeat(43);
+    const expiresAt = Date.now() + DEMO_FUNNEL_SESSION_TTL_MS;
     const destination = addDemoSessionFragment(
       "https://app.kontrolsmen.ru/register?registration_source=demo&utm_source=yandex",
-      sessionKey
+      { version: 1, key: sessionKey, expiresAt, isInternal: false }
     );
     const url = new URL(destination);
     expect(url.searchParams.has("demo_session")).toBe(false);
-    expect(url.hash).toBe(`#demo_session=${sessionKey}`);
+    expect(new URLSearchParams(url.hash.slice(1)).get("demo_session")).toBe(sessionKey);
+    expect(new URLSearchParams(url.hash.slice(1)).get("demo_session_expires")).toBe(String(expiresAt));
+    expect(new URLSearchParams(url.hash.slice(1)).get("measurement_internal")).toBe("0");
 
     const replacements: string[] = [];
     expect(
-      consumeDemoSessionKeyFromFragment(destination, (nextUrl) =>
-        replacements.push(nextUrl)
-      )
+      initializeDemoFunnelSession({ href: destination, replace: nextUrl => replacements.push(nextUrl) })?.key
     ).toBe(sessionKey);
     expect(replacements).toEqual([
       "/register?registration_source=demo&utm_source=yandex",
     ]);
     expect(
-      consumeDemoSessionKeyFromFragment(
-        "https://app.kontrolsmen.ru/register?registration_source=demo&utm_source=yandex",
-        vi.fn()
-      )
+      initializeDemoFunnelSession({ href: "https://app.kontrolsmen.ru/register?registration_source=demo&utm_source=yandex",
+        replace: vi.fn() })?.key
     ).toBe(sessionKey);
     await Promise.resolve();
     expect(
-      consumeDemoSessionKeyFromFragment(
-        "https://app.kontrolsmen.ru/register?registration_source=demo&utm_source=yandex",
-        vi.fn()
-      )
-    ).toBeNull();
+      initializeDemoFunnelSession({ href: "https://app.kontrolsmen.ru/register?registration_source=demo&utm_source=yandex",
+        replace: vi.fn() })?.key
+    ).toBe(sessionKey);
   });
 });
