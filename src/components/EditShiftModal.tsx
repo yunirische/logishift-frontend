@@ -1490,11 +1490,15 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   {isAdmin && (
                     <button
                       type="button"
-                      onClick={() => setEndTime(nowInTenantTimezone(effectiveTimezone))}
+                      onClick={() => {
+                        const now = nowInTenantTimezone(effectiveTimezone);
+                        setTenantNow(now);
+                        setEndTime(now);
+                      }}
                       disabled={!timezoneLoaded}
                       className="text-[10px] font-semibold text-[#0a192f] hover:text-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      Сейчас
+                      Сейчас по компании
                     </button>
                   )}
                 </div>
@@ -1504,6 +1508,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                   type="datetime-local"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
+                  aria-describedby="end-time-company-clock"
+                  aria-invalid={isEndTimeInvalid || isEndTimeYearInvalid}
                   min={endTimeMin}
                   max={endTimeMax || "2100-12-31T23:59"}
                   step="60"
@@ -1516,6 +1522,18 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                         : "border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20"
                   }`}
                 />
+                <div id="end-time-company-clock" className="text-xs text-slate-500 mt-1">
+                  {timezoneLoaded && tenantNow && (
+                    <p>
+                      Сейчас в компании ({effectiveTimezone}): {tenantNow.slice(8, 10)}.{tenantNow.slice(5, 7)}.{tenantNow.slice(0, 4)} {tenantNow.slice(11, 16)}
+                    </p>
+                  )}
+                  {browserTimezoneDiffers && (
+                    <p className="text-amber-600 mt-1">
+                      Календарь устройства не учитывает часовой пояс компании. Для текущего времени используйте «Сейчас по компании».
+                    </p>
+                  )}
+                </div>
                 {isEndTimeYearInvalid && !(isFinishedShift && !isAdmin) ? (
                   <p className="text-[10px] text-red-500 mt-1">
                     Некорректный год (1900-2100)
