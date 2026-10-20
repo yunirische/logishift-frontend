@@ -16,7 +16,33 @@ describe("shared analytics consent lifecycle", () => {
     window.history.replaceState({}, "", "/");
     Consent = (await import("../AnalyticsConsent")).default;
   });
-  afterEach(() => { cleanup(); delete window._tmr; delete window.ym; });
+  afterEach(() => { cleanup(); vi.unstubAllGlobals(); delete window._tmr; delete window.ym; });
+
+  it.each([null, "accepted", "rejected"])("keeps first-party transport independent of consent %s without forwarding events to vendors", async choice => {
+    if (choice) localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, choice);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, headers: new Headers(), text: async () => "" });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<Consent />);
+    const { recordCurrentPublicFunnelEvent, recordCurrentDemoFunnelEvent } = await import("../../lib/demoFunnelEvents");
+    await recordCurrentPublicFunnelEvent("landing_viewed");
+    await recordCurrentPublicFunnelEvent("registration_viewed");
+    await recordCurrentDemoFunnelEvent("demo_session_started");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    for (const [url, options] of fetchMock.mock.calls) {
+      expect(new URL(url).pathname).toMatch(/^\/api\/v1\/attribution\/(public-funnel|demo-funnel)$/);
+      expect(Object.keys(JSON.parse(options.body)).sort()).toEqual(["attribution", "demoSessionKey", "eventType", "isInternal"]);
+    }
+    const vendorScripts = document.querySelectorAll('script[src*="mc.yandex.ru"],script[src*="top-fwz1.mail.ru"]');
+    if (choice === "accepted") {
+      expect(vendorScripts).toHaveLength(2);
+      expect(window._tmr).toHaveLength(1);
+      expect(window.ym?.a).toHaveLength(1);
+    } else {
+      expect(vendorScripts).toHaveLength(0);
+      expect(window._tmr).toBeUndefined();
+      expect(window.ym).toBeUndefined();
+    }
+  }, 15000);
 
   it("loads neither vendor before a choice, then loads each once after accept despite render/remount", () => {
     const view=render(<StrictMode><Consent /></StrictMode>);

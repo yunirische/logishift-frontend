@@ -1,15 +1,8 @@
 import React, { useEffect, useState } from "react";
+import OwnerTraffic from "../components/OwnerTraffic";
 import {
-  Activity,
-  AlertTriangle,
-  Building2,
-  Clock,
-  CreditCard,
-  Database,
   Loader2,
-  Server,
   Shield,
-  Users,
 } from "lucide-react";
 import {
   ApiError,
@@ -124,33 +117,6 @@ const StatusPill = ({ status }: { status: string }) => (
   </span>
 );
 
-const StatCard = ({
-  label,
-  value,
-  detail,
-  icon: Icon,
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-  icon: React.ElementType;
-}) => (
-  <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-          {label}
-        </p>
-        <p className="mt-3 text-3xl font-semibold text-slate-950">{value}</p>
-      </div>
-      <div className="rounded-lg bg-slate-100 p-2 text-slate-700">
-        <Icon className="h-5 w-5" />
-      </div>
-    </div>
-    <p className="mt-3 text-sm leading-5 text-slate-600">{detail}</p>
-  </div>
-);
-
 const OWNER_ACTIVITY_WINDOWS: Array<{ value: OwnerInternalOverviewWindow; label: string }> = [
   { value: "1h", label: "1ч" },
   { value: "24h", label: "24ч" },
@@ -160,380 +126,37 @@ const OWNER_ACTIVITY_WINDOWS: Array<{ value: OwnerInternalOverviewWindow; label:
 const formatNullableCount = (value?: number | null) =>
   typeof value === "number" && Number.isFinite(value) ? String(value) : "не отслеживается";
 
-const sumNullableCounts = (values: Array<number | null | undefined>) => {
-  if (values.some((value) => value === null || value === undefined)) {
-    return null;
-  }
-
-  return values.reduce((sum, value) => sum + (value || 0), 0);
-};
-
-const formatAttributionEventType = (eventType: "demo_entry_success" | "tenant_registered") =>
-  eventType === "demo_entry_success" ? "Вход в демо" : "Регистрация";
-
-const formatAttributionTimestamp = (value: string | null) =>
-  value ? formatDateTime(value) : "нет";
-
-const formatDemoConversion = (value: number | null) =>
-  value === null ? "—" : `${value}% от начавших`;
-
-const OwnerActivitySection = ({
-  overview,
-  selectedWindow,
-  loading,
-  error,
-  onWindowChange,
-}: {
+const OwnerActivitySection = ({ overview, selectedWindow, loading, error, onWindowChange }: {
   overview: OwnerInternalOverview | null;
   selectedWindow: OwnerInternalOverviewWindow;
   loading: boolean;
   error: boolean;
   onWindowChange: (window: OwnerInternalOverviewWindow) => void;
-}) => {
-  const periodShiftTotal = overview
-    ? sumNullableCounts([
-        overview.activity.shiftsCreated,
-        overview.activity.shiftsStarted,
-        overview.activity.shiftsFinished,
-        overview.activity.shiftsCancelled,
-      ])
-    : null;
-  const periodWarningTotal = overview
-    ? (overview.risks.length || 0) + (overview.billing.providerEventsWithError || 0)
-    : null;
-
-  return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Статус и активность</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Внутренние факты LogiShift: здоровье API/DB, продуктовые действия,
-            воронка и безопасные события аудита. Компании и пользователи
-            показаны как всего; период применяется к timestamped-активности.
-          </p>
-        </div>
-        <div className="inline-flex w-fit rounded-lg border border-slate-200 bg-slate-50 p-1">
-          {OWNER_ACTIVITY_WINDOWS.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              onClick={() => onWindowChange(item.value)}
-              className={`min-w-12 rounded-md px-3 py-1.5 text-sm font-semibold transition ${
-                selectedWindow === item.value
-                  ? "bg-slate-950 text-white"
-                  : "text-slate-600 hover:bg-white"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {loading && (
-        <div className="mt-4 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Загрузка статуса и активности
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Статус и активность временно недоступны.
-        </div>
-      )}
-
-      {!loading && !error && overview && (
-        <div className="mt-4 space-y-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-            <StatCard
-              label="API / DB"
-              value={overview.health.api === "ok" && overview.health.db === "ok" ? "OK" : "Проверь"}
-              detail={`API: ${overview.health.api}, DB: ${overview.health.db}`}
-              icon={Server}
-            />
-            <StatCard
-              label="Компании всего"
-              value={overview.totals.tenants}
-              detail="Не за период: у tenants нет created_at"
-              icon={Building2}
-            />
-            <StatCard
-              label="Пользователи всего"
-              value={overview.totals.users}
-              detail="Не за период: у users нет created_at"
-              icon={Users}
-            />
-            <StatCard
-              label="Инвайты за период"
-              value={formatNullableCount(overview.activity.invitesAccepted)}
-              detail={`Созданы: ${formatNullableCount(overview.activity.invitesCreated)}, приняты: ${formatNullableCount(overview.activity.invitesAccepted)}`}
-              icon={Clock}
-            />
-            <StatCard
-              label="Смены за период"
-              value={formatNullableCount(periodShiftTotal)}
-              detail={`Созданы: ${formatNullableCount(overview.activity.shiftsCreated)}, завершены: ${formatNullableCount(overview.activity.shiftsFinished)}`}
-              icon={Activity}
-            />
-            <StatCard
-              label="Ошибки / предупреждения"
-              value={formatNullableCount(periodWarningTotal)}
-              detail={overview.risks.length ? overview.risks[0] : "Нет явных рисков"}
-              icon={AlertTriangle}
-            />
-            <StatCard
-              label="Демо за период"
-              value={overview.attribution.demoSuccesses}
-              detail={`Последний вход: ${formatAttributionTimestamp(overview.attribution.lastDemoAt)}`}
-              icon={Activity}
-            />
-            <StatCard
-              label="Регистрации за период"
-              value={overview.attribution.registrations}
-              detail={`Последняя регистрация: ${formatAttributionTimestamp(overview.attribution.lastRegistrationAt)}`}
-              icon={Building2}
-            />
-          </div>
-
-          <div
-            className="rounded-lg border border-slate-200 bg-slate-50 p-4"
-            data-testid="owner-demo-funnel"
-          >
-            <div>
-              <h3 className="text-sm font-semibold text-slate-950">
-                Воронка публичного демо
-              </h3>
-              <p className="mt-1 text-xs text-slate-500">
-                Уникальные browser-local demo sessions за выбранный период.
-              </p>
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {[
-                {
-                  label: "Начали демо",
-                  value: overview.demoFunnel.sessionsStarted,
-                  detail: "Знаменатель воронки",
-                },
-                  {
-                    label: "Начали смену",
-                    value: overview.demoFunnel.shiftsStarted,
-                    detail: formatDemoConversion(
-                      overview.demoFunnel.conversionFromStarted.shiftsStarted
-                    ),
-                  },
-                  {
-                    label: "Показан результат",
-                    value: overview.demoFunnel.ownerResultsShown,
-                    detail: formatDemoConversion(
-                      overview.demoFunnel.conversionFromStarted
-                        .ownerResultsShown
-                    ),
-                  },
-                  {
-                    label: "Завершили сценарий",
-                  value: overview.demoFunnel.scenariosCompleted,
-                  detail: formatDemoConversion(
-                    overview.demoFunnel.conversionFromStarted
-                      .scenariosCompleted
-                  ),
-                },
-                {
-                  label: "Перешли к регистрации",
-                  value: overview.demoFunnel.registrationCtaClicked,
-                  detail: formatDemoConversion(
-                    overview.demoFunnel.conversionFromStarted
-                      .registrationCtaClicked
-                  ),
-                },
-                {
-                  label: "Зарегистрировали компанию",
-                  value: overview.demoFunnel.tenantsRegistered,
-                  detail: formatDemoConversion(
-                    overview.demoFunnel.conversionFromStarted
-                      .tenantsRegistered
-                  ),
-                },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-lg border border-slate-200 bg-white p-4"
-                >
-                  <p className="text-xs font-semibold text-slate-600">
-                    {item.label}
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-slate-950">
-                    {item.value}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {item.detail}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1.2fr]">
-            <div className="rounded-lg border border-slate-200">
-              <div className="border-b border-slate-100 px-4 py-3">
-                <h3 className="text-sm font-semibold">Внутренняя воронка</h3>
-                <p className="mt-1 text-xs text-slate-500">
-                  Только backend/product факты, без внешней аналитики.
-                </p>
-              </div>
-              <table className="w-full text-left text-sm">
-                <tbody className="divide-y divide-slate-100">
-                  {[
-                    ["Компании всего", overview.funnel.tenantsTotal],
-                    ["С пользователями", overview.funnel.tenantsWithUsers],
-                    ["С инвайтами", overview.funnel.tenantsWithInvites],
-                    ["Со сменами", overview.funnel.tenantsWithShifts],
-                    ["С завершенной сменой", overview.funnel.tenantsWithFinishedShift],
-                    ["С оплатой / платежом", overview.funnel.tenantsWithBillingPayment],
-                  ].map(([label, value]) => (
-                    <tr key={String(label)}>
-                      <td className="px-4 py-3 text-slate-600">{label}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-950">
-                        {value}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="rounded-lg border border-slate-200">
-              <div className="border-b border-slate-100 px-4 py-3">
-                <h3 className="text-sm font-semibold">Последние события</h3>
-                <p className="mt-1 text-xs text-slate-500">
-                  Без raw details, email, токенов и кодов инвайтов.
-                </p>
-              </div>
-              {overview.audit.recent.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-slate-500">
-                  За выбранный период событий нет.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] text-left text-sm">
-                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3">Время</th>
-                        <th className="px-4 py-3">Действие</th>
-                        <th className="px-4 py-3">Tenant</th>
-                        <th className="px-4 py-3">Сводка</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {overview.audit.recent.map((event) => (
-                        <tr key={`${event.time}-${event.action}-${event.entityId ?? "none"}`}>
-                          <td className="px-4 py-3 text-slate-600">
-                            {formatDateTime(event.time)}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-700">
-                            {event.action}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {event.tenantId ?? "нет данных"}
-                          </td>
-                          <td className="px-4 py-3 font-medium text-slate-900">
-                            {event.summary}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-slate-200">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <h3 className="text-sm font-semibold">Рекламная атрибуция</h3>
-              <p className="mt-1 text-xs text-slate-500">
-                First-party события за выбранный период; yclid и персональные данные не отображаются.
-              </p>
-            </div>
-            {overview.attribution.rows.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-slate-500">
-                За выбранный период attribution-событий нет.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[620px] text-left text-sm">
-                  <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3">Событие</th>
-                      <th className="px-4 py-3">UTM source</th>
-                      <th className="px-4 py-3">UTM campaign</th>
-                      <th className="px-4 py-3">UTM term</th>
-                      <th className="px-4 py-3 text-right">Количество</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {overview.attribution.rows.map((row) => (
-                      <tr key={`${row.eventType}-${row.utmSource}-${row.utmCampaign}-${row.utmTerm}`}>
-                        <td className="px-4 py-3 font-medium text-slate-900">
-                          {row.eventType === "demo_entry_success" ? "Demo success" : "Регистрация tenant"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">{row.utmSource || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.utmCampaign || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{row.utmTerm || "-"}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-slate-950">{row.count}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="border-t border-slate-100">
-              <div className="px-4 py-3">
-                <h4 className="text-sm font-semibold">Последние входы и регистрации</h4>
-              </div>
-              {overview.attribution.recentAttributionEvents.length === 0 ? (
-                <div className="px-4 pb-4 text-sm text-slate-500">
-                  За выбранный период входов и регистраций нет.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[700px] text-left text-sm">
-                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3">Время</th>
-                        <th className="px-4 py-3">Событие</th>
-                        <th className="px-4 py-3">UTM source</th>
-                        <th className="px-4 py-3">UTM campaign</th>
-                        <th className="px-4 py-3">UTM term</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {overview.attribution.recentAttributionEvents.map((event, index) => (
-                        <tr key={`${event.eventType}-${event.occurredAt ?? "none"}-${index}`}>
-                          <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                            {formatDateTime(event.occurredAt)}
-                          </td>
-                          <td className="px-4 py-3 font-medium text-slate-900">
-                            {formatAttributionEventType(event.eventType)}
-                          </td>
-                          <td className="max-w-[18rem] break-words px-4 py-3 text-slate-600">{event.utmSource || "—"}</td>
-                          <td className="max-w-[18rem] break-words px-4 py-3 text-slate-600">{event.utmCampaign || "—"}</td>
-                          <td className="max-w-[18rem] break-words px-4 py-3 text-slate-600">{event.utmTerm || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-};
+}) => <section className="rounded-lg border border-slate-200 bg-white p-4">
+  <div className="flex flex-wrap items-center justify-between gap-3">
+    <h2 className="text-lg font-semibold">Статус и активность</h2>
+    <div className="flex gap-1">{OWNER_ACTIVITY_WINDOWS.map(item => <button key={item.value}
+      type="button" onClick={() => onWindowChange(item.value)} aria-pressed={selectedWindow === item.value}
+      className="min-h-11 rounded bg-slate-100 px-3 text-sm">{item.label}</button>)}</div>
+  </div>
+  {loading ? <p role="status">Загрузка статуса и активности</p> : error ? <p>Статус и активность временно недоступны.</p> : overview && <>
+    <p className="mt-2 text-sm">API / DB: {overview.health.api} / {overview.health.db}. Компании: {overview.totals.tenants}; пользователи: {overview.totals.users} (всего).</p>
+    <dl className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+      {[
+        ["Созданы смены", overview.activity.shiftsCreated], ["Завершены смены", overview.activity.shiftsFinished],
+        ["Приняты приглашения", overview.activity.invitesAccepted], ["Ошибки обработки платежей", overview.billing.providerEventsWithError],
+      ].map(([label, value]) => <div key={String(label)}><dt className="text-slate-500">{label}</dt><dd>{formatNullableCount(value as number | null)}</dd></div>)}
+    </dl>
+    <p className="mt-3 text-xs text-slate-500">Активность — за выбранный период. Ошибки платежей — за всё время. Эти данные включают внутреннюю и демо-компании.</p>
+    <h3 className="mt-4 text-sm font-semibold">Использование продукта · всего компаний</h3>
+    <p className="mt-2 text-sm">Со сменами: {overview.funnel.tenantsWithShifts}; с завершённой сменой: {overview.funnel.tenantsWithFinishedShift}; с записью платежа: {overview.funnel.tenantsWithBillingPayment} (не обязательно успешного).</p>
+    <h3 className="mt-4 text-sm font-semibold">Последние события</h3>
+    {overview.audit.recent.length ? <ul className="mt-2 space-y-2 text-sm">{overview.audit.recent.map((event, i) =>
+      <li key={i}><time className="text-slate-500">{formatDateTime(event.time)}</time> · {event.summary} · компания {event.tenantId ?? "—"}</li>)}</ul>
+      : <p className="mt-2 text-sm">За выбранный период событий нет.</p>}
+    {overview.risks.length > 0 && <p className="mt-3 text-sm text-amber-800">Диагностические сигналы: {overview.risks.length}. Проверьте смены и обработку платежей.</p>}
+  </>}
+</section>;
 
 const BackupLine = ({
   label,
@@ -770,14 +393,6 @@ const OwnerDashboardView: React.FC = () => {
     return renderAccessState();
   }
 
-  const paymentTotal = Object.values(summary.billing.payments_by_status).reduce(
-    (sum, value) => sum + value,
-    0
-  );
-  const providerEventTotal = Object.values(
-    summary.billing.provider_events_by_status
-  ).reduce((sum, value) => sum + value, 0);
-
   return (
     <div className="min-h-screen bg-slate-100 text-slate-950">
       <header className="border-b border-slate-200 bg-white">
@@ -790,85 +405,14 @@ const OwnerDashboardView: React.FC = () => {
               Панель владельца сервиса
             </h1>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700">
-            Backend {summary.backend.packageVersion} / {summary.backend.buildId}
-          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
-        <section className="rounded-lg bg-slate-950 p-6 text-white shadow-lg">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-                <Shield className="h-3.5 w-3.5" />
-                Owner read-only phase 1
-              </div>
-              <h2 className="mt-5 text-3xl font-semibold tracking-tight">
-                Операционный обзор LogiShift
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                Санитизированные агрегаты по тенантам, сменам, платежам и
-                сервисным событиям. Управляющих действий в этой версии нет.
-              </p>
-            </div>
-            <div className="rounded-lg border border-white/10 bg-white/10 px-4 py-3 text-sm">
-              DB: {summary.database.connected ? "доступна" : "недоступна"}
-            </div>
-          </div>
-        </section>
-
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Тенанты"
-            value={summary.counts.tenants}
-            detail={`Последний tenant id: ${summary.latest.tenant_id ?? "нет"}`}
-            icon={Building2}
-          />
-          <StatCard
-            label="Пользователи"
-            value={summary.counts.users}
-            detail={`Последний user id: ${summary.latest.user_id ?? "нет"}`}
-            icon={Users}
-          />
-          <StatCard
-            label="Активные смены"
-            value={summary.counts.active_shifts}
-            detail={`Проблемные: ${summary.counts.stuck_shifts}`}
-            icon={AlertTriangle}
-          />
-          <StatCard
-            label="Платежи"
-            value={paymentTotal}
-            detail={`Provider events: ${providerEventTotal}, errors: ${summary.billing.provider_events_with_error}`}
-            icon={CreditCard}
-          />
-          <StatCard
-            label="Согласия"
-            value={summary.counts.user_consents}
-            detail={formatDateTime(summary.latest.consent_accepted_at)}
-            icon={Shield}
-          />
-          <StatCard
-            label="Инвайты"
-            value={summary.counts.invites}
-            detail={formatDateTime(summary.latest.invite_expires_at)}
-            icon={Clock}
-          />
-          <StatCard
-            label="Reset-токены"
-            value={summary.counts.password_reset_tokens}
-            detail={formatDateTime(summary.latest.reset_token_created_at)}
-            icon={Database}
-          />
-          <StatCard
-            label="Backend"
-            value={summary.database.connected ? "OK" : "FAIL"}
-            detail={`Смена обновлена: ${formatDateTime(summary.latest.shift_updated_at)}`}
-            icon={Server}
-          />
-        </section>
-
+      <main className="mx-auto max-w-7xl space-y-5 px-3 py-5 sm:px-6">
+        <OwnerTraffic />
+        <details className="rounded-lg border border-slate-200 bg-white p-4">
+          <summary className="cursor-pointer font-semibold">Операционный обзор LogiShift</summary>
+          <p className="my-3 text-sm text-slate-600">Активные смены: {summary.counts.active_shifts}; требуют внимания: {summary.counts.stuck_shifts}. DB: {summary.database.connected ? "доступна" : "недоступна"}.</p>
         <OwnerActivitySection
           overview={internalOverview}
           selectedWindow={activityWindow}
@@ -878,6 +422,7 @@ const OwnerDashboardView: React.FC = () => {
         />
 
         {systemSnapshot ? <OwnerSystemSection snapshot={systemSnapshot} /> : null}
+        </details>
 
         <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-5 py-4">
@@ -886,7 +431,7 @@ const OwnerDashboardView: React.FC = () => {
               Без персональных данных, Telegram ID, токенов, IP и raw audit.
             </p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[1120px] text-left text-sm">
               <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 <tr>

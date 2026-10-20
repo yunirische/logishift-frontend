@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import OwnerDashboardView from "../OwnerDashboardView";
 import {
+  getOwnerTraffic,
   getOwnerInternalOverview,
   getOwnerSummary,
   getOwnerSystem,
@@ -15,6 +16,7 @@ vi.mock("../../services/api", async () => {
 
   return {
     ...actual,
+    getOwnerTraffic: vi.fn().mockRejectedValue(new Error("not available")),
     getOwnerInternalOverview: vi.fn(),
     getOwnerSummary: vi.fn(),
     getOwnerSystem: vi.fn(),
@@ -186,56 +188,21 @@ describe("OwnerDashboardView internal overview", () => {
 
     expect(await screen.findByText("Статус и активность")).toBeInTheDocument();
     expect(getOwnerInternalOverview).toHaveBeenCalledWith("24h");
-    expect(screen.getAllByText("Компании всего").length).toBeGreaterThan(0);
-    expect(screen.getByText("Пользователи всего")).toBeInTheDocument();
-    expect(screen.getByText("Инвайты за период")).toBeInTheDocument();
-    expect(screen.getByText("Смены за период")).toBeInTheDocument();
-    expect(screen.getByText("Созданы: не отслеживается, приняты: 1")).toBeInTheDocument();
+    expect(screen.getByText("Привлечение и регистрации")).toBeInTheDocument();
+    expect(screen.getByText("Созданы смены")).toBeInTheDocument();
     expect(screen.getByText("Последние события")).toBeInTheDocument();
-    expect(screen.getByText("SHIFT_STARTED")).toBeInTheDocument();
-    expect(screen.getByText("Смена начата")).toBeInTheDocument();
-    expect(screen.getByText("Рекламная атрибуция")).toBeInTheDocument();
-    expect(screen.getByText("Воронка публичного демо")).toBeInTheDocument();
-    expect(screen.getByText("Начали демо")).toBeInTheDocument();
-    expect(screen.getByText("Начали смену")).toBeInTheDocument();
-    expect(screen.getByText("Показан результат")).toBeInTheDocument();
-    expect(screen.getByText("Завершили сценарий")).toBeInTheDocument();
-    expect(screen.getByText("Перешли к регистрации")).toBeInTheDocument();
-    expect(screen.getByText("Зарегистрировали компанию")).toBeInTheDocument();
-    const funnelStageLabels = [
-      "Начали демо",
-      "Начали смену",
-      "Показан результат",
-      "Завершили сценарий",
-      "Перешли к регистрации",
-      "Зарегистрировали компанию",
-    ].map((label) => screen.getByText(label));
-    funnelStageLabels.slice(1).forEach((label, index) => {
-      expect(
-        funnelStageLabels[index].compareDocumentPosition(label) &
-          Node.DOCUMENT_POSITION_FOLLOWING
-      ).toBeTruthy();
-    });
-    expect(screen.getByText("60% от начавших")).toBeInTheDocument();
-    expect(screen.getByText("80% от начавших")).toBeInTheDocument();
-    expect(screen.getByText("70% от начавших")).toBeInTheDocument();
-    expect(screen.getByText("40% от начавших")).toBeInTheDocument();
-    expect(screen.getByText("20% от начавших")).toBeInTheDocument();
-    expect(screen.getAllByText("yandex").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Последний вход: 07\.07\.2026, \d{2}:\d{2}/)).toBeInTheDocument();
-    expect(screen.getByText(/Последняя регистрация: 07\.07\.2026, \d{2}:\d{2}/)).toBeInTheDocument();
-    expect(screen.getByText("Последние входы и регистрации")).toBeInTheDocument();
-    expect(screen.getByText("Вход в демо")).toBeInTheDocument();
-    expect(screen.getByText("Регистрация")).toBeInTheDocument();
-    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
-    expect(screen.getByText("очень-длинный-utm-term-который-должен-переноситься-и-не-ломать-страницу")).toBeInTheDocument();
-    expect(screen.queryByText(/Метрика/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Смена начата/)).toBeInTheDocument();
+    expect(screen.queryByText("SHIFT_STARTED")).not.toBeInTheDocument();
+    expect(screen.queryByText("Рекламная атрибуция")).not.toBeInTheDocument();
+    expect(screen.queryByText("Reset-токены")).not.toBeInTheDocument();
+    expect(screen.getByText("Операционный обзор LogiShift").parentElement).not.toHaveAttribute("open");
   });
 
   it("switches overview windows", async () => {
     render(<OwnerDashboardView />);
 
     await screen.findByText("Статус и активность");
+    fireEvent.click(screen.getByText("Операционный обзор LogiShift"));
     fireEvent.click(screen.getByRole("button", { name: "1ч" }));
 
     await waitFor(() => {
@@ -264,11 +231,9 @@ describe("OwnerDashboardView internal overview", () => {
     const { rerender } = render(<OwnerDashboardView />);
 
     expect(await screen.findByText("За выбранный период событий нет.")).toBeInTheDocument();
-    expect(screen.getByText("Последний вход: нет")).toBeInTheDocument();
-    expect(screen.getByText("Последняя регистрация: нет")).toBeInTheDocument();
-    expect(screen.getByText("За выбранный период входов и регистраций нет.")).toBeInTheDocument();
 
     vi.mocked(getOwnerInternalOverview).mockRejectedValueOnce(new Error("failed"));
+    fireEvent.click(screen.getByText("Операционный обзор LogiShift"));
     fireEvent.click(screen.getByRole("button", { name: "1ч" }));
 
     expect(await screen.findByText("Статус и активность временно недоступны.")).toBeInTheDocument();

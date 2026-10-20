@@ -497,6 +497,36 @@ export interface OwnerTenantDetail {
   }>;
 }
 
+export type TrafficWindow = "24h" | "7d" | "30d";
+export interface TrafficMetrics {
+  sessions: number;
+  landing: number;
+  demo: number;
+  engagedDemo: number;
+  registration: number;
+  tenants: number;
+  convertedSessions: number;
+  demoClicks: number;
+  registrationClicks: number;
+  landingToDemo: number | null;
+  landingToRegistration: number | null;
+  landingToTenant: number | null;
+  registrationToTenant: number | null;
+  sessionToTenant: number | null;
+}
+export interface OwnerTrafficReport {
+  window: TrafficWindow;
+  generatedAt: string;
+  requestedStart: string;
+  effectiveStart: string;
+  cohortStart: string;
+  external: TrafficMetrics;
+  internal: TrafficMetrics;
+  unlinkedRegistrations: number;
+  segments: Array<TrafficMetrics & {
+    source: string | null; medium: string | null; campaign: string | null; content: string | null;
+  }>;
+}
 export type OwnerInternalOverviewWindow = "1h" | "24h" | "7d";
 
 export interface OwnerInternalOverview {

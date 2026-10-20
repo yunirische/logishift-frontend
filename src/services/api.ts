@@ -1,4 +1,5 @@
 import { API_ENDPOINTS, API_BASE_URL } from "../constants";
+import type { OwnerTrafficReport, TrafficWindow } from "../types";
 import {
   User,
   AnalyticsUsage,
@@ -931,6 +932,9 @@ export const endOwnerPilot = (
 export const getOwnerSystem = async (): Promise<OwnerSystemSnapshot> => {
   return await get(API_ENDPOINTS.OWNER_SYSTEM);
 };
+
+export const getOwnerTraffic = (window: TrafficWindow): Promise<OwnerTrafficReport> =>
+  get(`${API_BASE_URL}/owner/traffic?window=${encodeURIComponent(window)}`);
 
 export const getOwnerInternalOverview = async (
   window: OwnerInternalOverviewWindow

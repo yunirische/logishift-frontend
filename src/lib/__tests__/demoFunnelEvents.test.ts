@@ -1,8 +1,9 @@
 import {
+  recordCurrentPublicFunnelEvent,
   recordCurrentDemoFunnelEvent,
   recordDemoRegistrationCtaClick,
 } from "../demoFunnelEvents";
-import { recordDemoFunnelEvent } from "../../services/api";
+import { recordDemoFunnelEvent, recordPublicFunnelEvent } from "../../services/api";
 import { captureDemoRegistrationHandoff } from "../demoRegistrationHandoff";
 import { getOrCreateDemoFunnelSession } from "../demoFunnelSession";
 
@@ -15,6 +16,18 @@ describe("demo funnel event producer", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+  });
+
+  it.each(["accepted", "rejected", null])("records first-party events with consent %s", async choice => {
+    if (choice) localStorage.setItem("logishift.analytics-consent.v1", choice);
+    await recordCurrentPublicFunnelEvent("landing_viewed");
+    await recordCurrentPublicFunnelEvent("registration_viewed");
+    await recordCurrentDemoFunnelEvent("demo_session_started");
+    expect(recordPublicFunnelEvent).toHaveBeenCalledTimes(2);
+    expect(recordDemoFunnelEvent).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(recordPublicFunnelEvent).mock.calls[0][1])
+      .toBe(vi.mocked(recordDemoFunnelEvent).mock.calls[0][1]);
+    expect(document.querySelector('script[src*="mail.ru"],script[src*="yandex"]')).toBeNull();
   });
 
   it("reuses one browser session and sends only allowlisted attribution", async () => {
