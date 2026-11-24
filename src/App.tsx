@@ -169,7 +169,7 @@ const AppContent: React.FC = () => {
     const saved = localStorage.getItem(APP_DEMO_PERSONA_KEY);
     return (saved === 'driver' || saved === 'admin') ? saved : DEFAULT_DEMO_PERSONA;
   });
-  const { isAuthenticated, isLoading, error, clearError, user } = useAuth();
+  const { isAuthenticated, isLoading, error, clearError, user, login } = useAuth();
   const pathname = window.location.pathname;
   const hostname = window.location.hostname;
   const isPaymentSuccessPage = pathname === "/payment/success";
@@ -327,7 +327,7 @@ const AppContent: React.FC = () => {
   }
 
   if (isRegisterPage) {
-    return <RegisterView />;
+    return <RegisterView login={login} />;
   }
 
   if (isForgotPasswordPage) {
@@ -453,7 +453,10 @@ const AppContent: React.FC = () => {
       case "fleet":
         return (
           <Suspense fallback={loadingFallback}>
-            <Fleet />
+            <Fleet
+              draftTenantId={user?.role === "admin" && !isDemoMode ? user.tenant_id : undefined}
+              onAddSite={() => handleSetActiveTab("objects")}
+            />
           </Suspense>
         );
       case "objects":

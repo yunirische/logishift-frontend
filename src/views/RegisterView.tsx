@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserPlus, Loader2, CheckCircle2, Check, Building, User, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, Loader2, CheckCircle2, Check, Building, User, Eye, EyeOff, Truck } from 'lucide-react';
 import { acceptInvite } from '../services/api';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
@@ -11,6 +11,9 @@ import { readAttribution } from '../lib/attribution';
 import { prepareAttributionSession } from '../lib/demoRegistrationHandoff';
 import { recordCurrentPublicFunnelEvent } from '../lib/demoFunnelEvents';
 import { PUBLIC_TARIFFS } from '../config/tariffs';
+import { isDemoHostname, isDemoTenantId } from '../config/demo';
+import { readFirstTruckDraft, writeFirstTruckDraft } from '../lib/firstTruckDraft';
+import { User as AccountUser, UserRole } from '../types';
 type ConsentKey = keyof typeof REQUIRED_CONSENT_VERSIONS;
 
 interface RegisterFormData {
@@ -36,7 +39,7 @@ export const getRegistrationPasswordChecks = (value: string) => ({
 
 const freeTariff = PUBLIC_TARIFFS.find((plan) => plan.code === 'free')!;
 
-const RegisterView: React.FC = () => {
+const RegisterView: React.FC<{ login?: (token: string, user: AccountUser) => Promise<void> }> = ({ login }) => {
   const [registerContext] = useState(() =>
     getRegisterContextFromSearch(window.location.search)
   );
@@ -48,9 +51,20 @@ const RegisterView: React.FC = () => {
   const [mode, setMode] = useState<RegisterMode>(() =>
     registerContext.initialMode
   );
+  const [isFirstTruck] = useState(() =>
+    Boolean(login) && !isDemoHostname(window.location.hostname) &&
+    !registerContext.isDemoSource && registerContext.initialMode === 'admin' &&
+    new URLSearchParams(window.location.search).get('try') === 'fleet'
+  );
+  const [draft, setDraft] = useState(() => {
+    const saved = isFirstTruck ? readFirstTruckDraft() : null;
+    return saved && !saved.tenantId ? saved : { name: '', registrationOpen: false };
+  });
   useEffect(() => {
-    if (mode === 'admin') void recordCurrentPublicFunnelEvent('registration_viewed').catch(() => undefined);
-  }, [mode]);
+    if (mode === 'admin' && (!isFirstTruck || draft.registrationOpen)) {
+      void recordCurrentPublicFunnelEvent('registration_viewed').catch(() => undefined);
+    }
+  }, [mode, isFirstTruck, draft.registrationOpen]);
   const [formData, setFormData] = useState<RegisterFormData>(() => ({
     code: registerContext.inviteCode,
     full_name: '',
@@ -86,13 +100,14 @@ const RegisterView: React.FC = () => {
     }
   }, [fieldErrors]);
 
-  const navigateToLogin = (email?: string) => {
+  const navigateToLogin = (email?: string, tab?: string) => {
     const url = new URL(window.location.href);
     url.pathname = '/login';
     url.search = '';
     if (email) {
       url.searchParams.set('email', email);
     }
+    if (tab) url.searchParams.set('tab', tab);
     window.location.href = url.toString();
   };
 
@@ -105,7 +120,7 @@ const RegisterView: React.FC = () => {
   const getFieldErrors = (): FieldErrors => {
     const errors: FieldErrors = {};
     if (mode === 'driver' && !formData.code.trim()) errors.code = 'Введите код приглашения';
-    if (mode === 'admin' && !formData.companyName.trim()) errors.companyName = 'Введите название компании';
+    if (mode === 'admin' && !formData.companyName.trim()) errors.companyName = 'Введите название парка';
     if (!formData.full_name.trim()) errors.full_name = 'Введите полное имя';
     if (!formData.email.trim()) {
       errors.email = 'Введите email';
@@ -162,7 +177,7 @@ const RegisterView: React.FC = () => {
     try {
       if (mode === 'admin') {
         // Admin registration - create tenant
-        await api.post(API_ENDPOINTS.AUTH_REGISTER_TENANT, {
+        const result = await api.post(API_ENDPOINTS.AUTH_REGISTER_TENANT, {
           companyName: formData.companyName.trim(),
           adminName: formData.full_name.trim(),
           email: formData.email.trim().toLowerCase(),
@@ -173,6 +188,23 @@ const RegisterView: React.FC = () => {
           ...(demoSessionKey ? { demoSessionKey } : {}),
           ...(measurementSession?.isInternal ? { isInternal: true } : {}),
         });
+        if (isFirstTruck && login) {
+          const { token, user, tenant } = result ?? {};
+          if (typeof token !== 'string' || token.split('.').length !== 3 ||
+              user?.role !== UserRole.ADMIN || !Number.isInteger(user.tenant_id) ||
+              user.tenant_id < 1 || user.tenant_id !== tenant?.id || isDemoTenantId(user.tenant_id)) {
+            throw new Error('Не удалось подтвердить регистрацию. Проверьте данные и попробуйте ещё раз.');
+          }
+          writeFirstTruckDraft({ name: draft.name.trim(), tenantId: user.tenant_id });
+          try {
+            await login(token, user);
+          } catch {
+            navigateToLogin(formData.email, 'fleet');
+            return;
+          }
+          window.location.replace('/?tab=fleet');
+          return;
+        }
       } else {
         // Driver registration - accept invite
         await acceptInvite({
@@ -212,6 +244,44 @@ const RegisterView: React.FC = () => {
     setAcceptedConsents((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const updateDraft = (name: string, registrationOpen = false) => {
+    const next = { name, registrationOpen };
+    setDraft(next);
+    writeFirstTruckDraft(next);
+  };
+
+  if (isFirstTruck && !draft.registrationOpen) {
+    return (
+      <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-3 sm:p-6">
+        <form className="max-w-md w-full bg-white rounded-lg shadow-2xl p-4 sm:p-8 space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (draft.name.trim()) updateDraft(draft.name.trim(), true);
+          }}>
+          <BrandLogo className="flex justify-center" imageClassName="h-auto w-32 sm:w-40" />
+          <h1 className="text-xl font-bold text-[#1B254B]">Добавьте первую машину</h1>
+          <label htmlFor="first-truck-name" className="block text-sm font-semibold text-slate-700">Как называется ваша техника?</label>
+          <input id="first-truck-name" value={draft.name} onChange={(event) => updateDraft(event.target.value)}
+            placeholder="Например, Экскаватор JCB" required
+            className="w-full p-3 rounded-lg border border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20 outline-none" />
+          {draft.name.trim() && (
+            <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-3">
+              <Truck className="shrink-0 text-slate-500" size={20} aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="break-words font-semibold text-[#1B254B]">{draft.name.trim()}</p>
+                <p className="text-sm text-slate-500">Черновик. Машина пока не сохранена.</p>
+              </div>
+            </div>
+          )}
+          <button type="submit" disabled={!draft.name.trim()}
+            className="min-h-12 w-full rounded-lg bg-[#0a192f] text-white font-bold disabled:opacity-50">
+            Продолжить
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-4 sm:p-6">
@@ -221,7 +291,7 @@ const RegisterView: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-[#1B254B] mb-2">Регистрация успешна!</h2>
           <p className="text-slate-500 mb-6">
-            {mode === 'admin' ? 'Компания успешно создана!' : 'Добро пожаловать в команду LogiShift!'}
+            {mode === 'admin' ? 'Ваш кабинет готов!' : 'Добро пожаловать в команду LogiShift!'}
           </p>
           {mode === 'admin' && (
             <p className="text-sm text-slate-500 mb-4">
@@ -240,8 +310,12 @@ const RegisterView: React.FC = () => {
         <div className="text-center mb-4">
           <BrandLogo className="flex justify-center" imageClassName="h-auto w-32 sm:w-40" />
           <h1 className="mt-3 text-xl font-bold leading-tight text-[#1B254B]">
-            {mode === 'admin' ? 'Создайте компанию бесплатно' : 'Вступите в компанию'}
+            {isFirstTruck ? 'Создайте кабинет, чтобы сохранить технику' :
+              mode === 'admin' ? 'Создайте кабинет бесплатно' : 'Вступите в компанию'}
           </h1>
+          {isFirstTruck && (
+            <p className="mt-2 text-sm text-slate-600 break-words">Черновик · {draft.name}</p>
+          )}
           {mode === 'admin' ? (
             <div className="mt-3 text-sm leading-5 text-slate-600" data-testid="free-registration-context">
               <p><strong className="text-[#1B254B]">{freeTariff.priceLabel}</strong> · {freeTariff.meta}</p>
@@ -253,13 +327,13 @@ const RegisterView: React.FC = () => {
           {registerContext.isDemoSource && mode === 'admin' && (
             <div className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-left text-sm leading-5 text-slate-600" data-testid="demo-registration-context">
               <p className="font-semibold text-[#1B254B]">Продолжите со своими данными</p>
-              <p>Вы посмотрели демо. Создайте компанию, затем добавьте свою технику, объекты и водителей.</p>
+              <p>Вы посмотрели демо. Создайте кабинет, затем добавьте свою технику, объекты и водителей.</p>
             </div>
           )}
         </div>
 
         {/* Mode Toggle */}
-        <div className="mb-4 bg-[#F4F7FE] rounded-lg p-1 flex">
+        <div hidden={isFirstTruck} className={isFirstTruck ? 'hidden' : 'mb-4 bg-[#F4F7FE] rounded-lg p-1 flex'}>
           <button
             type="button"
             onClick={() => {
@@ -346,7 +420,7 @@ const RegisterView: React.FC = () => {
           {mode === 'admin' && (
             <div className="space-y-1">
               <label htmlFor="companyName" className="block text-sm font-semibold text-slate-700">
-                Название компании <span className="text-red-500">*</span>
+                Название парка <span className="text-red-500">*</span>
               </label>
               <input
                 id="companyName"
@@ -356,11 +430,11 @@ const RegisterView: React.FC = () => {
                 type="text"
                 value={formData.companyName}
                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                placeholder="ООО Ваша Компания"
+                placeholder="Мой парк"
                 className="w-full bg-[#F4F7FE] border-none rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-[#0a192f] transition-all"
                 required={mode === 'admin'}
               />
-              <p id="companyName-help" className="text-sm leading-5 text-slate-600">Юридическое название (ООО, ИП и т.д.)</p>
+              <p id="companyName-help" className="text-sm leading-5 text-slate-600">Любое удобное название для вашего кабинета.</p>
               {fieldError('companyName')}
             </div>
           )}
@@ -568,7 +642,7 @@ const RegisterView: React.FC = () => {
             ) : mode === 'admin' ? (
               <>
                 <Building className="w-5 h-5" />
-                Создать компанию
+                Создать кабинет
               </>
             ) : (
               <>

@@ -283,7 +283,8 @@ describe("Landing product copy", () => {
       expect(screen.getByText(feature)).toBeInTheDocument();
     });
 
-    expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "Попробовать" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Открыть демо" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Бесплатный тариф включает до 2 машин, 2 водителей и 2 объектов. Для растущего парка доступны тарифы с большими лимитами.")).toBeInTheDocument();
 
@@ -307,7 +308,7 @@ describe("Landing product copy", () => {
       "Смены транспорта и спецтехники — без Excel и чатов"
     );
     expect(container.textContent).toContain(
-      "LogiShift: водитель отмечает смену с телефона, руководитель видит работу парка в одном месте."
+      "Вместо блокнота, таблиц и переписок — техника, смены и отчёты в одном месте."
     );
     const painHeading = screen.getByRole("heading", {
       level: 2,
@@ -337,11 +338,11 @@ describe("Landing product copy", () => {
     const heroDemoCta = within(heroSection!).getByRole("button", {
       name: "Посмотреть демо",
     });
-    const heroRegisterCta = within(heroSection!).getByRole("button", {
-      name: "Начать бесплатно",
+    const heroTryCta = within(heroSection!).getByRole("button", {
+      name: "Попробовать",
     });
     expect(
-      heroDemoCta.compareDocumentPosition(heroRegisterCta) &
+      heroTryCta.compareDocumentPosition(heroDemoCta) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 

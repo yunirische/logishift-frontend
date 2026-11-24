@@ -14,6 +14,7 @@ import {
 import { getDemoEntryUrl, getProductionAppUrl } from "../config/demo";
 import { getAttributionNavigationUrl } from "../lib/attribution";
 import { getAttributionSessionNavigationUrl } from "../lib/demoRegistrationHandoff";
+import { FIRST_TRUCK_ENTRY } from "../lib/firstTruckDraft";
 import { recordCurrentPublicFunnelEvent } from "../lib/demoFunnelEvents";
 import { assignLocation } from "../services/navigation";
 import { PUBLIC_TARIFFS } from "../config/tariffs";
@@ -233,25 +234,26 @@ const LandingView: React.FC = () => {
                 Смены транспорта и спецтехники — без Excel и чатов
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-6 text-slate-600 sm:mt-5 sm:text-lg sm:leading-8">
-                LogiShift: водитель отмечает смену с телефона, руководитель видит работу парка в одном месте.
+                Вместо блокнота, таблиц и переписок — техника, смены и отчёты в одном месте.
               </p>
               <div className="mt-4 flex flex-col gap-2 sm:mt-7 sm:flex-row sm:gap-3">
                 <button
                   type="button"
-                  onClick={openDemo}
+                  onClick={() => assignLocation(getAttributionSessionNavigationUrl(getProductionAppUrl(FIRST_TRUCK_ENTRY)))}
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#006497] px-6 py-3 text-base font-semibold text-white shadow-lg shadow-[#006497]/20 transition-all hover:bg-[#004f79] sm:py-4"
                 >
-                  Посмотреть демо
+                  Попробовать
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={openRegister}
+                  onClick={openDemo}
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-[#041627] bg-white px-6 py-3 text-base font-semibold text-[#041627] transition-colors hover:bg-[#041627] hover:text-white sm:py-4"
                 >
-                  Начать бесплатно
+                  Посмотреть демо
                 </button>
               </div>
+              <p className="mt-2 text-sm leading-5 text-slate-600">До двух машин бесплатно. Без ограничения по времени</p>
             </div>
 
             <figure className="lg:hidden" aria-label="Пример: от начала смены до кабинета руководителя">

@@ -63,7 +63,7 @@ describe("RegisterView", () => {
     user: ReturnType<typeof userEvent.setup>,
     email = "Admin@Example.COM "
   ) => {
-    await user.type(screen.getByLabelText(/название компании/i), "ООО Тест");
+    await user.type(screen.getByLabelText(/название парка/i), "Мой парк");
     await user.type(screen.getByLabelText(/полное имя/i), "Admin User");
     await user.type(screen.getByLabelText(/email/i), email);
     await user.type(screen.getByLabelText(/^пароль/i), "StrongPass1!");
@@ -76,7 +76,7 @@ describe("RegisterView", () => {
 
     render(<RegisterView />);
 
-    expect(screen.getByLabelText(/название компании/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/название парка/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/код приглашения/i)).not.toBeInTheDocument();
     expect(screen.getByText("LegalLinks")).toBeInTheDocument();
   });
@@ -86,12 +86,12 @@ describe("RegisterView", () => {
     render(<RegisterView />);
     const free = PUBLIC_TARIFFS.find((plan) => plan.code === "free")!;
     const context = screen.getByTestId("free-registration-context");
-    expect(screen.getByRole("heading", { name: "Создайте компанию бесплатно" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Создайте кабинет бесплатно" })).toBeInTheDocument();
     expect(context).toHaveTextContent(free.priceLabel);
     expect(context).toHaveTextContent(free.meta);
     free.details.slice(0, 3).forEach((detail) => expect(context).toHaveTextContent(detail));
     expect(context).not.toHaveTextContent(/Excel|ZIP/);
-    expect(screen.getByLabelText(/название компании/i)).toHaveAttribute("autocomplete", "organization");
+    expect(screen.getByLabelText(/название парка/i)).toHaveAttribute("autocomplete", "organization");
     expect(screen.getByLabelText(/email администратора/i)).toHaveAttribute("placeholder", "name@example.com");
   });
 
@@ -116,7 +116,7 @@ describe("RegisterView", () => {
       expect(checkbox).toBeRequired();
       expect(checkbox).not.toBeChecked();
     });
-    const submit = screen.getByRole("button", { name: /создать компанию/i });
+    const submit = screen.getByRole("button", { name: /создать кабинет/i });
     await user.click(checkboxes[0]);
     await user.click(checkboxes[1]);
     expect(submit).toBeDisabled();
@@ -132,12 +132,12 @@ describe("RegisterView", () => {
     const user = userEvent.setup({ delay: null });
     render(<RegisterView />);
     await acceptRequiredConsents(user);
-    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
-    const company = screen.getByLabelText(/название компании/i);
+    await user.click(screen.getByRole("button", { name: /создать кабинет/i }));
+    const company = screen.getByLabelText(/название парка/i);
     expect(company).toHaveFocus();
     expect(company).toHaveAttribute("aria-invalid", "true");
-    expect(company).toHaveAccessibleDescription(/Введите название компании/);
-    expect(screen.getByText("Введите название компании").parentElement).toContainElement(company);
+    expect(company).toHaveAccessibleDescription(/Введите название парка/);
+    expect(screen.getByText("Введите название парка").parentElement).toContainElement(company);
     expect(api.post).not.toHaveBeenCalled();
   });
 
@@ -166,7 +166,7 @@ describe("RegisterView", () => {
     const confirmation = screen.getByLabelText(/подтвердите пароль/i);
     await user.clear(confirmation);
     await user.type(confirmation, "DifferentPass1!");
-    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+    await user.click(screen.getByRole("button", { name: /создать кабинет/i }));
     expect(confirmation).toHaveFocus();
     expect(confirmation).toHaveAttribute("aria-invalid", "true");
     expect(confirmation).toHaveAccessibleDescription("Пароли не совпадают");
@@ -186,7 +186,7 @@ describe("RegisterView", () => {
     await user.type(confirmation, "StrongPass1 ");
     const specialCheck = screen.getByText("Спецсимвол ! @ #");
     expect(specialCheck.querySelector("svg")).toBeNull();
-    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+    await user.click(screen.getByRole("button", { name: /создать кабинет/i }));
     expect(password).toHaveFocus();
     expect(password).toHaveAttribute("aria-invalid", "true");
     expect(api.post).not.toHaveBeenCalled();
@@ -200,11 +200,11 @@ describe("RegisterView", () => {
     vi.mocked(api.post).mockRejectedValueOnce(new Error("Сервис временно недоступен"));
     render(<RegisterView />);
     await fillAdminRegistrationForm(user);
-    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+    await user.click(screen.getByRole("button", { name: /создать кабинет/i }));
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Сервис временно недоступен");
     await waitFor(() => expect(alert).toHaveFocus());
-    const submit = screen.getByRole("button", { name: /создать компанию/i });
+    const submit = screen.getByRole("button", { name: /создать кабинет/i });
     expect(alert.nextElementSibling).toBe(submit);
     expect(within(alert).queryByRole("textbox")).not.toBeInTheDocument();
   });
@@ -240,7 +240,7 @@ describe("RegisterView", () => {
       "Продолжите со своими данными"
     );
     expect(screen.getByTestId("free-registration-context")).toBeInTheDocument();
-    expect(screen.getByLabelText(/название компании/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/название парка/i)).toBeInTheDocument();
   });
 
   it("does not show demo context on ordinary registration", () => {
@@ -263,7 +263,7 @@ describe("RegisterView", () => {
     render(<RegisterView />);
 
     expect(screen.getByLabelText(/код приглашения/i)).toHaveValue("ABC123");
-    expect(screen.queryByLabelText(/название компании/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/название парка/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /вступить в компанию/i })).toBeInTheDocument();
   });
 
@@ -280,7 +280,7 @@ describe("RegisterView", () => {
     expect(
       screen.queryByTestId("demo-registration-context")
     ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/название компании/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/название парка/i)).not.toBeInTheDocument();
   });
 
   it("keeps manual mode switching working after invite prefill", async () => {
@@ -290,7 +290,7 @@ describe("RegisterView", () => {
     render(<RegisterView />);
     await user.click(screen.getByRole("button", { name: /компания/i }));
 
-    expect(screen.getByLabelText(/название компании/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/название парка/i)).toBeInTheDocument();
   });
 
   it("keeps consent links and the current legal version on registration", () => {
@@ -336,13 +336,13 @@ describe("RegisterView", () => {
 
     render(<RegisterView />);
     await fillAdminRegistrationForm(user, " Admin@Example.COM ");
-    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+    await user.click(screen.getByRole("button", { name: /создать кабинет/i }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     expect(api.post).toHaveBeenCalledWith(
       expect.stringContaining("/auth/register-tenant"),
       expect.objectContaining({
-        companyName: "ООО Тест",
+        companyName: "Мой парк",
         adminName: "Admin User",
         email: "admin@example.com",
         password: "StrongPass1!",
@@ -370,7 +370,7 @@ describe("RegisterView", () => {
       "/register?registration_source=changed&utm_source=changed"
     );
     await fillAdminRegistrationForm(user);
-    await user.click(screen.getByRole("button", { name: /создать компанию/i }));
+    await user.click(screen.getByRole("button", { name: /создать кабинет/i }));
 
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(api.post).mock.calls[0][1] as Record<
@@ -403,7 +403,7 @@ describe("RegisterView", () => {
 
     render(<RegisterView />);
     await fillAdminRegistrationForm(user);
-    const submit = screen.getByRole("button", { name: /создать компанию/i });
+    const submit = screen.getByRole("button", { name: /создать кабинет/i });
 
     await user.click(submit);
     await waitFor(() => expect(screen.getByRole("button", { name: /регистрация/i })).toBeDisabled());

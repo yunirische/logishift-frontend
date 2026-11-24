@@ -3,18 +3,26 @@ import { Plus, Pencil, Trash2, X, Power, Loader2, Truck } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
 import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
+import { readFirstTruckDraft, writeFirstTruckDraft } from '../lib/firstTruckDraft';
 
-const Fleet: React.FC = () => {
+const Fleet: React.FC<{ draftTenantId?: number; onAddSite?: () => void }> = ({
+  draftTenantId, onAddSite,
+}) => {
+  const [firstTruckDraft, setFirstTruckDraft] = useState(() => {
+    const draft = draftTenantId ? readFirstTruckDraft() : null;
+    return draft && draft.tenantId === draftTenantId ? draft : null;
+  });
+  const [showNextStep, setShowNextStep] = useState(false);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(Boolean(firstTruckDraft));
   const [editingTruck, setEditingTruck] = useState<any | null>(null);
   const modalRef = useFocusTrap(isModalOpen);
   useFocusRestore(isModalOpen);
   
   // Форма состояния
   const [formData, setFormData] = useState({
-    name: '',
+    name: firstTruckDraft?.name ?? '',
     plate: '',
     is_busy: false, // Для редактирования, если понадобится в модалке
   });
@@ -49,7 +57,7 @@ const Fleet: React.FC = () => {
     setEditingTruck(truck);
     setFormData({
       name: truck.name,
-      plate: truck.plate,
+      plate: truck.plate ?? '',
       is_busy: truck.is_busy
     });
     setIsModalOpen(true);
@@ -88,21 +96,32 @@ const Fleet: React.FC = () => {
   };
 
   // Сохранение (Создание или Редактирование)
+  const closeModal = () => {
+    if (firstTruckDraft) {
+      writeFirstTruckDraft(null);
+      setFirstTruckDraft(null);
+    }
+    setIsModalOpen(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) return alert('Название обязательно');
-    if (!formData.plate.trim()) return alert('Госномер обязателен');
+    if (isSaving) return;
+    const name = formData.name.trim();
+    if (!name) return alert('Название обязательно');
 
     setIsSaving(true);
     try {
+      const payload = { ...formData, name, plate: formData.plate.trim() || null };
       if (editingTruck) {
         // Редактирование: PATCH на конкретный URL
-        await api.patch(API_ENDPOINTS.UPDATE_TRUCK(editingTruck.id), formData);
+        await api.patch(API_ENDPOINTS.UPDATE_TRUCK(editingTruck.id), payload);
       } else {
         // Создание: POST на базовый URL
-        await api.post(API_ENDPOINTS.ADD_TRUCK, formData);
+        await api.post(API_ENDPOINTS.ADD_TRUCK, payload);
+        if (firstTruckDraft) setShowNextStep(true);
       }
-      setIsModalOpen(false);
+      closeModal();
       await fetchTrucks(); // Обновляем список
     } catch (error: any) {
       console.error('Ошибка сохранения:', error);
@@ -127,7 +146,7 @@ const Fleet: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Кнопка добавления */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
            <h2 className="text-2xl font-semibold text-[#1B254B]">Техника</h2>
            <p className="text-sm text-slate-400 font-medium">Машины и оборудование, которые выходят на смены.</p>
@@ -140,6 +159,16 @@ const Fleet: React.FC = () => {
           Добавить машину
         </button>
       </div>
+
+      {showNextStep && onAddSite && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <p role="status" className="text-sm font-semibold text-[#1B254B]">Машина добавлена.</p>
+          <button type="button" onClick={onAddSite}
+            className="rounded-lg bg-[#0a192f] px-4 py-3 text-sm font-bold text-white">
+            Добавить объект работы
+          </button>
+        </div>
+      )}
 
       {/* Таблица техники */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in">
@@ -159,8 +188,8 @@ const Fleet: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
+            <table className="block w-full text-sm sm:table">
+              <thead className="sr-only sm:not-sr-only">
                 <tr className="border-b border-slate-100 bg-slate-50">
                   <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Машина</th>
                   <th className="text-left px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Госномер</th>
@@ -168,21 +197,22 @@ const Fleet: React.FC = () => {
                   <th className="px-4 py-3 w-1"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="block divide-y divide-slate-100 sm:table-row-group">
                 {trucks.map((t) => (
-                  <tr key={t.id} className={`hover:bg-slate-50/60 transition-colors ${t.is_busy ? 'bg-orange-50/20' : ''}`}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
+                  <tr key={t.id} className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 p-3 hover:bg-slate-50/60 transition-colors sm:table-row sm:p-0 ${t.is_busy ? 'bg-orange-50/20' : ''}`}>
+                    <td className="min-w-0 sm:px-4 sm:py-3">
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <Truck size={16} className="text-slate-400 shrink-0" />
-                        <span className="font-semibold text-[#1B254B]">{t.name}</span>
+                        <span className="min-w-0 [overflow-wrap:anywhere] font-semibold text-[#1B254B]">{t.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="row-start-2 min-w-0 [overflow-wrap:anywhere] sm:px-4 sm:py-3">
+                      <span className="sr-only sm:hidden">Госномер: </span>
                       <span className="font-mono text-slate-600 text-xs bg-slate-100 px-2 py-1 rounded">
                         {t.plate || '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="col-start-2 row-start-1 justify-self-end sm:px-4 sm:py-3">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
                         t.is_busy ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'
                       }`}>
@@ -190,7 +220,7 @@ const Fleet: React.FC = () => {
                         {t.is_busy ? 'На смене' : 'Свободна'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="col-start-2 row-start-2 sm:px-4 sm:py-3">
                       <div className="flex items-center gap-1 justify-end">
                         <button
                           onClick={() => handleToggleBusy(t)}
@@ -235,13 +265,14 @@ const Fleet: React.FC = () => {
           aria-modal="true"
           aria-labelledby="truck-modal-title"
         >
-          <div className="bg-white rounded-lg w-full max-w-md p-5 shadow-sm border border-slate-200 animate-in zoom-in-95">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-full overflow-y-auto p-5 shadow-sm border border-slate-200 animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
               <h3 id="truck-modal-title" className="text-xl font-semibold text-[#1B254B]">
                 {editingTruck ? 'Редактировать машину' : 'Новая машина'}
               </h3>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={closeModal}
+                disabled={isSaving}
                 className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
                 aria-label="Закрыть модальное окно"
               >
@@ -269,7 +300,7 @@ const Fleet: React.FC = () => {
 
               <div>
                 <label htmlFor="truck-plate" className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                  Госномер
+                  Госномер (необязательно)
                 </label>
                 <input
                   id="truck-plate"
@@ -287,7 +318,8 @@ const Fleet: React.FC = () => {
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeModal}
+                  disabled={isSaving}
                   className="flex-1 py-3 rounded-lg border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition-colors"
                 >
                   Отмена
@@ -297,7 +329,7 @@ const Fleet: React.FC = () => {
                   disabled={isSaving}
                   className="flex-1 py-3 rounded-lg bg-[#0a192f] text-white font-bold hover:bg-[#152238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSaving ? 'Сохранение...' : (editingTruck ? 'Сохранить' : 'Создать')}
+                  {isSaving ? 'Сохранение...' : (editingTruck || firstTruckDraft ? 'Сохранить' : 'Создать')}
                 </button>
               </div>
             </form>
