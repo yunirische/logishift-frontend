@@ -3,26 +3,18 @@ import { Plus, Pencil, Trash2, X, Power, Loader2, Truck } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
 import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
-import { readFirstTruckDraft, writeFirstTruckDraft } from '../lib/firstTruckDraft';
 
-const Fleet: React.FC<{ draftTenantId?: number; onAddSite?: () => void }> = ({
-  draftTenantId, onAddSite,
-}) => {
-  const [firstTruckDraft, setFirstTruckDraft] = useState(() => {
-    const draft = draftTenantId ? readFirstTruckDraft() : null;
-    return draft && draft.tenantId === draftTenantId ? draft : null;
-  });
-  const [showNextStep, setShowNextStep] = useState(false);
+const Fleet: React.FC = () => {
   const [trucks, setTrucks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(Boolean(firstTruckDraft));
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTruck, setEditingTruck] = useState<any | null>(null);
   const modalRef = useFocusTrap(isModalOpen);
   useFocusRestore(isModalOpen);
   
   // Форма состояния
   const [formData, setFormData] = useState({
-    name: firstTruckDraft?.name ?? '',
+    name: '',
     plate: '',
     is_busy: false, // Для редактирования, если понадобится в модалке
   });
@@ -96,14 +88,6 @@ const Fleet: React.FC<{ draftTenantId?: number; onAddSite?: () => void }> = ({
   };
 
   // Сохранение (Создание или Редактирование)
-  const closeModal = () => {
-    if (firstTruckDraft) {
-      writeFirstTruckDraft(null);
-      setFirstTruckDraft(null);
-    }
-    setIsModalOpen(false);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
@@ -119,9 +103,8 @@ const Fleet: React.FC<{ draftTenantId?: number; onAddSite?: () => void }> = ({
       } else {
         // Создание: POST на базовый URL
         await api.post(API_ENDPOINTS.ADD_TRUCK, payload);
-        if (firstTruckDraft) setShowNextStep(true);
       }
-      closeModal();
+      setIsModalOpen(false);
       await fetchTrucks(); // Обновляем список
     } catch (error: any) {
       console.error('Ошибка сохранения:', error);
@@ -159,16 +142,6 @@ const Fleet: React.FC<{ draftTenantId?: number; onAddSite?: () => void }> = ({
           Добавить машину
         </button>
       </div>
-
-      {showNextStep && onAddSite && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-          <p role="status" className="text-sm font-semibold text-[#1B254B]">Машина добавлена.</p>
-          <button type="button" onClick={onAddSite}
-            className="rounded-lg bg-[#0a192f] px-4 py-3 text-sm font-bold text-white">
-            Добавить объект работы
-          </button>
-        </div>
-      )}
 
       {/* Таблица техники */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in">
@@ -271,7 +244,7 @@ const Fleet: React.FC<{ draftTenantId?: number; onAddSite?: () => void }> = ({
                 {editingTruck ? 'Редактировать машину' : 'Новая машина'}
               </h3>
               <button
-                onClick={closeModal}
+                onClick={() => setIsModalOpen(false)}
                 disabled={isSaving}
                 className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
                 aria-label="Закрыть модальное окно"
@@ -318,7 +291,7 @@ const Fleet: React.FC<{ draftTenantId?: number; onAddSite?: () => void }> = ({
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={closeModal}
+                  onClick={() => setIsModalOpen(false)}
                   disabled={isSaving}
                   className="flex-1 py-3 rounded-lg border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition-colors"
                 >
@@ -329,7 +302,7 @@ const Fleet: React.FC<{ draftTenantId?: number; onAddSite?: () => void }> = ({
                   disabled={isSaving}
                   className="flex-1 py-3 rounded-lg bg-[#0a192f] text-white font-bold hover:bg-[#152238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSaving ? 'Сохранение...' : (editingTruck || firstTruckDraft ? 'Сохранить' : 'Создать')}
+                  {isSaving ? 'Сохранение...' : (editingTruck ? 'Сохранить' : 'Создать')}
                 </button>
               </div>
             </form>

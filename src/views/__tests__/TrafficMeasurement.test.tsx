@@ -13,7 +13,7 @@ const query = "utm_source=vk&utm_medium=cpc&utm_campaign=core_active_30d&utm_con
 
 describe("public funnel producers", () => {
   beforeEach(() => {
-    localStorage.clear(); sessionStorage.clear(); vi.clearAllMocks();
+    localStorage.clear(); vi.clearAllMocks();
     vi.mocked(recordPublicFunnelEvent).mockResolvedValue(undefined);
     window.history.replaceState({}, "", `/?${query}`);
   });
@@ -71,26 +71,20 @@ describe("public funnel producers", () => {
     expect(recordPublicFunnelEvent).not.toHaveBeenCalled();
   });
 
-  it("carries the landing session into the draft and records registration only after Continue", () => {
+  it("carries the landing session directly into the registration form", () => {
     const landing = render(<LandingView />);
-    fireEvent.click(screen.getByRole("button", { name: "Попробовать" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Начать бесплатно" })[0]);
     const url = new URL(vi.mocked(assignLocation).mock.calls[0][0]);
-    expect(url.searchParams.get("try")).toBe("fleet");
+    expect(url.pathname).toBe("/register");
+    expect(url.searchParams.has("try")).toBe(false);
     expect(url.searchParams.get("utm_source")).toBe("vk");
     const key = readDemoFunnelSession()?.key;
     landing.unmount();
     localStorage.clear();
     vi.mocked(recordPublicFunnelEvent).mockClear();
     window.history.replaceState({}, "", url.pathname + url.search + url.hash);
-    const login = vi.fn();
-    const draft = render(<RegisterView login={login} />);
-    fireEvent.change(screen.getByLabelText("Как называется ваша техника?"), { target: { value: "Экскаватор" } });
-    expect(recordPublicFunnelEvent).not.toHaveBeenCalled();
-    draft.unmount();
-    render(<RegisterView login={login} />);
-    expect(screen.getByLabelText("Как называется ваша техника?")).toHaveValue("Экскаватор");
-    fireEvent.click(screen.getByRole("button", { name: "Продолжить" }));
-    expect(screen.getByText("Черновик · Экскаватор")).toBeInTheDocument();
+    render(<RegisterView login={vi.fn()} />);
+    expect(screen.getByLabelText(/название парка/i)).toBeInTheDocument();
     expect(recordPublicFunnelEvent).toHaveBeenLastCalledWith("registration_viewed", key,
       expect.objectContaining({ utm_source: "vk" }), false);
   });

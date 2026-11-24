@@ -453,10 +453,7 @@ const AppContent: React.FC = () => {
       case "fleet":
         return (
           <Suspense fallback={loadingFallback}>
-            <Fleet
-              draftTenantId={user?.role === "admin" && !isDemoMode ? user.tenant_id : undefined}
-              onAddSite={() => handleSetActiveTab("objects")}
-            />
+            <Fleet />
           </Suspense>
         );
       case "objects":

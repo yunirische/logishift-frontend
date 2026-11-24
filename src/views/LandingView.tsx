@@ -1,25 +1,22 @@
 import React, { useEffect } from "react";
 import {
-  ArrowDown,
   ArrowRight,
   Camera,
   CheckCircle2,
-  ClipboardList,
   MapPinned,
   Minus,
   Phone,
-  Smartphone,
   Truck,
 } from "lucide-react";
 import { getDemoEntryUrl, getProductionAppUrl } from "../config/demo";
 import { getAttributionNavigationUrl } from "../lib/attribution";
 import { getAttributionSessionNavigationUrl } from "../lib/demoRegistrationHandoff";
-import { FIRST_TRUCK_ENTRY } from "../lib/firstTruckDraft";
 import { recordCurrentPublicFunnelEvent } from "../lib/demoFunnelEvents";
 import { assignLocation } from "../services/navigation";
 import { PUBLIC_TARIFFS } from "../config/tariffs";
 import BrandLogo from "../components/BrandLogo";
 import LegalLinks from "../components/LegalLinks";
+import LandingShiftFlow from "../components/LandingShiftFlow";
 import PageMetadata from "../components/PageMetadata";
 import {
   SUPPORT_EMAIL,
@@ -231,18 +228,21 @@ const LandingView: React.FC = () => {
           <section className="grid gap-5 sm:gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-center">
             <div className="max-w-3xl">
               <h1 className="max-w-4xl text-[28px] font-bold leading-tight tracking-tight text-[#041627] min-[360px]:text-[32px] sm:text-5xl lg:text-6xl">
-                Смены транспорта и спецтехники — без Excel и чатов
+                Контроль смен и работы спецтехники
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-6 text-slate-600 sm:mt-5 sm:text-lg sm:leading-8">
-                Вместо блокнота, таблиц и переписок — техника, смены и отчёты в одном месте.
+                Водитель отмечает начало и окончание работы с телефона, прикладывает необходимые фото. Вы видите отработанное время, документы и историю работы всей техники.
+              </p>
+              <p className="mt-2 max-w-xl text-sm leading-5 text-slate-600 sm:text-base sm:leading-6">
+                Для постоянных объектов и выездов по разным адресам.
               </p>
               <div className="mt-4 flex flex-col gap-2 sm:mt-7 sm:flex-row sm:gap-3">
                 <button
                   type="button"
-                  onClick={() => assignLocation(getAttributionSessionNavigationUrl(getProductionAppUrl(FIRST_TRUCK_ENTRY)))}
+                  onClick={openRegister}
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#006497] px-6 py-3 text-base font-semibold text-white shadow-lg shadow-[#006497]/20 transition-all hover:bg-[#004f79] sm:py-4"
                 >
-                  Попробовать
+                  Начать бесплатно
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
@@ -253,97 +253,13 @@ const LandingView: React.FC = () => {
                   Посмотреть демо
                 </button>
               </div>
-              <p className="mt-2 text-sm leading-5 text-slate-600">До двух машин бесплатно. Без ограничения по времени</p>
-            </div>
-
-            <figure className="lg:hidden" aria-label="Пример: от начала смены до кабинета руководителя">
-              <div className="rounded-[22px] border border-[#c4c6cd] bg-[#041627] p-4 text-white">
-                <p className="flex items-center justify-between gap-2">
-                  <span className="text-base font-bold">Одна смена — две стороны</span>
-                  <span className="text-xs text-slate-300">Пример</span>
-                </p>
-                <ol className="mt-3 space-y-2" aria-label="Как работает учёт смен">
-                  <li className="flex gap-2">
-                    <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-[#77c2ff]" aria-hidden="true" />
-                    <div>
-                      <p className="text-sm font-semibold">Водитель начал смену</p>
-                      <p className="text-sm text-slate-300">С телефона · 09:00</p>
-                    </div>
-                  </li>
-                  <li>
-                    <div className="mb-2 flex items-center gap-2 text-xs text-[#77c2ff]">
-                      <ArrowDown className="h-4 w-4" aria-hidden="true" />
-                      Кабинет руководителя
-                    </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="flex items-center gap-2 text-sm font-semibold">
-                          <ClipboardList className="h-4 w-4 text-[#77c2ff]" aria-hidden="true" />
-                          Активная смена
-                        </p>
-                        <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-xs font-semibold text-emerald-300">В смене</span>
-                      </div>
-                      <p className="mt-2 text-sm font-semibold">Алексей Смирнов</p>
-                      <p className="mt-1 text-sm text-slate-300">КамАЗ 65115 · ЖК Северный</p>
-                    </div>
-                  </li>
-                </ol>
-              </div>
-              <p className="mt-2 text-sm leading-5 text-slate-600">Работает в браузере. Установка не нужна.</p>
-            </figure>
-
-            <div className="relative hidden lg:block">
-              <div className="rounded-[28px] border border-[#c4c6cd] bg-[#041627] p-4 text-white shadow-[0_30px_80px_rgba(4,22,39,0.18)] sm:p-5">
-                <div className="rounded-[22px] border border-white/10 bg-[#0f2235] p-5">
-                  <div className="mb-5 flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-300">Сегодня</div>
-                      <div className="mt-1 text-2xl font-bold">Смены под контролем</div>
-                    </div>
-                    <div className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-300">
-                      online
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-white">Экскаватор Volvo EC200</div>
-                          <div className="mt-1 text-xs text-slate-300">Иванов А. • ЖК Северный</div>
-                        </div>
-                        <div className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-300">
-                          В смене
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Техника</div>
-                        <div className="mt-2 text-3xl font-bold">12</div>
-                        <div className="mt-1 text-sm text-slate-300">машин в работе</div>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Фото</div>
-                        <div className="mt-2 text-3xl font-bold">36</div>
-                        <div className="mt-1 text-sm text-slate-300">подтверждений за день</div>
-                      </div>
-                    </div>
-                    <div className="rounded-2xl border border-[#77c2ff]/40 bg-[#1a2b3c] p-4">
-                      <div className="text-sm font-semibold text-white">Что видно в смене</div>
-                      <ul className="mt-3 space-y-2 text-sm text-slate-200">
-                        {["водитель", "техника", "объект", "время и фото"].map((item) => (
-                          <li key={item} className="flex gap-2">
-                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#77c2ff]" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+              <div className="mt-2 space-y-1 text-sm leading-5 text-slate-600">
+                <p>До двух машин бесплатно. Без ограничения по времени</p>
+                <p>Работает в браузере. Установка не нужна.</p>
               </div>
             </div>
+
+            <LandingShiftFlow />
           </section>
         </div>
       </div>

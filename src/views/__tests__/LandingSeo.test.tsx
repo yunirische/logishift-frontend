@@ -283,8 +283,8 @@ describe("Landing product copy", () => {
       expect(screen.getByText(feature)).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("button", { name: "Попробовать" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Начать бесплатно" })).toHaveLength(3);
+    expect(screen.getByText("До двух машин бесплатно. Без ограничения по времени")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Открыть демо" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Бесплатный тариф включает до 2 машин, 2 водителей и 2 объектов. Для растущего парка доступны тарифы с большими лимитами.")).toBeInTheDocument();
 
@@ -305,10 +305,10 @@ describe("Landing product copy", () => {
     expect(within(tariffSection).getByText("без ограничения по времени")).toBeInTheDocument();
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Смены транспорта и спецтехники — без Excel и чатов"
+      "Контроль смен и работы спецтехники"
     );
     expect(container.textContent).toContain(
-      "Вместо блокнота, таблиц и переписок — техника, смены и отчёты в одном месте."
+      "Водитель отмечает начало и окончание работы с телефона, прикладывает необходимые фото. Вы видите отработанное время, документы и историю работы всей техники."
     );
     const painHeading = screen.getByRole("heading", {
       level: 2,
@@ -338,11 +338,11 @@ describe("Landing product copy", () => {
     const heroDemoCta = within(heroSection!).getByRole("button", {
       name: "Посмотреть демо",
     });
-    const heroTryCta = within(heroSection!).getByRole("button", {
-      name: "Попробовать",
+    const heroRegisterCta = within(heroSection!).getByRole("button", {
+      name: "Начать бесплатно",
     });
     expect(
-      heroTryCta.compareDocumentPosition(heroDemoCta) &
+      heroRegisterCta.compareDocumentPosition(heroDemoCta) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 
@@ -353,6 +353,27 @@ describe("Landing product copy", () => {
       "Да. Откройте демо, чтобы посмотреть основные сценарии работы, или зарегистрируйте компанию бесплатно."
     );
     expect(container.textContent).not.toMatch(/пилот|ищем первые компании|стать пилотом/i);
+  });
+
+  it("shows one shift flow with the example and paid exports on the first screen", () => {
+    render(<LandingView />);
+    const hero = screen.getByRole("heading", { level: 1 }).closest("section")!;
+    const flow = within(hero).getByRole("figure");
+    expect(within(flow).getByText("Как проходит смена")).toBeInTheDocument();
+    expect(within(flow).getByText("Вы задаёте требования к объекту")).toBeInTheDocument();
+    expect(within(flow).getByText("Водитель · с телефона")).toBeInTheDocument();
+    expect(within(flow).getByText("Вы получаете готовый результат")).toBeInTheDocument();
+    expect(within(flow).getByText("КамАЗ 65115")).toBeInTheDocument();
+    expect(within(flow).getByText("Алексей Смирнов · ЖК Северный")).toBeInTheDocument();
+    expect(within(flow).getByText("08:00–16:00")).toBeInTheDocument();
+    expect(within(flow).getByText("8 ч")).toBeInTheDocument();
+    expect(within(flow).getByText("Одометр до")).toBeInTheDocument();
+    expect(within(flow).getByText("Одометр после")).toBeInTheDocument();
+    expect(within(flow).getByText("Все фото сохранены в смене")).toBeInTheDocument();
+    expect(within(flow).getByText("Техника · Водитель · Объект · Период")).toBeInTheDocument();
+    expect(within(flow).getByText("Excel и архив фотографий")).toBeInTheDocument();
+    expect(within(flow).getByText("С платного тарифа «Старт»")).toBeInTheDocument();
+    expect(within(hero).getByText("Работает в браузере. Установка не нужна.")).toBeInTheDocument();
   });
 
   it("does not promise unsupported public capabilities", () => {
@@ -366,6 +387,7 @@ describe("Landing product copy", () => {
       "путевые листы",
       "интеграции",
       "автоматическое диспетчерское управление",
+      "фотоотчёт о выполненных работах",
     ].forEach((unsupportedClaim) => {
       expect(publicCopy).not.toContain(unsupportedClaim);
     });

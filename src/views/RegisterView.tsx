@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserPlus, Loader2, CheckCircle2, Check, Building, User, Eye, EyeOff, Truck } from 'lucide-react';
+import { UserPlus, Loader2, CheckCircle2, Check, Building, User, Eye, EyeOff } from 'lucide-react';
 import { acceptInvite } from '../services/api';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
@@ -12,7 +12,7 @@ import { prepareAttributionSession } from '../lib/demoRegistrationHandoff';
 import { recordCurrentPublicFunnelEvent } from '../lib/demoFunnelEvents';
 import { PUBLIC_TARIFFS } from '../config/tariffs';
 import { isDemoHostname, isDemoTenantId } from '../config/demo';
-import { readFirstTruckDraft, writeFirstTruckDraft } from '../lib/firstTruckDraft';
+import { replaceLocation } from '../services/navigation';
 import { User as AccountUser, UserRole } from '../types';
 type ConsentKey = keyof typeof REQUIRED_CONSENT_VERSIONS;
 
@@ -51,20 +51,11 @@ const RegisterView: React.FC<{ login?: (token: string, user: AccountUser) => Pro
   const [mode, setMode] = useState<RegisterMode>(() =>
     registerContext.initialMode
   );
-  const [isFirstTruck] = useState(() =>
-    Boolean(login) && !isDemoHostname(window.location.hostname) &&
-    !registerContext.isDemoSource && registerContext.initialMode === 'admin' &&
-    new URLSearchParams(window.location.search).get('try') === 'fleet'
-  );
-  const [draft, setDraft] = useState(() => {
-    const saved = isFirstTruck ? readFirstTruckDraft() : null;
-    return saved && !saved.tenantId ? saved : { name: '', registrationOpen: false };
-  });
   useEffect(() => {
-    if (mode === 'admin' && (!isFirstTruck || draft.registrationOpen)) {
+    if (mode === 'admin') {
       void recordCurrentPublicFunnelEvent('registration_viewed').catch(() => undefined);
     }
-  }, [mode, isFirstTruck, draft.registrationOpen]);
+  }, [mode]);
   const [formData, setFormData] = useState<RegisterFormData>(() => ({
     code: registerContext.inviteCode,
     full_name: '',
@@ -100,14 +91,13 @@ const RegisterView: React.FC<{ login?: (token: string, user: AccountUser) => Pro
     }
   }, [fieldErrors]);
 
-  const navigateToLogin = (email?: string, tab?: string) => {
+  const navigateToLogin = (email?: string) => {
     const url = new URL(window.location.href);
     url.pathname = '/login';
     url.search = '';
     if (email) {
       url.searchParams.set('email', email);
     }
-    if (tab) url.searchParams.set('tab', tab);
     window.location.href = url.toString();
   };
 
@@ -188,21 +178,20 @@ const RegisterView: React.FC<{ login?: (token: string, user: AccountUser) => Pro
           ...(demoSessionKey ? { demoSessionKey } : {}),
           ...(measurementSession?.isInternal ? { isInternal: true } : {}),
         });
-        if (isFirstTruck && login) {
+        if (login && !registerContext.isDemoSource && !isDemoHostname(window.location.hostname)) {
           const { token, user, tenant } = result ?? {};
           if (typeof token !== 'string' || token.split('.').length !== 3 ||
               user?.role !== UserRole.ADMIN || !Number.isInteger(user.tenant_id) ||
               user.tenant_id < 1 || user.tenant_id !== tenant?.id || isDemoTenantId(user.tenant_id)) {
             throw new Error('Не удалось подтвердить регистрацию. Проверьте данные и попробуйте ещё раз.');
           }
-          writeFirstTruckDraft({ name: draft.name.trim(), tenantId: user.tenant_id });
           try {
             await login(token, user);
           } catch {
-            navigateToLogin(formData.email, 'fleet');
+            navigateToLogin(formData.email);
             return;
           }
-          window.location.replace('/?tab=fleet');
+          replaceLocation('/');
           return;
         }
       } else {
@@ -244,44 +233,6 @@ const RegisterView: React.FC<{ login?: (token: string, user: AccountUser) => Pro
     setAcceptedConsents((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const updateDraft = (name: string, registrationOpen = false) => {
-    const next = { name, registrationOpen };
-    setDraft(next);
-    writeFirstTruckDraft(next);
-  };
-
-  if (isFirstTruck && !draft.registrationOpen) {
-    return (
-      <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-3 sm:p-6">
-        <form className="max-w-md w-full bg-white rounded-lg shadow-2xl p-4 sm:p-8 space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (draft.name.trim()) updateDraft(draft.name.trim(), true);
-          }}>
-          <BrandLogo className="flex justify-center" imageClassName="h-auto w-32 sm:w-40" />
-          <h1 className="text-xl font-bold text-[#1B254B]">Добавьте первую машину</h1>
-          <label htmlFor="first-truck-name" className="block text-sm font-semibold text-slate-700">Как называется ваша техника?</label>
-          <input id="first-truck-name" value={draft.name} onChange={(event) => updateDraft(event.target.value)}
-            placeholder="Например, Экскаватор JCB" required
-            className="w-full p-3 rounded-lg border border-slate-200 focus:border-[#0a192f] focus:ring-2 focus:ring-[#0a192f]/20 outline-none" />
-          {draft.name.trim() && (
-            <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-3">
-              <Truck className="shrink-0 text-slate-500" size={20} aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="break-words font-semibold text-[#1B254B]">{draft.name.trim()}</p>
-                <p className="text-sm text-slate-500">Черновик. Машина пока не сохранена.</p>
-              </div>
-            </div>
-          )}
-          <button type="submit" disabled={!draft.name.trim()}
-            className="min-h-12 w-full rounded-lg bg-[#0a192f] text-white font-bold disabled:opacity-50">
-            Продолжить
-          </button>
-        </form>
-      </div>
-    );
-  }
-
   if (success) {
     return (
       <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-4 sm:p-6">
@@ -310,12 +261,8 @@ const RegisterView: React.FC<{ login?: (token: string, user: AccountUser) => Pro
         <div className="text-center mb-4">
           <BrandLogo className="flex justify-center" imageClassName="h-auto w-32 sm:w-40" />
           <h1 className="mt-3 text-xl font-bold leading-tight text-[#1B254B]">
-            {isFirstTruck ? 'Создайте кабинет, чтобы сохранить технику' :
-              mode === 'admin' ? 'Создайте кабинет бесплатно' : 'Вступите в компанию'}
+            {mode === 'admin' ? 'Создайте кабинет бесплатно' : 'Вступите в компанию'}
           </h1>
-          {isFirstTruck && (
-            <p className="mt-2 text-sm text-slate-600 break-words">Черновик · {draft.name}</p>
-          )}
           {mode === 'admin' ? (
             <div className="mt-3 text-sm leading-5 text-slate-600" data-testid="free-registration-context">
               <p><strong className="text-[#1B254B]">{freeTariff.priceLabel}</strong> · {freeTariff.meta}</p>
@@ -333,7 +280,7 @@ const RegisterView: React.FC<{ login?: (token: string, user: AccountUser) => Pro
         </div>
 
         {/* Mode Toggle */}
-        <div hidden={isFirstTruck} className={isFirstTruck ? 'hidden' : 'mb-4 bg-[#F4F7FE] rounded-lg p-1 flex'}>
+        <div className="mb-4 bg-[#F4F7FE] rounded-lg p-1 flex">
           <button
             type="button"
             onClick={() => {

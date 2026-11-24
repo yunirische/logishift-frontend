@@ -1,9 +1,12 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import api, { acceptInvite } from "../../services/api";
 import RegisterView, { getRegistrationPasswordChecks } from "../RegisterView";
 import { PUBLIC_TARIFFS } from "../../config/tariffs";
 import { REQUIRED_CONSENT_VERSIONS } from "../../config/legal";
+import { replaceLocation } from "../../services/navigation";
+
+vi.mock("../../services/navigation", () => ({ replaceLocation: vi.fn() }));
 
 vi.mock("../../components/BrandLogo", () => ({
   default: () => <div>Brand</div>,
@@ -70,6 +73,39 @@ describe("RegisterView", () => {
     await user.type(screen.getByLabelText(/подтвердите пароль/i), "StrongPass1!");
     await acceptRequiredConsents(user);
   };
+
+  const submitValidRegistration = () => {
+    fireEvent.change(screen.getByLabelText(/название парка/i), { target: { value: "Мой парк" } });
+    fireEvent.change(screen.getByLabelText(/полное имя/i), { target: { value: "Admin User" } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "admin@example.org" } });
+    for (const label of [/^пароль/i, /подтвердите пароль/i]) {
+      fireEvent.change(screen.getByLabelText(label), { target: { value: "StrongPass1!" } });
+    }
+    screen.getAllByRole("checkbox").forEach(checkbox => fireEvent.click(checkbox));
+    fireEvent.click(screen.getByRole("button", { name: /создать кабинет/i }));
+  };
+
+  it("signs in after direct company registration and opens the dashboard", async () => {
+    const login = vi.fn().mockResolvedValue(undefined);
+    const account = { id: 8, tenant_id: 42, role: "admin", full_name: "Admin User" };
+    vi.mocked(api.post).mockResolvedValueOnce({ token: "fixture.local.only", user: account, tenant: { id: 42 } });
+    window.history.replaceState({}, "", "/register");
+    render(<RegisterView login={login} />);
+    submitValidRegistration();
+    await waitFor(() => expect(replaceLocation).toHaveBeenCalledWith("/"));
+    expect(login).toHaveBeenCalledWith("fixture.local.only", account);
+  });
+
+  it("does not sign in for a registration response without a session", async () => {
+    const login = vi.fn();
+    vi.mocked(api.post).mockResolvedValueOnce({ ok: true });
+    window.history.replaceState({}, "", "/register?try=fleet");
+    render(<RegisterView login={login} />);
+    submitValidRegistration();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось подтвердить регистрацию");
+    expect(login).not.toHaveBeenCalled();
+    expect(replaceLocation).not.toHaveBeenCalled();
+  });
 
   it("opens admin mode by default on /register", () => {
     window.history.replaceState({}, "", "/register");
