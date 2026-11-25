@@ -46,7 +46,6 @@ beforeEach(() => {
   localStorage.clear();
   window.history.replaceState({}, "", "/");
   vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
-  vi.spyOn(window, "confirm").mockReturnValue(true);
   mockGet.mockImplementation(async (url: string) => {
     if (url === "/users") return [{ id: 7, role: "driver", full_name: "Демо Водитель" }];
     if (url === "/trucks") return trucks;
@@ -58,7 +57,7 @@ beforeEach(() => {
   URL.revokeObjectURL = vi.fn();
 });
 
-afterEach(() => { vi.mocked(window.confirm).mockRestore(); vi.mocked(window.scrollTo).mockRestore(); });
+afterEach(() => { vi.mocked(window.scrollTo).mockRestore(); });
 
 it("opens a visible editable preset without navigation, auto-start or a synthetic request event", async () => {
   renderEntry();
@@ -132,6 +131,7 @@ it("resumes existing state and finishes through all proof steps without server w
   await screen.findByTestId("demo-owner-result");
   fireEvent.click(screen.getByRole("button", { name: "Продолжить сценарий водителя" }));
   fireEvent.click(await screen.findByTestId("end-shift-button"));
+  fireEvent.click(screen.getByRole("button", { name: "Завершить" }));
   await screen.findByText("Сфотографируйте одометр ПОСЛЕ работы");
   fireEvent.click(screen.getByRole("button", { name: "Использовать образец" }));
   await screen.findByText("Сфотографируйте накладную (ТТН)");

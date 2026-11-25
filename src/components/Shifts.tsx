@@ -1,3 +1,4 @@
+import { useActionDialog } from "./ActionDialog";
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Filter, X, ChevronDown, Download, Lock } from "lucide-react";
 import { DemoPhotoPreviewDialog } from "./DemoPhotoPreviewDialog";
@@ -275,6 +276,8 @@ const Shifts: React.FC<ShiftsProps> = ({
     }
   }, [exportNotice, excelAccess, zipAccess]);
 
+  const { ask, dialog } = useActionDialog();
+
   const downloadReport = async (
     endpoint: string,
     fallbackFilename: string,
@@ -309,7 +312,7 @@ const Shifts: React.FC<ShiftsProps> = ({
           await refreshBilling();
           return;
         }
-        alert((err as any).error || `Ошибка экспорта (${response.status})`);
+        void ask((err as any).error || `Ошибка экспорта (${response.status})`);
         return;
       }
 
@@ -326,7 +329,7 @@ const Shifts: React.FC<ShiftsProps> = ({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
     } catch (error: any) {
-      alert(error.message || "Не удалось скачать файл");
+      void ask(error.message || "Не удалось скачать файл");
     } finally {
       setBusy(false);
     }
@@ -731,6 +734,7 @@ const Shifts: React.FC<ShiftsProps> = ({
 
   return (
     <div className="space-y-4">
+      {dialog}
       {previewError && (
         <div className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <span>{previewError}</span>

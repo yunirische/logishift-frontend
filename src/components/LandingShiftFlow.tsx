@@ -44,7 +44,7 @@ export default function LandingShiftFlow() {
             Вы задаёте требования к объекту
           </p>
           <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs sm:gap-x-10 sm:text-sm">
-            {["Накладная", "Одометр"].map(label => (
+            {["Накладная", "Одометр", "Фотоотчёт"].map(label => (
               <li key={label} className="flex items-center gap-2">
                 <CheckSquare className="h-4 w-4 text-[#65e3b3] sm:h-[18px] sm:w-[18px]" aria-hidden="true" />
                 {label}
@@ -84,9 +84,33 @@ export default function LandingShiftFlow() {
               <ShiftThumbnail label="Одометр до" reading="12540" />
               <ShiftThumbnail label="Одометр после" reading="12630" />
             </ul>
+            <ul aria-label="Рабочие фотографии с подписями" className="mt-2 grid grid-cols-3 gap-2">
+              {["Ход работы", "Результат", "Препятствие"].map((label, index) => (
+                <li key={label} className="min-w-0 text-center">
+                  <svg viewBox="0 0 86 49" className="mx-auto h-auto w-full max-w-[86px] rounded-md" aria-hidden="true">
+                    <path fill="#385770" d="M0 0h86v49H0z" />
+                    <path fill="#29424c" d="M0 29h86v20H0z" />
+                    {index === 0 ? (
+                      <g fill="#f4bd55">
+                        <path d="M20 34h22v5H20zM25 25h14l3 9H23zM34 26l14-13 13 9-2 3-11-7-11 11z" />
+                        <path d="M58 23h9v6h-9z" />
+                      </g>
+                    ) : index === 1 ? (
+                      <path fill="#8badaf" d="M38 29h10l20 20H18zM8 24h15v5H8zM60 20h17v9H60z" />
+                    ) : (
+                      <g fill="#f4bd55">
+                        <path d="M21 27h44v6H21zM25 33h4v9h-4zM57 33h4v9h-4z" />
+                        <path fill="#29424c" d="M30 27h5l-4 6h-5zM45 27h5l-4 6h-5zM60 27h5l-4 6h-5z" />
+                      </g>
+                    )}
+                  </svg>
+                  <span className="mt-1 block text-[10px] leading-tight text-[#c3d6e7] sm:text-xs">{label}</span>
+                </li>
+              ))}
+            </ul>
             <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium leading-tight text-[#65e3b3] sm:text-[13px]">
               <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-              Все фото сохранены в смене
+              Снимки и подписи сохранены в истории смены
             </p>
           </div>
         </li>

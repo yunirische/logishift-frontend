@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { listWorkPhotos, uploadWorkPhoto } from "../../services/workPhotos";
+import { listWorkPhotos, updateWorkPhotoCaption, uploadWorkPhoto } from "../../services/workPhotos";
 import { prepareWorkPhotoFile } from "../../utils/workPhotoFile";
 import { WorkPhotos } from "../WorkPhotos";
 
 vi.mock("../../services/workPhotos", () => ({
   listWorkPhotos: vi.fn(),
   uploadWorkPhoto: vi.fn(),
+  updateWorkPhotoCaption: vi.fn(),
 }));
 
 vi.mock("../../utils/workPhotoFile", () => ({
@@ -14,7 +15,7 @@ vi.mock("../../utils/workPhotoFile", () => ({
 }));
 
 describe("WorkPhotos", () => {
-  it("previews the prepared image and retries with the original ID and caption", async () => {
+  it("previews the prepared image and retries automatically with the original ID", async () => {
     const image = new File(["image"], "prepared.jpg", { type: "image/jpeg" });
     const selected = new File(["original"], "original.jpg", { type: "image/jpeg" });
     vi.mocked(listWorkPhotos).mockResolvedValue([]);
@@ -33,15 +34,12 @@ describe("WorkPhotos", () => {
       fireEvent.change(input, { target: { files: [selected] } });
       expect(await screen.findByAltText("Предпросмотр выбранного фото")).toHaveAttribute("src", "blob:preview");
       expect(URL.createObjectURL).toHaveBeenCalledWith(image);
-      const caption = screen.getByRole("textbox", { name: "Подпись к фото (необязательно)" });
-      fireEvent.change(caption, { target: { value: "Исходная подпись" } });
-      fireEvent.click(screen.getByRole("button", { name: "Загрузить фото" }));
       expect(await screen.findByRole("button", { name: "Повторить загрузку" })).toBeEnabled();
-      expect(caption).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "Загрузить фото" })).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Повторить загрузку" }));
       await waitFor(() => expect(uploadWorkPhoto).toHaveBeenCalledTimes(2));
       for (const call of vi.mocked(uploadWorkPhoto).mock.calls) {
-        expect(call).toEqual([7, image, "same-upload-id", "Исходная подпись"]);
+        expect(call).toEqual([7, image, "same-upload-id", ""]);
       }
       expect(pending).toHaveBeenCalledWith(true);
       expect(pending).toHaveBeenLastCalledWith(false);
@@ -63,5 +61,18 @@ describe("WorkPhotos", () => {
     expect(await screen.findByRole("button", { name: "Повторить удаление" })).toBeVisible();
     expect(screen.queryByText("Фотоотчёт выполнен")).not.toBeInTheDocument();
     expect(onCountChange).toHaveBeenCalledWith(0);
+  });
+
+  it("lets the worker add a caption to a saved photo", async () => {
+    const photo = { id: 4, byte_size: 100, caption: null, created_at: "2026-01-01T00:00:00Z" };
+    vi.mocked(listWorkPhotos).mockResolvedValue([photo]);
+    vi.mocked(updateWorkPhotoCaption).mockResolvedValue({ ...photo, caption: "Работа завершена" });
+    render(<WorkPhotos shiftId={7} timezone="Europe/Moscow" mode="driver" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Подпись" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Подпись к фото" }), { target: { value: "Работа завершена" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить подпись" }));
+    await screen.findByText("Подпись сохранена.");
+    expect(screen.getByText("Работа завершена")).toBeVisible();
+    expect(updateWorkPhotoCaption).toHaveBeenCalledWith(7, 4, "Работа завершена");
   });
 });

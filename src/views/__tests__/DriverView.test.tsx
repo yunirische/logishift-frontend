@@ -173,14 +173,16 @@ describe("DriverView comments", () => {
   });
 
   it("requires an explicit reason and submits it against the same shift", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     mockGetCurrentShift.mockResolvedValueOnce({ id: 113, status: "active", requires_work_photo: true })
       .mockResolvedValue(null);
     mockApiPost.mockRejectedValueOnce(Object.assign(new Error("Нужно фото"), { backendCode: "WORK_PHOTO_REQUIRED" }))
       .mockResolvedValueOnce({ newState: "idle" });
-    try {
-      render(<DriverView />);
-      fireEvent.click(await screen.findByTestId("end-shift-button"));
+    render(<DriverView />);
+    fireEvent.click(await screen.findByTestId("end-shift-button"));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Отмена" }));
+    expect(mockApiPost).not.toHaveBeenCalledWith("/shifts/end", expect.anything());
+    fireEvent.click(screen.getByTestId("end-shift-button"));
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Завершить" })); });
       const reason = await screen.findByRole("textbox", { name: "Почему нет обязательного фото?" });
       const submit = screen.getByRole("button", { name: "Завершить без фото" });
       expect(submit).toBeDisabled();
@@ -190,9 +192,6 @@ describe("DriverView comments", () => {
         shift_id: 113, work_photo_reason: "Камера сломана",
       }));
       await waitFor(() => expect(screen.queryByRole("textbox", { name: "Почему нет обязательного фото?" })).not.toBeInTheDocument());
-    } finally {
-      confirm.mockRestore();
-    }
   });
 
   it("submits a comment for the active shift and refreshes the current shift", async () => {
@@ -935,7 +934,6 @@ describe("DriverView comments", () => {
 
   it("uses the unified logout flow from the driver header", async () => {
     const logout = vi.fn();
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     mockUseAuth.mockReturnValue({
       user: {
@@ -954,15 +952,14 @@ describe("DriverView comments", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /выйти/i }));
 
-    expect(confirmSpy).toHaveBeenCalled();
-    expect(logout).toHaveBeenCalledWith({
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Выйти" }));
+    await waitFor(() => expect(logout).toHaveBeenCalledWith({
       redirectToLogin: true,
       markExplicitDemoLogout: true,
-    });
+    }));
   });
 
   it("starts and finishes a demo shift through the shared store and projects finished history", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     const activeShift = {
       id: "demo-shift:driver-test",
       driverId: 33,
@@ -1039,7 +1036,7 @@ describe("DriverView comments", () => {
     expect(mockApiPost).not.toHaveBeenCalledWith("/shifts/start", expect.anything());
 
     fireEvent.click(screen.getByTestId("end-shift-button"));
-    expect(confirmSpy).toHaveBeenCalled();
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Завершить" })); });
     expect(mockFinishDemoShift).toHaveBeenCalledTimes(1);
 
     mockUseDemoSession.mockReturnValue({
@@ -1629,7 +1626,6 @@ describe("DriverView comments", () => {
   });
 
   it("moves a required synthetic finish into the photo workflow without an end API call", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const activeShift = {
       id: "demo-shift:end-workflow",
       driverId: 33,
@@ -1679,6 +1675,7 @@ describe("DriverView comments", () => {
     vi.useFakeTimers();
     try {
       fireEvent.click(endButton);
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Завершить" })); });
       expect(mockFinishDemoShift).toHaveBeenCalledTimes(1);
       expect(mockApiPost).not.toHaveBeenCalledWith("/shifts/end", {});
       expect(screen.getByText(/Сфотографируйте одометр ПОСЛЕ работы/)).toBeInTheDocument();

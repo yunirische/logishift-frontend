@@ -1,3 +1,4 @@
+import { useActionDialog } from "./ActionDialog";
 import React, { useEffect, useState } from "react";
 import { API_ENDPOINTS } from "../constants";
 import api from "../services/api";
@@ -31,6 +32,7 @@ const getRoleLabel = (role: UserRole): string => {
 };
 
 const Drivers: React.FC = () => {
+  const { ask, dialog } = useActionDialog();
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +85,7 @@ const Drivers: React.FC = () => {
       setInviteLink(link);
       setInviteModalOpen(true);
     } catch (err: any) {
-      alert(err.message || "Ошибка создания приглашения");
+      void ask(err.message || "Ошибка создания приглашения");
     } finally {
       setInviteLoading(false);
     }
@@ -119,21 +121,21 @@ const Drivers: React.FC = () => {
       await fetchDrivers();
       setEditModalOpen(false);
     } catch (err: any) {
-      alert(err.message || "Ошибка сохранения");
+      void ask(err.message || "Ошибка сохранения");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (driver: Driver) => {
-    if (!confirm(`Удалить сотрудника ${driver.full_name}?`)) return;
+    if (!await ask(`Удалить сотрудника ${driver.full_name}?`, "Удалить")) return;
     try {
       await api.del(API_ENDPOINTS.UPDATE_USER(driver.id));
       await fetchDrivers();
     } catch (err: any) {
       // Show backend error message if available
       const errorMessage = err?.message || err?.response?.data?.detail || err?.response?.data?.message || "Ошибка удаления";
-      alert(errorMessage);
+      void ask(errorMessage);
     }
   };
 
@@ -146,6 +148,7 @@ const Drivers: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-semibold text-[#1B254B]">Персонал</h2>

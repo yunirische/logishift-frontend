@@ -1,3 +1,4 @@
+import { useActionDialog } from "./ActionDialog";
 import React, { useEffect, useState } from "react";
 import { UserRole } from "../types";
 import {
@@ -60,6 +61,7 @@ const Layout: React.FC<LayoutProps> = ({
   showDemoProductTour = false,
 }) => {
   const { user, logout } = useAuth();
+  const { ask, dialog } = useActionDialog();
   const { activeShift: demoActiveShift, finishedShifts: demoFinishedShifts } =
     useDemoSession();
   const isAdmin =
@@ -183,8 +185,8 @@ const Layout: React.FC<LayoutProps> = ({
     { id: "settings", label: "Система", icon: Settings, roles: [UserRole.ADMIN] },
   ];
 
-  const handleLogout = () => {
-    if (confirm("Завершить сессию и выйти из системы?")) {
+  const handleLogout = async () => {
+    if (await ask("Завершить сессию и выйти из системы?", "Выйти")) {
       logout({
         redirectToLogin: true,
         markExplicitDemoLogout: isDemoHost || isDemoMode,
@@ -253,6 +255,7 @@ const Layout: React.FC<LayoutProps> = ({
 
   return (
     <div className="flex min-h-screen bg-[#F4F7FE]">
+      {dialog}
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -318,12 +321,6 @@ const Layout: React.FC<LayoutProps> = ({
               <div className="space-y-1">{adminItems.map(renderButton)}</div>
             </div>
           )}
-
-          <AuthenticatedLegalMenu
-            isOpen={legalMenuOpen}
-            onToggle={() => setLegalMenuOpen((current) => !current)}
-            onLinkClick={() => setSidebarOpen(false)}
-          />
 
         </nav>
 
@@ -395,10 +392,20 @@ const Layout: React.FC<LayoutProps> = ({
                 ДЕМО-РЕЖИМ
               </span>
             )}
-            <div className="w-10 h-10 rounded-lg bg-[#0a192f]/10 text-[#0a192f] flex items-center justify-center font-semibold text-xs border border-[#0a192f]/20">
-              {isDemoDriverMode
-                ? "В"
-                : user?.full_name?.charAt(0) || "U"}
+            <div className="relative" onKeyDown={(event) => {
+              if (event.key === "Escape" && legalMenuOpen) {
+                setLegalMenuOpen(false);
+                event.currentTarget.querySelector("button")?.focus();
+              }
+            }} onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setLegalMenuOpen(false);
+            }}>
+              <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#0a192f]/20 bg-[#0a192f]/10 text-xs font-semibold text-[#0a192f]"
+                aria-label="Меню пользователя" aria-expanded={legalMenuOpen}
+                aria-controls="authenticated-legal-menu-panel" onClick={() => setLegalMenuOpen((current) => !current)}>
+                {isDemoDriverMode ? "В" : user?.full_name?.charAt(0) || "U"}
+              </button>
+              {legalMenuOpen && <AuthenticatedLegalMenu onLinkClick={() => setLegalMenuOpen(false)} />}
             </div>
           </div>
         </header>

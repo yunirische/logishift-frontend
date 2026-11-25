@@ -1,3 +1,4 @@
+import { useActionDialog } from "./ActionDialog";
 import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, X, Power, Loader2, Truck } from 'lucide-react';
 import api from '../services/api';
@@ -5,6 +6,7 @@ import { API_ENDPOINTS } from '../constants';
 import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
 
 const Fleet: React.FC = () => {
+  const { ask, dialog } = useActionDialog();
   const [trucks, setTrucks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,7 +29,7 @@ const Fleet: React.FC = () => {
       setTrucks(Array.isArray(res) ? res : []);
     } catch (error) {
       console.error('Ошибка загрузки техники:', error);
-      alert('Не удалось загрузить список техники');
+      void ask('Не удалось загрузить список техники');
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,7 @@ const Fleet: React.FC = () => {
 
   // Удаление техники
   const handleDeleteClick = async (id: number, name: string) => {
-    if (!confirm(`Вы уверены, что хотите удалить машину "${name}"?`)) return;
+    if (!await ask(`Вы уверены, что хотите удалить машину "${name}"?`, "Удалить")) return;
 
     try {
       await api.del(API_ENDPOINTS.DELETE_TRUCK(id));
@@ -65,7 +67,7 @@ const Fleet: React.FC = () => {
     } catch (error: any) {
       console.error('Ошибка удаления:', error);
       const msg = error?.response?.data?.message || error?.message || 'Ошибка при удалении';
-      alert(msg);
+      void ask(msg);
     }
   };
 
@@ -83,7 +85,7 @@ const Fleet: React.FC = () => {
       console.error('Ошибка обновления статуса:', error);
       // Откат при ошибке
       setTrucks(trucks.map(t => t.id === truck.id ? { ...t, is_busy: truck.is_busy } : t));
-      alert('Не удалось изменить статус');
+      void ask('Не удалось изменить статус');
     }
   };
 
@@ -92,7 +94,7 @@ const Fleet: React.FC = () => {
     e.preventDefault();
     if (isSaving) return;
     const name = formData.name.trim();
-    if (!name) return alert('Название обязательно');
+    if (!name) return void ask('Название обязательно');
 
     setIsSaving(true);
     try {
@@ -118,7 +120,7 @@ const Fleet: React.FC = () => {
       if (error?.response?.data?.error === "LIMIT_REACHED" || msg.includes("LIMIT_REACHED") || msg.includes("лимит")) {
         msg = "Лимит вашего тарифа исчерпан. Удалите старые записи или обновите план.";
       }
-      alert(msg);
+      void ask(msg);
     } finally {
       setIsSaving(false);
     }
@@ -128,6 +130,7 @@ const Fleet: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Кнопка добавления */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>

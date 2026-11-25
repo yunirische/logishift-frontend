@@ -1,3 +1,4 @@
+import { useActionDialog } from "./ActionDialog";
 import React, { useState, useEffect } from "react";
 import { Calendar, Download, Truck, Users, Building2, AlertCircle, RefreshCw } from "lucide-react";
 import { API_ENDPOINTS } from "../constants";
@@ -14,6 +15,7 @@ import { isDemoTenantId } from "../config/demo";
 type TimeRangePreset = 7 | 30 | 90;
 
 const Analytics: React.FC = () => {
+  const { ask, dialog } = useActionDialog();
   const { user } = useAuth();
   const isDemoMode = isDemoTenantId(user?.tenant_id);
   const [selectedDays, setSelectedDays] = useState<TimeRangePreset>(30);
@@ -197,7 +199,7 @@ const Analytics: React.FC = () => {
       document.body.removeChild(a);
     } catch (error) {
       console.error("Export failed:", error);
-      alert("Не удалось экспортировать данные. Попробуйте позже.");
+      void ask("Не удалось экспортировать данные. Попробуйте позже.");
     } finally {
       setIsLoading(false);
     }
@@ -259,6 +261,7 @@ const Analytics: React.FC = () => {
 
   return (
     <div className="analytics-dashboard">
+      {dialog}
       {/* Top Controls Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         {/* Time Range Selector */}

@@ -308,7 +308,7 @@ describe("Landing product copy", () => {
       "Контроль смен и работы спецтехники"
     );
     expect(container.textContent).toContain(
-      "Водитель отмечает начало и окончание работы с телефона, прикладывает необходимые фото. Вы видите отработанное время, документы и историю работы всей техники."
+      "Водитель отмечает начало и окончание смены с телефона, фотографирует ход работы, результат и препятствия. В истории смен остаются отработанное время, документы и снимки с подписями."
     );
     const painHeading = screen.getByRole("heading", {
       level: 2,
@@ -369,7 +369,7 @@ describe("Landing product copy", () => {
     expect(within(flow).getByText("8 ч")).toBeInTheDocument();
     expect(within(flow).getByText("Одометр до")).toBeInTheDocument();
     expect(within(flow).getByText("Одометр после")).toBeInTheDocument();
-    expect(within(flow).getByText("Все фото сохранены в смене")).toBeInTheDocument();
+    expect(within(flow).getByText("Снимки и подписи сохранены в истории смены")).toBeInTheDocument();
     expect(within(flow).getByText("Техника · Водитель · Объект · Период")).toBeInTheDocument();
     expect(within(flow).getByText("Excel и архив фотографий")).toBeInTheDocument();
     expect(within(flow).getByText("С платного тарифа «Старт»")).toBeInTheDocument();

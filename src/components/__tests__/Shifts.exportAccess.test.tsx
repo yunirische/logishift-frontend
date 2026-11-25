@@ -227,7 +227,7 @@ it("does not mislabel ordinary role denial as a plan paywall", async () => {
   vi.mocked(fetch).mockResolvedValue({ ok: false, status: 403, headers: new Headers({ "Content-Type": "application/json" }), json: async () => ({ error: "Доступ запрещён" }) } as Response);
   render(<Shifts />); await ready(); await waitFor(() => expect(excel()).toBeEnabled());
   fireEvent.click(excel());
-  await waitFor(() => expect(alert).toHaveBeenCalledWith("Доступ запрещён"));
+  expect(await screen.findByRole("dialog", { name: "Доступ запрещён" })).toBeVisible();
   expect(getBilling).toHaveBeenCalledTimes(1);
 });
 

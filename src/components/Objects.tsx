@@ -1,3 +1,4 @@
+import { useActionDialog } from "./ActionDialog";
 import React, { useState, useEffect } from 'react';
 import { MapPin, Camera, FileText, Image, Plus, Pencil, Trash2, X, Building } from 'lucide-react';
 import api from '../services/api';
@@ -5,6 +6,7 @@ import { API_ENDPOINTS } from '../constants';
 import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
 
 const Objects: React.FC = () => {
+  const { ask, dialog } = useActionDialog();
   const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,7 +32,7 @@ const Objects: React.FC = () => {
       setSites(Array.isArray(res) ? res : []);
     } catch (error) {
       console.error('Ошибка загрузки объектов:', error);
-      alert('Не удалось загрузить список объектов');
+      void ask('Не удалось загрузить список объектов');
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,7 @@ const Objects: React.FC = () => {
 
   // Удаление объекта
   const handleDeleteClick = async (id: number, name: string) => {
-    if (!confirm(`Вы уверены, что хотите удалить объект "${name}"?`)) return;
+    if (!await ask(`Вы уверены, что хотите удалить объект "${name}"?`, "Удалить")) return;
 
     try {
       await api.del(API_ENDPOINTS.DELETE_SITE(id));
@@ -69,14 +71,14 @@ const Objects: React.FC = () => {
     } catch (error: any) {
       console.error('Ошибка удаления:', error);
       const msg = error?.response?.data?.message || error?.message || 'Ошибка при удалении';
-      alert(msg);
+      void ask(msg);
     }
   };
 
   // Сохранение (Создание или Редактирование)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) return alert('Название объекта обязательно');
+    if (!formData.name.trim()) return void ask('Название объекта обязательно');
 
     setIsSaving(true);
     try {
@@ -102,7 +104,7 @@ const Objects: React.FC = () => {
       if (msg.includes("LIMIT_REACHED") || msg.includes("лимит") || error?.backendCode === "LIMIT_REACHED") {
         msg = "Лимит вашего тарифа исчерпан. Удалите старые записи или обновите план.";
       }
-      alert(msg);
+      void ask(msg);
     } finally {
       setIsSaving(false);
     }
@@ -112,6 +114,7 @@ const Objects: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {dialog}
       {/* Кнопка добавления */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

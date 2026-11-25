@@ -1,3 +1,4 @@
+import { useActionDialog } from "./ActionDialog";
 import { Camera, CheckCircle2, Image as ImageIcon, ImagePlus, Pencil, Trash2, X } from "lucide-react";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { fetchWorkPhotoBlob } from "../services/api";
@@ -12,7 +13,7 @@ const primaryButton = "min-h-10 bg-[#0a192f] text-sm font-semibold text-white ho
 const secondaryButton = "min-h-10 border border-slate-200 bg-white text-sm text-slate-700 hover:bg-slate-50";
 const captionClass = "w-full min-w-0 resize-y rounded-lg border border-slate-200 px-3 py-2 text-base focus:border-slate-500 focus:outline-none";
 
-type Draft = { file: File; uploadId: string; submittedCaption?: string };
+type Draft = { original: File; file?: File; uploadId: string };
 
 function WorkPhotoDraftPreview({ file }: { file: File }) {
   const [url, setUrl] = useState("");
@@ -137,13 +138,12 @@ function WorkPhotoImage({ shiftId, photo, timezone, busy, onDelete, onEdit, chil
 
 export function WorkPhotos({ shiftId, timezone, mode, required, onChange, onCountChange, onUploadPendingChange, refreshKey }: Props) {
   const headingId = useId();
-  const captionId = useId();
+  const { ask, dialog } = useActionDialog();
   const [photos, setPhotos] = useState<WorkPhoto[] | null>(null);
   const [listError, setListError] = useState(false);
   const [listRetry, setListRetry] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [caption, setCaption] = useState("");
   const [edit, setEdit] = useState<{ photoId: number; caption: string } | null>(null);
   const [pending, setPending] = useState(false);
   const [uploadStep, setUploadStep] = useState("");
@@ -170,11 +170,8 @@ export function WorkPhotos({ shiftId, timezone, mode, required, onChange, onCoun
     if (photos) onCountChange?.(photos.filter((photo) => !photo.deletion_requested_at).length);
   }, [photos, onCountChange]);
 
-  const uploadPending = Boolean(uploadStep);
-  useEffect(() => {
-    onUploadPendingChange?.(uploadPending);
-    return () => onUploadPendingChange?.(false);
-  }, [uploadPending, onUploadPendingChange]);
+  const uploadInFlight = useRef(false);
+  useEffect(() => () => onUploadPendingChange?.(false), [onUploadPendingChange]);
 
   useEffect(() => {
     if (formOpen) cameraButtonRef.current?.focus();
@@ -187,53 +184,46 @@ export function WorkPhotos({ shiftId, timezone, mode, required, onChange, onCoun
   const closeComposer = () => {
     setFormOpen(false);
     setDraft(null);
-    setCaption("");
     setUploadError("");
     window.requestAnimationFrame(() => addButtonRef.current?.focus());
   };
 
-  const chooseFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file || pending) return;
-    setDraft(null);
-    setUploadError("");
+  const save = async (selected: Draft) => {
+    if (uploadInFlight.current || pending || atLimit) return;
+    uploadInFlight.current = true;
+    onUploadPendingChange?.(true);
     setPending(true);
-    setUploadStep("Подготавливаем фото…");
+    setDraft(selected);
+    setUploadError("");
+    setActionNotice("");
+    setUploadStep(selected.file ? "Загружаем фото…" : "Подготавливаем фото…");
     try {
-      setDraft({ file: await prepareWorkPhotoFile(file), uploadId: newWorkPhotoUploadId() });
+      const file = selected.file ?? await prepareWorkPhotoFile(selected.original);
+      setDraft({ ...selected, file });
+      setUploadStep("Загружаем фото…");
+      const photo = await uploadWorkPhoto(shiftId, file, selected.uploadId, "");
+      setPhotos((items) => [...(items ?? []).filter(({ id }) => id !== photo.id), photo].sort((a, b) => a.id - b.id));
+      closeComposer();
+      setActionNotice("Фото сохранено.");
+      onChange?.();
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Не удалось подготовить фото");
+      setUploadError(error instanceof Error ? error.message : "Не удалось сохранить фото");
     } finally {
+      uploadInFlight.current = false;
+      onUploadPendingChange?.(false);
       setPending(false);
       setUploadStep("");
     }
   };
 
-  const save = async () => {
-    if (!draft || pending || atLimit) return;
-    setPending(true);
-    setUploadError("");
-    setActionNotice("");
-    setUploadStep("Загружаем фото…");
-    const submittedCaption = draft.submittedCaption ?? caption.trim();
-    setDraft({ ...draft, submittedCaption });
-    try {
-      const photo = await uploadWorkPhoto(shiftId, draft.file, draft.uploadId, submittedCaption);
-      setPhotos((items) => [...(items ?? []).filter(({ id }) => id !== photo.id), photo].sort((a, b) => a.id - b.id));
-      closeComposer();
-      if (mode === "admin") setActionNotice("Фото сохранено.");
-      onChange?.();
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Не удалось загрузить фото");
-    } finally {
-      setPending(false);
-      setUploadStep("");
-    }
+  const chooseFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) void save({ original: file, uploadId: newWorkPhotoUploadId() });
   };
 
   const remove = async (photoId: number) => {
-    if (pending || !window.confirm("Удалить это фото работы?")) return;
+    if (pending || !(await ask("Удалить это фото работы?", "Удалить"))) return;
     setPending(true);
     setActionError(null);
     setActionNotice("");
@@ -272,6 +262,7 @@ export function WorkPhotos({ shiftId, timezone, mode, required, onChange, onCoun
   return (
     <section aria-labelledby={headingId} data-testid="work-photos">
       <Card className="min-w-0 space-y-3 p-4">
+      {dialog}
         <div className="flex items-center justify-between gap-2">
           <h3 id={headingId} className="flex min-w-0 items-center gap-2 text-sm font-bold text-[#0a192f]">
             <Camera size={17} className="shrink-0" aria-hidden="true" /> Фото работ
@@ -311,7 +302,7 @@ export function WorkPhotos({ shiftId, timezone, mode, required, onChange, onCoun
                 timezone={timezone}
                 busy={pending}
                 onDelete={canWrite ? () => void remove(photo.id) : undefined}
-                onEdit={mode === "admin" ? () => {
+                onEdit={canWrite ? () => {
                   setActionError(null);
                   setEdit({ photoId: photo.id, caption: photo.caption ?? "" });
                 } : undefined}
@@ -351,26 +342,12 @@ export function WorkPhotos({ shiftId, timezone, mode, required, onChange, onCoun
               <Button type="button" className={`inline-flex items-center gap-1.5 whitespace-nowrap !px-2 ${secondaryButton}`} disabled={pending}
                 onClick={() => galleryRef.current?.click()}><ImageIcon size={16} aria-hidden="true" /> Галерея</Button>
             </div>
-            {draft && (
-              <>
-                <WorkPhotoDraftPreview file={draft.file} />
-                <p className="truncate text-sm text-slate-600" title={draft.file.name}>{draft.file.name}</p>
-                <div>
-                  <label htmlFor={captionId} className="mb-1 block text-sm font-medium text-slate-700">Подпись к фото (необязательно)</label>
-                  <textarea id={captionId} rows={2} value={caption} maxLength={CAPTION_LENGTH}
-                    disabled={pending || draft.submittedCaption !== undefined}
-                    onChange={(event) => setCaption(event.target.value)} className={captionClass} />
-                  {draft.submittedCaption !== undefined && !pending && (
-                    <p className="text-sm text-slate-600">При повторе отправится исходная подпись.</p>
-                  )}
-                </div>
-              </>
-            )}
+            {draft?.file && <WorkPhotoDraftPreview file={draft.file} />}
             {uploadStep && <p role="status" className="text-sm text-slate-600">{uploadStep}</p>}
             {uploadError && <p role="alert" className="break-words text-sm text-red-700">{uploadError}</p>}
             <div className="flex flex-wrap gap-2">
-              {draft && <Button type="button" className={primaryButton} disabled={pending} onClick={save}>
-                {uploadError ? "Повторить загрузку" : "Загрузить фото"}
+              {draft && uploadError && <Button type="button" className={primaryButton} disabled={pending} onClick={() => void save(draft)}>
+                Повторить загрузку
               </Button>}
               <Button type="button" className={secondaryButton} disabled={pending} onClick={closeComposer}>Отмена</Button>
             </div>

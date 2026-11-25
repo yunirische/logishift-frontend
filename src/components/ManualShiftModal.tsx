@@ -1,3 +1,4 @@
+import { useActionDialog } from "./ActionDialog";
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import api from "../services/api";
@@ -82,9 +83,11 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
     onClose();
   };
 
+  const { ask, dialog } = useActionDialog();
+
   const handleCreateShift = async () => {
     if (!manualDriverId || !manualTruckId || !manualSiteId) {
-      alert("Заполните все поля");
+      void ask("Заполните все поля");
       return;
     }
 
@@ -97,12 +100,12 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
       };
 
       await api.post(API_ENDPOINTS.MANUAL_SHIFT, payload);
-      alert("Смена успешно создана!");
+      await ask("Смена успешно создана!");
 
       handleClose();
       onSave();
     } catch (err: any) {
-      alert(err.message || "Ошибка создания смены");
+      void ask(err.message || "Ошибка создания смены");
     } finally {
       setManualLoading(false);
     }
@@ -112,6 +115,7 @@ const ManualShiftModal: React.FC<ManualShiftModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      {dialog}
       <div className="bg-white rounded-lg max-w-md w-full p-8 animate-in zoom-in-95">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

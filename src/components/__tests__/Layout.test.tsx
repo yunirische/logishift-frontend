@@ -101,12 +101,12 @@ describe("Authenticated legal navigation", () => {
     mockIsDemoTenantId.mockReturnValue(false);
   });
 
-  it("does not render the old authenticated legal footer and toggles the sidebar menu for drivers", async () => {
+  it("does not render the old authenticated legal footer and toggles the account menu for drivers", async () => {
     const user = userEvent.setup();
     renderLayout(UserRole.DRIVER);
 
     const trigger = screen.getByRole("button", {
-      name: /Документы и поддержка/i,
+      name: "Меню пользователя",
     });
 
     expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -142,11 +142,11 @@ describe("Authenticated legal navigation", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows the same legal sidebar access point for admins", () => {
+  it("shows the same legal account access point for admins", () => {
     renderLayout(UserRole.ADMIN);
 
     expect(
-      screen.getByRole("button", { name: /Документы и поддержка/i })
+      screen.getByRole("button", { name: "Меню пользователя" })
     ).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText(SUPPORT_EMAIL)).not.toBeInTheDocument();
     expect(
@@ -334,7 +334,6 @@ describe("Authenticated legal navigation", () => {
       },
     });
 
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     localStorage.setItem(APP_DEMO_PERSONA_KEY, "driver");
     localStorage.setItem(DEMO_PERSONA_KEY, "77");
     localStorage.setItem(demoActiveShiftKey(77), JSON.stringify({ id: 500 }));
@@ -348,7 +347,7 @@ describe("Authenticated legal navigation", () => {
 
     await user.click(screen.getByRole("button", { name: /выйти из системы/i }));
 
-    expect(confirmSpy).toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Выйти" }));
     expect(logout).toHaveBeenCalledWith({
       redirectToLogin: true,
       markExplicitDemoLogout: true,

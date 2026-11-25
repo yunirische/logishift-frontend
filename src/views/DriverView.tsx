@@ -1,3 +1,4 @@
+import { useActionDialog } from "../components/ActionDialog";
 import {
   AlertCircle,
   Camera,
@@ -95,6 +96,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
   demoScenarioFirst = false,
 }) => {
   const { user, logout, refreshUser } = useAuth();
+  const { ask, dialog } = useActionDialog();
   const {
     activeShift: demoActiveShift,
     finishedShifts: demoFinishedShifts,
@@ -176,14 +178,14 @@ export const DriverView: React.FC<DriverViewProps> = ({
       ? "Выберите объект."
       : "";
 
-  const handleLogout = useCallback(() => {
-    if (window.confirm("Завершить сессию и выйти из системы?")) {
+  const handleLogout = async () => {
+    if (await ask("Завершить сессию и выйти из системы?", "Выйти")) {
       logout({
         redirectToLogin: true,
         markExplicitDemoLogout: isDemoMode,
       });
     }
-  }, [isDemoMode, logout]);
+  };
 
   // Demo-driver mode: fetch tenant users once and pick a driver persona.
   // Falls back to a synthetic persona if /users fails or has no drivers.
@@ -983,7 +985,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
     if (workPhotoUploadPending || loading) return;
     const exception = withReason && workPhotoException?.shiftId === activeShift?.id
       ? workPhotoException : null;
-    if (withReason ? !exception?.reason.trim() : !confirm("Завершить смену?")) return;
+    if (withReason ? !exception?.reason.trim() : !(await ask("Завершить смену?", "Завершить"))) return;
 
     setLoading(true);
     setActionMessage({ show: false, message: "", type: "info" });
@@ -1908,6 +1910,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
       {renderToast()}
       {renderDemoPreviewDialog()}
+      {dialog}
     </div>
   );
 };
