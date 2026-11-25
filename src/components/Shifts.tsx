@@ -1,6 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Filter, X, ChevronDown, Download, Lock } from "lucide-react";
 import { DemoPhotoPreviewDialog } from "./DemoPhotoPreviewDialog";
+import { WorkPhotoViolation } from "./WorkPhotoViolation";
 import { isDemoTenantId } from "../config/demo";
 import { API_ENDPOINTS } from "../constants";
 import { useDemoSession } from "../context/DemoSessionContext";
@@ -1045,6 +1046,11 @@ const Shifts: React.FC<ShiftsProps> = ({
                         <p className="mt-1 max-w-[18rem] text-[10px] leading-relaxed text-rose-700">
                           Причина: {shift.exclusion_reason}
                         </p>
+                      )}
+                      {shift.status === "finished" && shift.work_photo_violation_reason && (
+                        <div className="max-w-[18rem]">
+                          <WorkPhotoViolation reason={shift.work_photo_violation_reason} />
+                        </div>
                       )}
                     </td>
                     <td className="hidden px-4 py-2 text-xs font-medium text-slate-600 md:table-cell">

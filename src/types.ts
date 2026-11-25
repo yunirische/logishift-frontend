@@ -77,6 +77,8 @@ export interface Shift {
   requires_odo_start?: boolean | null;
   requires_odo_end?: boolean | null;
   requires_invoice?: boolean | null;
+  requires_work_photo?: boolean;
+  work_photo_violation_reason?: string;
   proof_requirements?: {
     start?: boolean;
     end?: boolean;

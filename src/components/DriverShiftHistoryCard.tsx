@@ -13,6 +13,7 @@ import {
   FinishedShiftPhotos,
 } from "./FinishedShiftPhotos";
 import { FinishedShiftPhotoType } from "../utils/finishedShiftPhotos";
+import { WorkPhotos } from "./WorkPhotos";
 
 type HistoryPhotoDraft = {
   reason: string;
@@ -21,6 +22,7 @@ type HistoryPhotoDraft = {
 
 interface DriverShiftHistoryCardProps {
   shift: DemoAwareShift;
+  workPhotoTimezone?: string;
   dateLabel: string;
   timeRangeLabel: string | null;
   durationLabel: string | null;
@@ -56,6 +58,7 @@ interface DriverShiftHistoryCardProps {
 
 export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
   shift,
+  workPhotoTimezone,
   dateLabel,
   timeRangeLabel,
   durationLabel,
@@ -259,6 +262,9 @@ export const DriverShiftHistoryCard: React.FC<DriverShiftHistoryCardProps> = ({
             </section>
 
             <section className="max-w-4xl space-y-3">
+              {workPhotoTimezone && typeof shift.id === "number" && (
+                <WorkPhotos shiftId={shift.id} timezone={workPhotoTimezone} mode="read" />
+              )}
               <FinishedShiftPhotos
                 shift={shift}
                 openFormKey={historyPhotoOpenFormKey}

@@ -32,6 +32,8 @@ export const API_ENDPOINTS = {
   // Ручное создание смены (admin)
   MANUAL_SHIFT: `${API_BASE_URL}/shifts/manual`,
   GET_SHIFT: (id: number | string) => `${API_BASE_URL}/shifts/${id}`,
+  WORK_PHOTOS: (shiftId: number) => `${API_BASE_URL}/shifts/${shiftId}/work-photos`,
+  WORK_PHOTO: (shiftId: number, photoId: number) => `${API_BASE_URL}/shifts/${shiftId}/work-photos/${photoId}`,
   SHIFT_FILE: (
     shiftId: number | string,
     type: "start" | "end" | "invoice"

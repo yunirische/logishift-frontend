@@ -3,6 +3,11 @@ import { DriverView } from "../DriverView";
 import { API_ENDPOINTS } from "../../constants";
 import { UserRole } from "../../types";
 import { createDemoPhotoSample } from "../../lib/demoPhotoSample";
+import { listWorkPhotos } from "../../services/workPhotos";
+
+vi.mock("../../services/workPhotos", () => ({
+  listWorkPhotos: vi.fn(),
+}));
 
 vi.mock("../../lib/demoPhotoSample", () => ({
   createDemoPhotoSample: vi.fn(),
@@ -124,6 +129,7 @@ describe("DriverView comments", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(listWorkPhotos).mockResolvedValue([]);
     localStorage.clear();
     sessionStorage.clear();
     mockUseAuth.mockReturnValue({
@@ -164,6 +170,29 @@ describe("DriverView comments", () => {
     });
     mockApiPostFormData.mockResolvedValue({ message: "Фото добавлено" });
     mockOpenShiftFilePreview.mockResolvedValue(undefined);
+  });
+
+  it("requires an explicit reason and submits it against the same shift", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    mockGetCurrentShift.mockResolvedValueOnce({ id: 113, status: "active", requires_work_photo: true })
+      .mockResolvedValue(null);
+    mockApiPost.mockRejectedValueOnce(Object.assign(new Error("Нужно фото"), { backendCode: "WORK_PHOTO_REQUIRED" }))
+      .mockResolvedValueOnce({ newState: "idle" });
+    try {
+      render(<DriverView />);
+      fireEvent.click(await screen.findByTestId("end-shift-button"));
+      const reason = await screen.findByRole("textbox", { name: "Почему нет обязательного фото?" });
+      const submit = screen.getByRole("button", { name: "Завершить без фото" });
+      expect(submit).toBeDisabled();
+      fireEvent.change(reason, { target: { value: " Камера сломана " } });
+      fireEvent.click(submit);
+      await waitFor(() => expect(mockApiPost).toHaveBeenLastCalledWith("/shifts/end", {
+        shift_id: 113, work_photo_reason: "Камера сломана",
+      }));
+      await waitFor(() => expect(screen.queryByRole("textbox", { name: "Почему нет обязательного фото?" })).not.toBeInTheDocument());
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   it("submits a comment for the active shift and refreshes the current shift", async () => {
@@ -592,6 +621,8 @@ describe("DriverView comments", () => {
     expect(detailsButton).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(detailsButton);
     expect(detailsButton).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => expect(listWorkPhotos).toHaveBeenCalledWith(113));
+    expect(within(card).queryByRole("button", { name: "Добавить фото" })).not.toBeInTheDocument();
 
     expect(await within(card).findByText(/Фотографии смены/i)).toBeInTheDocument();
     expect(within(card).getByText(/1 из 2 загружено/i)).toBeInTheDocument();

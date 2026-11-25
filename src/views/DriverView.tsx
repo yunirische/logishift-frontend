@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { DemoPhotoPreviewDialog } from "../components/DemoPhotoPreviewDialog";
 import { DriverShiftHistoryCard } from "../components/DriverShiftHistoryCard";
 import { FinishedShiftPhotosDemoModeProvider } from "../components/FinishedShiftPhotos";
+import { WorkPhotos } from "../components/WorkPhotos";
 import { Button, Card } from "../components/ui";
 import {
   DEMO_FALLBACK_PERSONA,
@@ -106,6 +107,8 @@ export const DriverView: React.FC<DriverViewProps> = ({
 
   const [loading, setLoading] = useState(true);
   const [activeShift, setActiveShift] = useState<any>(null);
+  const [workPhotoUploadPending, setWorkPhotoUploadPending] = useState(false);
+  const [workPhotoException, setWorkPhotoException] = useState<{ shiftId: number; reason: string } | null>(null);
   const [trucks, setTrucks] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
   const [shiftHistory, setShiftHistory] = useState<any[]>([]);
@@ -248,6 +251,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
             <DriverShiftHistoryCard
               key={shift.id}
               shift={shift as Shift}
+              workPhotoTimezone={isDemoMode ? undefined : tenantTimezone}
               dateLabel={summary.dateLabel}
               timeRangeLabel={summary.timeRangeLabel}
               durationLabel={summary.durationLabel}
@@ -975,8 +979,11 @@ export const DriverView: React.FC<DriverViewProps> = ({
     }
   };
 
-  const handleEnd = async () => {
-    if (!confirm("Завершить смену?")) return;
+  const handleEnd = async (withReason = false) => {
+    if (workPhotoUploadPending || loading) return;
+    const exception = withReason && workPhotoException?.shiftId === activeShift?.id
+      ? workPhotoException : null;
+    if (withReason ? !exception?.reason.trim() : !confirm("Завершить смену?")) return;
 
     setLoading(true);
     setActionMessage({ show: false, message: "", type: "info" });
@@ -1018,16 +1025,25 @@ export const DriverView: React.FC<DriverViewProps> = ({
         return;
       }
 
-      await api.post("/shifts/end", {});
+      const result = await api.post("/shifts/end", exception
+        ? { shift_id: exception.shiftId, work_photo_reason: exception.reason.trim() }
+        : {});
+      setWorkPhotoException(null);
       await refreshCurrentShift({ silent: true, refreshAuthState: true });
+      const awaitingProof = activeShift?.requires_work_photo &&
+        (result?.newState === "awaiting_odo_end" || result?.newState === "awaiting_invoice");
       setActionMessage({
         show: true,
-        message: "Смена завершена.",
-        type: "success",
+        message: awaitingProof ? result.message : "Смена завершена.",
+        type: awaitingProof ? "info" : "success",
       });
     } catch (error: any) {
+      if (error.backendCode === "WORK_PHOTO_REQUIRED" && typeof activeShift?.id === "number") {
+        setWorkPhotoException({ shiftId: activeShift.id, reason: exception?.reason ?? "" });
+        return;
+      }
       const errorMsg =
-        error.response?.data?.error || error.message || "Ошибка завершения";
+        error.response?.data?.message || error.response?.data?.error || error.message || "Ошибка завершения";
       setToast({ show: true, message: errorMsg, type: "error" });
       setActionMessage({
         show: true,
@@ -1661,11 +1677,18 @@ export const DriverView: React.FC<DriverViewProps> = ({
                 <CheckCircle2 size={28} className="shrink-0" />
                 <div className="flex-1">
                   <div className="text-base font-bold">Смена активна</div>
-                  <div className="mt-0.5 text-sm opacity-80">
-                    Вы можете завершить ее в любой момент
-                  </div>
+                  {(isDemoMode || !activeShift.requires_work_photo) && (
+                    <div className="mt-0.5 text-sm opacity-80">
+                      Вы можете завершить ее в любой момент
+                    </div>
+                  )}
                 </div>
               </div>
+              {!isDemoMode && typeof activeShift.id === "number" && (
+                <WorkPhotos key={activeShift.id} shiftId={activeShift.id} timezone={tenantTimezone}
+                  mode="driver" required={activeShift.requires_work_photo}
+                  onUploadPendingChange={setWorkPhotoUploadPending} />
+              )}
               <Card id="demo-driver-comment" className="scroll-mt-24 border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   <MessageSquare size={14} />
@@ -1800,15 +1823,42 @@ export const DriverView: React.FC<DriverViewProps> = ({
                 </div>
               </div>
             ) : workflowState === "active" ? (
-              <Button
-                onClick={handleEnd}
-                data-testid="end-shift-button"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
-                isLoading={loading}
-              >
-                <Square size={18} fill="currentColor" />
-                Завершить смену
-              </Button>
+              <>
+                <Button
+                  onClick={() => void handleEnd()}
+                  data-testid="end-shift-button"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0a192f] py-3 text-base font-bold text-white shadow-lg shadow-[#0a192f]/20 transition-all hover:bg-[#152238] active:scale-[0.98]"
+                  isLoading={loading}
+                  disabled={workPhotoUploadPending}
+                >
+                  <Square size={18} fill="currentColor" />
+                  Завершить смену
+                </Button>
+                {workPhotoUploadPending && (
+                  <p role="status" className="mt-2 text-center text-xs text-slate-600">Дождитесь сохранения фото.</p>
+                )}
+                {workPhotoException?.shiftId === activeShift.id && (
+                  <div className="mt-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <label className="block text-sm font-medium text-slate-800">
+                      Почему нет обязательного фото?
+                      <textarea
+                        autoFocus rows={2} maxLength={500}
+                        className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-base"
+                        value={workPhotoException.reason}
+                        onChange={(event) => setWorkPhotoException({ ...workPhotoException, reason: event.target.value })}
+                      />
+                    </label>
+                    <p className="text-sm text-slate-700">Руководитель увидит причину в смене.</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={() => void handleEnd(true)} isLoading={loading}
+                        disabled={workPhotoUploadPending || !workPhotoException.reason.trim()}>
+                        Завершить без фото
+                      </Button>
+                      <Button onClick={() => setWorkPhotoException(null)} disabled={loading}>Отмена</Button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : ["awaiting_odo_start", "awaiting_odo_end", "awaiting_invoice"].includes(workflowState) ? (
               isDemoMode && activeShift.is_demo_synthetic ? (
                 <div className="grid gap-2 sm:grid-cols-2">

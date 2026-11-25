@@ -14,6 +14,8 @@ import { useFocusTrap, useFocusRestore } from "../hooks/useFocusTrap";
 import { AlertCircle, MessageSquare, Send, X, Lock, Upload, Check, Image, Pencil, Trash2, ArrowRightLeft, FileText } from "lucide-react";
 import { getUserInfo } from "../services/api";
 import { validatePhotoFile } from "../utils/photoFile";
+import { WorkPhotos } from "./WorkPhotos";
+import { WorkPhotoViolation } from "./WorkPhotoViolation";
 
 interface Comment {
   id: number;
@@ -70,6 +72,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [bypassReason, setBypassReason] = useState("");
+  const [workPhotoCount, setWorkPhotoCount] = useState<number | null>(null);
+  const [workPhotoRefreshKey, setWorkPhotoRefreshKey] = useState(0);
   const [loadingComments, setLoadingComments] = useState(false);
   const [showCommentsSkeleton, setShowCommentsSkeleton] = useState(false);
   const [commentsError, setCommentsError] = useState<string | null>(null);
@@ -91,6 +95,8 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [showSettingsSkeleton, setShowSettingsSkeleton] = useState(false);
   const currentShift = modalShift || shift;
+
+  useEffect(() => setWorkPhotoCount(null), [currentShift.id, isOpen]);
 
   // Pre-fill time fields when modal opens or when a different shift is selected.
   useEffect(() => {
@@ -341,7 +347,6 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       const hasEndTimeChange = endTime !== originalEnd;
       const timeChanged = hasStartTimeChange || hasEndTimeChange;
       const commentChanged = newComment.trim().length > 0;
-      const hasMissingRequiredProof = proofState.missingRequiredItems.length > 0;
       const isOpenShiftWithoutRecordedEnd = currentShift.status !== 'finished' && originalEnd === "";
       const isRequestingCloseOrFinish =
         isOpenShiftWithoutRecordedEnd &&
@@ -424,7 +429,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       // Append comment if provided (for time+comment updates)
       if (requiresBypassReasonForThisSave) {
         if (bypassReason.trim().length === 0) {
-          setError(`В смене отсутствуют обязательные подтверждения: ${proofState.missingRequiredLabels.join(", ")}. Укажите причину закрытия без обязательных фото.`);
+          setError(`В смене отсутствуют обязательные подтверждения: ${missingRequiredLabels.join(", ")}. Укажите причину закрытия без обязательных фото.`);
           setLoading(false);
           return;
         }
@@ -461,6 +466,13 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       const status = err?.response?.status;
       const message = err?.response?.data?.message || err?.response?.data?.detail || err?.message || "";
       const errorCode = err?.response?.data?.error_code || err?.response?.data?.error;
+
+      if (err?.backendCode === "WORK_PHOTO_REQUIRED") {
+        setWorkPhotoCount(0);
+        setWorkPhotoRefreshKey((key) => key + 1);
+        setError(message);
+        return;
+      }
 
       // v1.1.2: Check for new error messages
       if (message.includes("Смена уже завершена") || message.includes("только поле comment")) {
@@ -783,7 +795,6 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
       hasInvoicePhoto,
       hasAnyVisibleZones,
       items,
-      missingRequiredItems,
       missingRequiredLabels: missingRequiredItems.map((item) => item.label),
     };
   }, [currentShift, tenantSettings]);
@@ -800,7 +811,11 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
   const timeChanged = hasStartTimeChange || hasEndTimeChange;
   const commentChanged = newComment.trim().length > 0;
   const isCommentOnly = commentChanged && !timeChanged;
-  const hasMissingRequiredProof = proofState.missingRequiredItems.length > 0;
+  const workPhotoMissing = !isDemoMode && !isFinishedShift && currentShift.requires_work_photo && workPhotoCount === 0;
+  const missingRequiredLabels = workPhotoMissing
+    ? [...proofState.missingRequiredLabels, "Фотоотчёт о работе"]
+    : proofState.missingRequiredLabels;
+  const hasMissingRequiredProof = missingRequiredLabels.length > 0;
   const isOpenShiftWithoutRecordedEnd = !isFinishedShift && originalEnd === "";
   const isRequestingCloseOrFinish =
     isOpenShiftWithoutRecordedEnd &&
@@ -1145,14 +1160,17 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               </div>
             )}
 
-            {activeTab === 'details' && isAdmin && proofState.missingRequiredItems.length > 0 && (
+            {activeTab === 'details' && isFinishedShift && currentShift.work_photo_violation_reason && (
+              <WorkPhotoViolation reason={currentShift.work_photo_violation_reason} />
+            )}
+            {activeTab === 'details' && isAdmin && hasMissingRequiredProof && (
               <div className="px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800">
                 <div className="flex items-start gap-2">
                   <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-semibold">В смене отсутствуют обязательные подтверждения: {proofState.missingRequiredLabels.join(", ")}</p>
+                    <p className="font-semibold">В смене отсутствуют обязательные подтверждения: {missingRequiredLabels.join(", ")}</p>
                     <p className="mt-1 text-amber-700">
-                      Если вы закрываете смену без обязательных фото, укажите причину. Она будет отправлена в backend в поле комментария.
+                      При закрытии смены укажите причину. Она сохранится в комментарии и истории смены.
                     </p>
                   </div>
                 </div>
@@ -1266,7 +1284,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                       </label>
                     </div>
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                      <p className="text-sm text-slate-500 font-medium">Фото не требуются по настройкам объекта</p>
+                      <p className="text-sm text-slate-500 font-medium">Одометр и накладная необязательны по настройкам объекта</p>
                     </div>
                   </div>
                 );
@@ -1379,6 +1397,14 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
               </button>
             </div>
 
+            {activeTab === 'details' && !isDemoMode && (
+              <WorkPhotos key={currentShift.id} shiftId={currentShift.id} timezone={effectiveTimezone}
+                mode={isAdmin && isFinishedShift ? "admin" : "read"}
+                onCountChange={setWorkPhotoCount}
+                refreshKey={workPhotoRefreshKey}
+                onChange={() => setAuditLogs([])} />
+            )}
+
             {/* Time fields - only show in details tab */}
             {activeTab === 'details' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1390,7 +1416,9 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                     <p className="font-medium text-amber-800">Смена завершена</p>
                     <p className="text-amber-700 mt-1">
                       {isAdmin
-                        ? "Только добавление комментария доступно. Изменение времени невозможно."
+                        ? isDemoMode
+                          ? "Только добавление комментария доступно. Изменение времени невозможно."
+                          : "Можно исправить рабочие фотографии и добавить комментарий."
                         : "Вы можете добавить комментарий к этой смене."}
                     </p>
                   </div>
@@ -1409,7 +1437,7 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                 </div>
               )}
 
-              {isAdmin && proofState.missingRequiredItems.length > 0 && (
+              {isAdmin && hasMissingRequiredProof && (
                 <div className="md:col-span-2">
                   <label htmlFor="bypass-reason" className="block text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">
                     Причина закрытия без обязательных фото
@@ -1418,12 +1446,12 @@ const EditShiftModal: React.FC<EditShiftModalProps> = ({
                     id="bypass-reason"
                     value={bypassReason}
                     onChange={(e) => setBypassReason(e.target.value)}
-                    placeholder={`Укажите причину. Отсутствуют: ${proofState.missingRequiredLabels.join(", ")}`}
+                    placeholder={`Укажите причину. Отсутствуют: ${missingRequiredLabels.join(", ")}`}
                     rows={2}
                     className="w-full px-4 py-3 rounded-lg border border-amber-300 bg-amber-50/40 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all text-sm resize-none"
                   />
                   <p className="text-[10px] text-amber-700 mt-1">
-                    Причина будет отправлена в backend в существующем поле комментария при закрытии смены.
+                    Причина сохранится в комментарии и истории смены.
                   </p>
                 </div>
               )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Camera, FileText, Plus, Pencil, Trash2, X, Building } from 'lucide-react';
+import { MapPin, Camera, FileText, Image, Plus, Pencil, Trash2, X, Building } from 'lucide-react';
 import api from '../services/api';
 import { API_ENDPOINTS } from '../constants';
 import { useFocusTrap, useFocusRestore } from '../hooks/useFocusTrap';
@@ -15,6 +15,7 @@ const Objects: React.FC = () => {
     address: '',
     odometer_required: false,
     invoice_required: false,
+    work_photo_required: false,
     is_active: true
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -41,7 +42,7 @@ const Objects: React.FC = () => {
 
   const handleAddClick = () => {
     setEditingSite(null);
-    setFormData({ name: '', address: '', odometer_required: false, invoice_required: false, is_active: true });
+    setFormData({ name: '', address: '', odometer_required: false, invoice_required: false, work_photo_required: false, is_active: true });
     setIsModalOpen(true);
   };
 
@@ -52,6 +53,7 @@ const Objects: React.FC = () => {
       address: site.address || '',
       odometer_required: site.odometer_required,
       invoice_required: site.invoice_required,
+      work_photo_required: site.work_photo_required === true,
       is_active: site.is_active
     });
     setIsModalOpen(true);
@@ -130,7 +132,7 @@ const Objects: React.FC = () => {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-16 text-center animate-in fade-in">
           <h3 className="text-lg font-semibold text-[#1B254B]">Объектов пока нет</h3>
           <p className="mt-2 text-sm text-slate-500">
-            Создайте первый объект работы. Здесь можно включить требования к фото одометра или накладной.
+            Создайте первый объект работы. Здесь можно настроить требования к одометру, накладной и фотоотчёту.
           </p>
           <button
             onClick={handleAddClick}
@@ -191,6 +193,12 @@ const Objects: React.FC = () => {
                   <span>Накладная</span>
                 </div>
               )}
+              {s.work_photo_required && (
+                <div className="flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-[10px] font-bold text-indigo-700">
+                  <Image size={12} aria-hidden="true" />
+                  <span>Фотоотчёт</span>
+                </div>
+              )}
             </div>
             </div>
           ))}
@@ -206,8 +214,8 @@ const Objects: React.FC = () => {
           aria-modal="true"
           aria-labelledby="site-modal-title"
         >
-          <div className="bg-white rounded-lg w-full max-w-md p-5 shadow-sm border border-slate-200 animate-in zoom-in-95">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90dvh] flex flex-col overflow-hidden p-5 shadow-sm border border-slate-200 animate-in zoom-in-95">
+            <div className="flex shrink-0 justify-between items-center mb-6">
               <h3 id="site-modal-title" className="text-xl font-semibold text-[#1B254B]">
                 {editingSite ? 'Редактировать объект' : 'Новый объект'}
               </h3>
@@ -220,7 +228,8 @@ const Objects: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+              <div className="min-h-0 space-y-4 overflow-y-auto">
               <div>
                 <label htmlFor="site-name" className="block text-xs font-bold text-slate-500 uppercase mb-2">
                   Название
@@ -284,7 +293,28 @@ const Objects: React.FC = () => {
                     className="w-5 h-5 text-[#0a192f] rounded focus:ring-indigo-500 border-gray-300"
                   />
                 </label>
-                
+                <label className="flex items-center justify-between gap-2 p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="shrink-0 rounded-lg bg-indigo-50 p-2 text-indigo-700">
+                      <Image size={18} aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <span id="site-work-photo-label" className="block text-sm font-bold text-slate-700">Требовать фотоотчёт о работе</span>
+                      <span id="site-work-photo-description" className="mt-1 block text-xs text-slate-500">
+                        Для новых смен на объекте нужен хотя бы один снимок результата или препятствия.
+                      </span>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    aria-labelledby="site-work-photo-label"
+                    aria-describedby="site-work-photo-description"
+                    checked={formData.work_photo_required}
+                    onChange={(e) => setFormData({ ...formData, work_photo_required: e.target.checked })}
+                    className="w-5 h-5 shrink-0 text-[#0a192f] rounded focus:ring-indigo-500 border-gray-300"
+                  />
+                </label>
+
                  <label className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-bold text-slate-700">Активен</span>
@@ -298,7 +328,9 @@ const Objects: React.FC = () => {
                 </label>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              </div>
+
+              <div className="flex shrink-0 gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}

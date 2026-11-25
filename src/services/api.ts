@@ -460,10 +460,7 @@ export const getAnalyticsInsights = async (days: number = 30): Promise<Analytics
   return transformAnalyticsInsights(data);
 };
 
-export const fetchShiftFileBlob = async (
-  shiftId: number | string,
-  type: ShiftFileType
-): Promise<Blob> => {
+const fetchPrivateImageBlob = async (endpoint: string): Promise<Blob> => {
   const token = getAuthToken();
   const headers = new Headers();
 
@@ -474,7 +471,7 @@ export const fetchShiftFileBlob = async (
   let response: Response;
 
   try {
-    response = await fetch(API_ENDPOINTS.SHIFT_FILE(shiftId, type), {
+    response = await fetch(endpoint, {
       method: "GET",
       headers,
       signal: AbortSignal.timeout(30000),
@@ -597,6 +594,12 @@ export const fetchShiftFileBlob = async (
 
   return response.blob();
 };
+
+export const fetchShiftFileBlob = (shiftId: number | string, type: ShiftFileType) =>
+  fetchPrivateImageBlob(API_ENDPOINTS.SHIFT_FILE(shiftId, type));
+
+export const fetchWorkPhotoBlob = (shiftId: number, photoId: number) =>
+  fetchPrivateImageBlob(`${API_ENDPOINTS.WORK_PHOTO(shiftId, photoId)}/file`);
 
 export const openShiftFilePreview = async (
   shiftId: number | string,
