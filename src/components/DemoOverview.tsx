@@ -65,8 +65,8 @@ export default function DemoOverview({ onExploreCabinet, registrationHref, onReg
   } = useDemoSession();
   const [selected, setSelected] = useState<DemoExampleId>("snow");
   const [dismissed, setDismissed] = useState<string>();
-  const [wantOdometer, setWantOdometer] = useState(false);
-  const [wantInvoice, setWantInvoice] = useState(false);
+  const [wantOdometer, setWantOdometer] = useState<boolean>(demoExamples.snow.defaults.odometer);
+  const [wantInvoice, setWantInvoice] = useState<boolean>(demoExamples.snow.defaults.invoice);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const busyRef = useRef(false);
@@ -76,6 +76,8 @@ export default function DemoOverview({ onExploreCabinet, registrationHref, onReg
   const shift = latest?.exampleId && latest.id !== dismissed ? latest : null;
   const key = shift?.exampleId || selected;
   const example = demoExamples[key];
+  // Older saved examples retain the original object name in every view.
+  const siteName = shift?.siteName ?? example.site;
   const done = shift?.status === "finished";
   const preview = !shift;
   const hasPhoto = preview || !!shift?.workSampleAdded;
@@ -118,6 +120,13 @@ export default function DemoOverview({ onExploreCabinet, registrationHref, onReg
   function choose(id: DemoExampleId) {
     if (locked) return;
     setSelected(id);
+    if (id !== key) {
+      setWantOdometer(demoExamples[id].defaults.odometer);
+      setWantInvoice(demoExamples[id].defaults.invoice);
+    } else {
+      setWantOdometer(odometer);
+      setWantInvoice(invoice);
+    }
     setDismissed(latest?.id);
     setError("");
   }
@@ -154,7 +163,7 @@ export default function DemoOverview({ onExploreCabinet, registrationHref, onReg
       busyRef.current = true;
       setBusy(true);
       try {
-        const sample = await createDemoPhotoSample(awaiting, example.site);
+        const sample = await createDemoPhotoSample(awaiting, siteName);
         if (!mounted.current) return;
         if (!addDemoShiftPhoto(shift.id, awaiting, sample)) {
           setError("Не удалось добавить образец. Повторите попытку.");
@@ -240,7 +249,12 @@ export default function DemoOverview({ onExploreCabinet, registrationHref, onReg
           <div className="my-2 rounded-lg bg-slate-50 px-2.5 py-2 sm:my-3">
             <p className="font-bold leading-tight sm:text-base">{example.job}</p>
             <p className="mt-1 flex items-start gap-1.5 text-xs leading-tight text-slate-600"><Truck size={15} className="shrink-0 text-slate-500" aria-hidden="true"/>{example.truck}</p>
-            <p className="mt-1 flex items-start gap-1.5 text-xs leading-tight text-slate-600"><MapPin size={15} className="shrink-0 text-slate-500" aria-hidden="true"/>{example.site}</p>
+            <p className="mt-1 flex items-start gap-1.5 text-xs leading-tight text-slate-600"><MapPin size={15} className="shrink-0 text-slate-500" aria-hidden="true"/><span><strong>Объект:</strong> {siteName}</span></p>
+            <p className="mt-1.5 text-xs leading-snug text-slate-700">
+              {example.mobile
+                ? "Разные адреса? Создайте объект по виду работ. Адрес необязателен."
+                : "Постоянная площадка? Создайте объект с названием и, при необходимости, адресом."}
+            </p>
           </div>
 
           <ol className="grid grid-cols-3 gap-1.5 sm:block sm:space-y-1.5" aria-label="Действия водителя">
@@ -292,7 +306,7 @@ export default function DemoOverview({ onExploreCabinet, registrationHref, onReg
             <div className="mt-1.5 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-bold leading-tight sm:text-base">{example.truck}</p>
-                <p className="mt-0.5 flex items-center gap-1 text-[11px] leading-tight text-slate-600"><User size={12} className="shrink-0" aria-hidden="true"/>Алексей Смирнов · {example.site}</p>
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] leading-tight text-slate-600"><User size={12} className="shrink-0" aria-hidden="true"/>Алексей Смирнов · {siteName}</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xs font-medium tabular-nums"><Clock3 size={13} aria-hidden="true"/>{time(start)}{end ? " – " + time(end) : ""}</p>
                 <p className="text-[10px] text-slate-500">Условное время · МСК</p>
               </div>
@@ -325,6 +339,11 @@ export default function DemoOverview({ onExploreCabinet, registrationHref, onReg
               </div>
             </div>}
           </div>
+
+          <p className="order-2 mt-2 flex items-start gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-2 text-xs font-medium leading-snug text-emerald-900 sm:order-none sm:text-sm">
+            <CheckCircle2 size={16} className="mt-0.5 shrink-0" aria-hidden="true"/>
+            {example.benefit}
+          </p>
 
           <div className="order-3 mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] font-semibold text-slate-700 sm:order-none sm:mt-3 sm:text-xs">
             <span className="flex items-center gap-1"><ClipboardList size={15} className="text-[#00658d]" aria-hidden="true"/>История смен</span>

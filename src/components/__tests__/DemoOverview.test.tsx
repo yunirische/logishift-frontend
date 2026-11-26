@@ -74,3 +74,31 @@ it("allows optional object requirements and records all proofs with the same con
     vi.unstubAllGlobals();
   }
 });
+
+
+it("shows mobile work as a named object and switches editable proof defaults by industry", () => {
+  localStorage.clear();
+  const props = { onExploreCabinet: vi.fn(), registrationHref: "/register", onRegistrationClick: vi.fn() };
+  render(<DemoSessionProvider><DemoOverview {...props}/></DemoSessionProvider>);
+  const click = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
+  const odometer = screen.getByRole("checkbox", { name: "Одометр" });
+  const invoice = screen.getByRole("checkbox", { name: "Накладная" });
+  expect(screen.getByText(/Разные адреса\?/)).toBeVisible();
+  expect(odometer).not.toBeChecked();
+  expect(invoice).not.toBeChecked();
+  click("Грузоперевозки");
+  expect(odometer).toBeChecked();
+  expect(invoice).toBeChecked();
+  fireEvent.click(invoice);
+  expect(invoice).not.toBeChecked();
+  click("Земляные работы");
+  expect(screen.getByText(/Постоянная площадка\?/)).toBeVisible();
+  expect(odometer).not.toBeChecked();
+  expect(invoice).not.toBeChecked();
+  click("Автовышка");
+  expect(screen.getByText("Выезды автовышки", { exact: false, selector: "span" })).toBeVisible();
+  click("Начать смену");
+  expect(readDemoSession(localStorage).activeShift?.siteName).toBe("Выезды автовышки");
+  expect(readDemoSession(localStorage).activeShift?.odometerRequired).toBe(false);
+  expect(odometer).toBeDisabled();
+});
