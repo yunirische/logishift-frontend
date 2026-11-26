@@ -266,7 +266,6 @@ export default function DemoOverview({ onExploreCabinet, registrationHref, onReg
               <h2 className="text-sm font-bold sm:text-base">Руководитель</h2>
               <p className="text-[10px] leading-tight text-slate-500 sm:text-xs">Реестр смен и контроль техники</p>
             </div>
-            
           </div>
 
           <div className="order-2 mt-2 flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 sm:order-none sm:my-3 sm:px-3">

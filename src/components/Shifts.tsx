@@ -1251,29 +1251,19 @@ const Shifts: React.FC<ShiftsProps> = ({
                                 Фотографии
                               </p>
                               <div className="mt-2 flex flex-wrap gap-2">
-                                {shift.workExample ? <DemoSamplePhoto exampleId={shift.workExample}/> : (
-                                  Object.entries(
-                                    shift.demo_photo_metadata || {}
-                                  ) as Array<
-                                    [DemoPhotoType, DemoPhotoMetadata]
+                                {shift.workExample && <DemoSamplePhoto exampleId={shift.workExample} />}
+                                {(Object.entries(shift.demo_photo_metadata || {}) as Array<
+                                  [DemoPhotoType, DemoPhotoMetadata]
+                                >).map(([type, metadata]) => (
+                                  <span
+                                    key={type}
+                                    className="inline-flex max-w-full items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-800"
+                                    title={metadata.fileName}
                                   >
-                                ).length > 0 ? (
-                                  (
-                                    Object.entries(
-                                      shift.demo_photo_metadata || {}
-                                    ) as Array<
-                                      [DemoPhotoType, DemoPhotoMetadata]
-                                    >
-                                  ).map(([type, metadata]) => (
-                                    <span
-                                      key={type}
-                                      className="inline-flex max-w-full items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-800"
-                                      title={metadata.fileName}
-                                    >
-                                      {getDemoPhotoLabel(type)}
-                                    </span>
-                                  ))
-                                ) : (
+                                    {getDemoPhotoLabel(type)}
+                                  </span>
+                                ))}
+                                {!shift.workExample && !Object.keys(shift.demo_photo_metadata || {}).length && (
                                   <span className="text-xs text-slate-500">
                                     Фотографии пока не добавлены
                                   </span>
