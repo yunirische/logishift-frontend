@@ -35,3 +35,42 @@ it("shows a sample without starting a shift, resumes the selected industry and r
   expect(props.onExploreCabinet).toHaveBeenCalledTimes(1);
   expect(screen.getByRole("link", {name:"Начать бесплатно"})).toHaveAttribute("href","/register");
 });
+
+
+vi.mock("../../lib/demoPhotoSample", () => ({
+  createDemoPhotoSample: vi.fn(async (type: string) => new File(["sample"], "demo-" + type + ".png", { type: "image/png" })),
+}));
+
+it("allows optional object requirements and records all proofs with the same conditional time", async () => {
+  localStorage.clear();
+  vi.stubGlobal("URL", Object.assign(class extends URL {}, {
+    createObjectURL: vi.fn(() => "blob:demo"),
+    revokeObjectURL: vi.fn(),
+  }));
+  try {
+    const props = { onExploreCabinet: vi.fn(), registrationHref: "/register", onRegistrationClick: vi.fn() };
+    const { unmount } = render(<DemoSessionProvider><DemoOverview {...props}/></DemoSessionProvider>);
+    const click = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Одометр" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Накладная" }));
+    click("Начать смену");
+    expect(readDemoSession(localStorage).activeShift?.status).toBe("awaiting_odo_start");
+    expect(screen.getByRole("checkbox", { name: "Одометр" })).toBeDisabled();
+    click("Добавить одометр до");
+    await screen.findByRole("button", { name: "Добавить образец фото" });
+    click("Добавить образец фото");
+    click("Завершить смену");
+    expect(readDemoSession(localStorage).activeShift?.status).toBe("awaiting_odo_end");
+    click("Добавить одометр после");
+    await screen.findByRole("button", { name: "Добавить накладную" });
+    click("Добавить накладную");
+    await screen.findByRole("button", { name: "Повторить демонстрацию" });
+    const [shift] = readDemoSession(localStorage).finishedShifts;
+    expect(shift.workSampleAdded).toBe(true);
+    expect(Object.keys(shift.photos).sort()).toEqual(["end", "invoice", "start"]);
+    expect(Date.parse(shift.finishedAt!) - Date.parse(shift.startedAt)).toBe(270 * 60_000);
+    unmount();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

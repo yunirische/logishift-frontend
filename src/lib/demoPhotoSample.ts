@@ -2,7 +2,7 @@ import type { DemoPhotoType } from "./demoSession";
 
 // Explicitly labelled examples generated locally; the regular demo workflow
 // consumes them without camera access or an upload to the API.
-export const createDemoPhotoSample = (type: DemoPhotoType): Promise<File> => {
+export const createDemoPhotoSample = (type: DemoPhotoType, siteName?: string): Promise<File> => {
   const canvas = document.createElement("canvas");
   canvas.width = 800;
   canvas.height = 500;
@@ -22,9 +22,9 @@ export const createDemoPhotoSample = (type: DemoPhotoType): Promise<File> => {
   if (type === "invoice") {
     context.fillText("Накладная / Пример", 70, 145);
     context.font = "24px sans-serif";
-    context.fillText("Объект: ЖК Северный", 70, 210);
-    context.fillText("Материал: песок", 70, 260);
-    context.fillText("Объём: 10 м3", 70, 310);
+    context.fillText("Объект: " + (siteName || "ЖК Северный"), 70, 210, 650);
+    context.fillText(siteName ? "Выполненные работы / пример" : "Материал: песок", 70, 260);
+    context.fillText(siteName ? "Объём: условные данные" : "Объём: 10 м3", 70, 310);
   } else {
     context.fillText(type === "start" ? "Одометр перед сменой" : "Одометр после смены", 70, 145);
     context.fillStyle = "#dcfce7";

@@ -244,7 +244,7 @@ export const DemoSessionProvider = ({
         addedAt: new Date().toISOString(),
       };
       const shift = mutateShift(shiftId, (current) =>
-        addDemoPhotoMetadata(current, metadata)
+        addDemoPhotoMetadata(current, metadata, current.exampleId ? exampleFinish(current.startedAt) : undefined)
       );
       if (!shift) return null;
 
