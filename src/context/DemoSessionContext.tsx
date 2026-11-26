@@ -35,6 +35,8 @@ import { recordCurrentDemoFunnelEvent } from "../lib/demoFunnelEvents";
 import { prepareAttributionSession } from "../lib/demoRegistrationHandoff";
 import { clearDemoPresentation } from "../lib/demoPresentation";
 
+import { exampleStart, exampleFinish } from "../lib/demoExamples";
+
 type DemoSessionAction =
   | { type: "replace"; state: DemoSessionState }
   | { type: "reset" };
@@ -61,6 +63,7 @@ interface DemoSessionContextValue extends DemoSessionState {
     shiftId: string,
     type: DemoPhotoType
   ) => DemoPhotoPreview | null;
+  attachWorkSample: (id: string) => void;
   resetDemoSession: () => void;
 }
 
@@ -72,6 +75,7 @@ const defaultValue: DemoSessionContextValue = {
   addDemoShiftComment: () => null,
   addDemoShiftPhoto: () => null,
   getDemoPhotoPreview: () => null,
+  attachWorkSample: () => undefined,
   resetDemoSession: () => undefined,
 };
 
@@ -175,8 +179,8 @@ export const DemoSessionProvider = ({
 
   const startDemoShift = useCallback(
     (input: StartDemoShiftInput) => {
-      if (!enabled) return null;
-      const shift = createDemoScenarioShift(input);
+      if (!enabled || state.activeShift) return null;
+      const shift = createDemoScenarioShift(input, input.exampleId ? exampleStart() : undefined);
       dispatch({
         type: "replace",
         state: { ...state, activeShift: shift },
@@ -212,10 +216,15 @@ export const DemoSessionProvider = ({
     [enabled, state]
   );
 
+  const attachWorkSample = useCallback((id: string) => {
+    mutateShift(id, shift => shift.exampleId && shift.status === "active"
+      ? { ...shift, workSampleAdded: true } : null);
+  }, [mutateShift]);
+
   const requestFinish = useCallback(() => {
     if (!state.activeShift) return null;
     return mutateShift(state.activeShift.id, (shift) =>
-      requestDemoShiftFinish(shift)
+      requestDemoShiftFinish(shift, shift.exampleId ? exampleFinish(shift.startedAt) : undefined)
     );
   }, [mutateShift, state.activeShift]);
 
@@ -261,6 +270,7 @@ export const DemoSessionProvider = ({
   const value = useMemo<DemoSessionContextValue>(
     () => ({
       ...state,
+      attachWorkSample,
       startDemoShift,
       requestDemoShiftFinish: requestFinish,
       finishDemoShift: requestFinish,
@@ -270,6 +280,7 @@ export const DemoSessionProvider = ({
       resetDemoSession,
     }),
     [
+      attachWorkSample,
       addDemoShiftComment,
       addDemoShiftPhoto,
       getDemoPhotoPreview,

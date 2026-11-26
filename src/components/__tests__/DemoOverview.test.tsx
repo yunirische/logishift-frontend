@@ -1,54 +1,37 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import DemoOverview from "../DemoOverview";
+import { DemoSessionProvider } from "../../context/DemoSessionContext";
+import { readDemoSession } from "../../lib/demoSession";
 import { recordCurrentDemoFunnelEvent } from "../../lib/demoFunnelEvents";
 
-vi.mock("../../lib/demoFunnelEvents", () => ({
-  recordCurrentDemoFunnelEvent: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock("../../context/AuthContext", () => ({ useAuth: () => ({user: {tenant_id: 999}}) }));
+vi.mock("../../lib/demoFunnelEvents", () => ({recordCurrentDemoFunnelEvent: vi.fn().mockResolvedValue(undefined)}));
 
-it("shows one prepared story without starting a workflow or firing callbacks on mount/rerender", () => {
-  const props = { onTryScenario: vi.fn(), onExploreCabinet: vi.fn(), registrationHref: "/register", onRegistrationClick: vi.fn() };
-  const { rerender } = render(<DemoOverview {...props} />);
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Одна смена — две стороны");
-  expect(screen.getByText("Демо LogiShift · Пример")).toBeVisible();
-  const scenes = within(screen.getByRole("list", { name: "Как действие водителя становится записью смены" })).getAllByRole("listitem").filter(item => item.parentElement?.tagName === "OL");
-  expect(scenes).toHaveLength(3);
-  for (const value of ["Алексей Смирнов", "КамАЗ 65115", "ЖК Северный"]) {
-    expect(scenes[0]).toHaveTextContent(value);
-    expect(scenes[2]).toHaveTextContent(value);
-  }
-  expect(screen.getByTestId("demo-overview-result")).toHaveTextContent("09:00");
-  expect(screen.getByTestId("demo-overview-result")).toHaveTextContent("На смене");
-  expect(screen.getByText("Фото начала приложено")).toBeVisible();
-  expect(screen.getByText("Фото и документы можно запрашивать по настройкам объекта.")).toBeVisible();
-  expect(screen.queryByText(/Ожидается фото/)).not.toBeInTheDocument();
-  const illustration = screen.getByTestId("demo-overview-start-illustration");
-  expect(illustration.tagName).toBe("DIV");
-  expect(illustration).not.toHaveAttribute("tabindex");
-  expect(screen.queryByRole("button", { name: "Начать смену" })).not.toBeInTheDocument();
-  fireEvent.click(illustration);
-  rerender(<DemoOverview {...props} />);
-  expect(recordCurrentDemoFunnelEvent).toHaveBeenCalledExactlyOnceWith("demo_overview_shown");
-  for (const callback of [props.onTryScenario, props.onExploreCabinet, props.onRegistrationClick]) expect(callback).not.toHaveBeenCalled();
-  expect(screen.queryByTestId("demo-scenario-entry")).not.toBeInTheDocument();
-  expect(screen.queryByTestId("demo-scenario-guide")).not.toBeInTheDocument();
-  expect(screen.queryByTestId("demo-product-tour")).not.toBeInTheDocument();
-  expect(document.querySelector("[data-synthetic-shift-id]")).toBeNull();
-});
-
-it("offers three explicit paths and invokes only the selected callback", () => {
-  const props = { onTryScenario: vi.fn(), onExploreCabinet: vi.fn(), registrationHref: "https://app.kontrolsmen.ru/register?registration_source=demo", onRegistrationClick: vi.fn() };
-  render(<DemoOverview {...props} />);
-  const paths = screen.getByRole("navigation", { name: "Что посмотреть дальше" });
-  expect(within(paths).getAllByRole("button")).toHaveLength(2);
-  fireEvent.click(screen.getByRole("button", { name: "Попробовать самому" }));
-  expect(props.onTryScenario).toHaveBeenCalledTimes(1);
-  expect(props.onExploreCabinet).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Посмотреть настоящий кабинет" }));
+it("shows a sample without starting a shift, resumes the selected industry and retains the completed record on replay", () => {
+  localStorage.clear();
+  const props = { onExploreCabinet: vi.fn(), registrationHref: "/register", onRegistrationClick: vi.fn() };
+  const mount = () => render(<DemoSessionProvider><DemoOverview {...props}/></DemoSessionProvider>);
+  const click = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
+  const first = mount();
+  expect(screen.getByText("Пример готового отчёта")).toBeVisible();
+  expect(readDemoSession(localStorage).activeShift).toBeNull();
+  expect(recordCurrentDemoFunnelEvent).not.toHaveBeenCalledWith("demo_owner_result_shown");
+  click("Автовышка");
+  click("Начать смену");
+  expect(screen.queryByRole("figure")).toBeNull();
+  click("Добавить образец фото");
+  first.unmount();
+  mount();
+  expect(screen.getByRole("img", {name:"Покрытие фасада восстановлено"})).toBeVisible();
+  click("Завершить смену");
+  const [shift] = readDemoSession(localStorage).finishedShifts;
+  expect(shift.exampleId).toBe("facade");
+  expect(Date.parse(shift.finishedAt!) - Date.parse(shift.startedAt)).toBe(270 * 60_000);
+  expect(recordCurrentDemoFunnelEvent).toHaveBeenCalledWith("demo_scenario_completed");
+  click("Повторить демонстрацию");
+  expect(screen.getByText("Пример готового отчёта")).toBeVisible();
+  expect(readDemoSession(localStorage).finishedShifts).toHaveLength(1);
+  click("Изучить кабинет");
   expect(props.onExploreCabinet).toHaveBeenCalledTimes(1);
-  const registration = screen.getByRole("link", { name: "Создать свою компанию" });
-  expect(registration).toHaveAttribute("href", props.registrationHref);
-  registration.addEventListener("click", event => event.preventDefault(), { once: true });
-  fireEvent.click(registration);
-  expect(props.onRegistrationClick).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("link", {name:"Начать бесплатно"})).toHaveAttribute("href","/register");
 });

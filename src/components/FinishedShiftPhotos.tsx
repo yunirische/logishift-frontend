@@ -1,3 +1,5 @@
+import DemoSamplePhoto from "./DemoSamplePhoto";
+import type { DemoExampleId } from "../lib/demoExamples";
 import React, { useContext, useEffect, useMemo, useRef } from "react";
 import {
   AlertCircle,
@@ -18,6 +20,7 @@ import {
 export type DemoAwareShift = Omit<Shift, "id"> & {
   id: number | string;
   is_demo_synthetic?: boolean;
+  workExample?: DemoExampleId;
 };
 
 type PhotoDraft = {
@@ -134,6 +137,7 @@ export const FinishedShiftPhotos: React.FC<FinishedShiftPhotosProps> = ({
       </div>
 
       <div className="space-y-2">
+        {isSyntheticDemoShift && shift.workExample && <DemoSamplePhoto exampleId={shift.workExample}/>}
         {slots.map((slot) => {
           const formKey = `${shift.id}:${slot.type}`;
           const isOpen = openFormKey === formKey;

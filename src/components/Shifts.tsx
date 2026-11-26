@@ -17,6 +17,9 @@ import { Shift, UserRole } from "../types";
 import { formatForDisplay } from "../utils/dateUtils";
 import { buildShiftQueryString } from "../utils/shiftFilters";
 
+import DemoSamplePhoto from "./DemoSamplePhoto";
+import type { DemoExampleId } from "../lib/demoExamples";
+
 const PAGE_SIZE = 20;
 
 const getDemoPhotoLabel = (type: DemoPhotoType): string => {
@@ -36,6 +39,7 @@ type DisplayShift = Omit<Shift, "id"> & {
   id: number | string;
   driver_id?: number | null;
   is_demo_synthetic?: boolean;
+  workExample?: DemoExampleId;
   demo_photo_metadata?: Partial<Record<DemoPhotoType, DemoPhotoMetadata>>;
 };
 
@@ -43,6 +47,7 @@ const projectDemoShiftForRegistry = (
   shift: DemoScenarioShift
 ): DisplayShift => ({
   id: shift.id,
+  workExample: shift.workSampleAdded ? shift.exampleId : undefined,
   driver_id: shift.driverId,
   driver_name: shift.driverName,
   truck_id:
@@ -1246,7 +1251,7 @@ const Shifts: React.FC<ShiftsProps> = ({
                                 Фотографии
                               </p>
                               <div className="mt-2 flex flex-wrap gap-2">
-                                {(
+                                {shift.workExample ? <DemoSamplePhoto exampleId={shift.workExample}/> : (
                                   Object.entries(
                                     shift.demo_photo_metadata || {}
                                   ) as Array<

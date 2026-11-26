@@ -88,6 +88,7 @@ const projectDemoShiftForDriver = (shift: DemoScenarioShift) => ({
     invoice: Boolean(shift.photos.invoice),
   },
   demo_photo_metadata: shift.photos,
+  workExample: shift.workSampleAdded ? shift.exampleId : undefined,
   is_demo_synthetic: true,
 });
 
@@ -162,7 +163,7 @@ export const DriverView: React.FC<DriverViewProps> = ({
   const visibleShiftHistory = isDemoMode
     ? [
         ...demoFinishedShifts
-          .filter((shift) => shift.driverId === effectiveDriverId)
+          .filter((shift) => shift.exampleId || shift.driverId === effectiveDriverId)
           .map(projectDemoShiftForDriver),
         ...shiftHistory,
       ]

@@ -4,6 +4,8 @@ import {
   MAX_PHOTO_FILE_BYTES,
 } from "../utils/photoFile";
 
+import { DemoExampleId, isDemoExample } from "./demoExamples";
+
 export const DEMO_SESSION_STORAGE_KEY = "logishift_demo_session_v2";
 export const LEGACY_DEMO_SESSION_STORAGE_KEY = "logishift_demo_session_v1";
 export const DEMO_SESSION_VERSION = 2;
@@ -29,6 +31,8 @@ export interface DemoPhotoMetadata {
 
 export interface DemoScenarioShift {
   id: string;
+  exampleId?: DemoExampleId;
+  workSampleAdded?: boolean;
   driverId: number | null;
   driverName: string;
   truckId: number | string;
@@ -187,6 +191,7 @@ const parseDemoScenarioShift = (value: unknown): DemoScenarioShift | null => {
   }
 
   return {
+    ...(isDemoExample(shift.exampleId) ? { exampleId: shift.exampleId, workSampleAdded: shift.workSampleAdded === true } : {}),
     id: shift.id,
     driverId: shift.driverId as number | null,
     driverName: shift.driverName,

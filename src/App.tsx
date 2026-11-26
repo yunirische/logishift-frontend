@@ -509,14 +509,12 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (isDemoMode && demoPresentation === "overview") {
+  const latestDemoShift = demoSession.activeShift || demoSession.finishedShifts[0];
+  if (isDemoMode && (demoPresentation === "overview" ||
+      (demoPresentation === "scenario" && latestDemoShift?.exampleId))) {
     return (
       <ErrorBoundary>
         <DemoOverview
-          onTryScenario={() => {
-            void recordCurrentDemoFunnelEvent("demo_driver_scenario_requested").catch(() => undefined);
-            handleSetDemoPersona("driver");
-          }}
           onExploreCabinet={handleExploreDemoCabinet}
           registrationHref={demoRegistrationHref || getDemoRegistrationUrl()}
           onRegistrationClick={() => {

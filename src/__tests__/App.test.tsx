@@ -244,12 +244,11 @@ describe("App protected routes", () => {
     expect(new URLSearchParams(window.location.search).has("enterDemo")).toBe(false);
     expect(new URLSearchParams(window.location.search).get("utm_source")).toBe("fixture");
     expect(window.location.hash).toBe("#section");
-    const registration = new URL(screen.getByRole("link", { name: "Создать свою компанию" }).getAttribute("href")!);
+    const registration = new URL(screen.getByRole("link", { name: "Начать бесплатно" }).getAttribute("href")!);
     expect(registration.searchParams.get("utm_source")).toBe("fixture");
-    fireEvent.click(screen.getByRole("button", { name: "Попробовать самому" }));
     first.unmount();
     render(<App />);
-    expect(screen.getByTestId("demo-scenario-entry")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Начать смену" })).toBeVisible();
   });
 
   it("shows overview on fresh entry/reload without mounting the scenario, dashboard or tour", () => {
@@ -260,34 +259,20 @@ describe("App protected routes", () => {
     expect(screen.queryByTestId("demo-scenario-entry")).not.toBeInTheDocument();
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
     expect(screen.queryByTestId("manual-demo-tour")).not.toBeInTheDocument();
-    expect(mockRecordEvent).toHaveBeenCalledExactlyOnceWith("demo_overview_shown");
+    expect(mockRecordEvent.mock.calls.filter(([event]) => event === "demo_overview_shown")).toHaveLength(1);
     first.unmount();
     render(<App />);
     expect(screen.getByTestId("demo-overview")).toBeVisible();
     // Remount may retry the request; the server unique index keeps one stored event.
-    expect(mockRecordEvent.mock.calls).toEqual([["demo_overview_shown"], ["demo_overview_shown"]]);
-  });
-
-  it("enters the deployed driver flow only after an explicit choice and resumes it before Start", () => {
-    clearDemoPresentation();
-    authenticateDemo();
-    const first = render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Попробовать самому" }));
-    expect(screen.getByTestId("demo-scenario-entry")).toBeVisible();
-    expect(mockRecordEvent.mock.calls).toEqual([["demo_overview_shown"], ["demo_driver_scenario_requested"]]);
-    first.unmount();
-    render(<App />);
-    expect(screen.getByTestId("demo-scenario-entry")).toBeVisible();
-    expect(screen.queryByTestId("demo-overview")).not.toBeInTheDocument();
-    expect(mockRecordEvent).toHaveBeenCalledTimes(2);
+    expect(mockRecordEvent.mock.calls.filter(([event]) => event === "demo_overview_shown")).toHaveLength(2);
   });
 
   it("opens the existing full cabinet/Tour before a shift and does not return to overview on reload", () => {
     clearDemoPresentation();
     authenticateDemo();
     const first = render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Посмотреть настоящий кабинет" }));
-    expect(mockRecordEvent.mock.calls).toEqual([["demo_overview_shown"], ["demo_cabinet_requested"]]);
+    fireEvent.click(screen.getByRole("button", { name: "Изучить кабинет" }));
+    expect(mockRecordEvent).toHaveBeenCalledWith("demo_cabinet_requested");
     expect(screen.getByTestId("manual-demo-tour")).toBeVisible();
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     first.unmount();
@@ -301,7 +286,7 @@ describe("App protected routes", () => {
     captureDemoRegistrationHandoff({ explicitEntry: true, search: "?utm_source=fixture&yclid=fixture" });
     authenticateDemo();
     const first = render(<App />);
-    const link = screen.getByRole("link", { name: "Создать свою компанию" });
+    const link = screen.getByRole("link", { name: "Начать бесплатно" });
     const url = new URL(link.getAttribute("href")!);
     expect(url.origin + url.pathname).toBe("https://app.kontrolsmen.ru/register");
     expect(url.searchParams.get("registration_source")).toBe("demo");
@@ -312,7 +297,7 @@ describe("App protected routes", () => {
     link.addEventListener("click", event => event.preventDefault(), { once: true });
     fireEvent.click(link);
     expect(mockRegistrationClick).toHaveBeenCalledTimes(1);
-    expect(mockRecordEvent).toHaveBeenCalledExactlyOnceWith("demo_overview_shown");
+    expect(mockRecordEvent.mock.calls.filter(([event]) => event === "demo_overview_shown")).toHaveLength(1);
     first.unmount();
     render(<App />);
     expect(screen.queryByTestId("demo-overview")).not.toBeInTheDocument();
@@ -470,7 +455,7 @@ describe("App protected routes", () => {
       expect(localStorage.getItem("demoPersona")).toBe("admin");
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Попробовать самому" }));
+    fireEvent.click(screen.getByRole("button", { name: "Изучить кабинет" }));
 
     fireEvent.click(
       screen.getByRole("button", { name: "Switch demo persona to driver" })
